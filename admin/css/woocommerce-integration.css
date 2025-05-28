@@ -1,0 +1,579 @@
+/* WOOCOMMERCE-INTEGRATION - SECTION */
+
+#woocommerce-integration-section {
+    background: #fff;
+    padding: 50px;
+    transition: all 0.3s ease;
+}
+
+/* Mobile Responsive Styles */
+@media screen and (max-width: 768px) {
+    #woocommerce-integration-section {
+        padding: 20px;
+    }
+}
+
+#woocommerce-integration-section h3 {
+    display: flex;
+    align-items: center;
+    margin: 0 0 20px;
+    font-size: 1.4em;
+    color: #3A4F66;
+}
+
+#woocommerce-integration-section h3 .dashicons {
+    margin-right: 12px; 
+    font-size: 28px; 
+    width: 28px; 
+    height: 28px;
+    background: linear-gradient(135deg, #6498FC, #0968FE);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 4px rgba(9, 104, 254, 0.1));
+}
+
+/* Form Elements Styling */
+#woocommerce-integration-section .form-table {
+    margin-top: 0;
+}
+
+#woocommerce-integration-section .form-table th {
+    padding: 20px 10px 20px 0;
+    width: 200px;
+    font-weight: 600;
+    color: #3A4F66;
+}
+
+#woocommerce-integration-section .form-table td {
+    padding: 20px 10px;
+}
+
+#woocommerce-integration-section select {
+    min-width: 200px;
+    padding: 8px 12px;
+    border: 1px solid #e2e4e7;
+    border-radius: 6px;
+    background-color: #fff;
+    color: #3A4F66;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+#woocommerce-integration-section select:hover {
+    border-color: #0968fe;
+}
+
+#woocommerce-integration-section select:focus {
+    border-color: #0968fe;
+    box-shadow: 0 0 0 1px #0968fe;
+    outline: none;
+}
+
+#woocommerce-integration-section .button {
+    padding: 8px 16px;
+    height: auto;
+    background: #fff;
+    border: 1px solid #0968fe;
+    color: #0968fe;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+#woocommerce-integration-section .button:hover {
+    background: #0968fe;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(9, 104, 254, 0.2);
+}
+
+#woocommerce-integration-section .button.button-primary {
+    background: #0968fe;
+    color: #fff;
+}
+
+#woocommerce-integration-section .button.button-primary:hover {
+    background: #0854cc;
+    border-color: #0854cc;
+}
+
+/* Toggle Switch */
+#woocommerce-integration-section .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+#woocommerce-integration-section .toggle-switch input[type="checkbox"] {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+#woocommerce-integration-section .toggle-switch .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #e2e4e7;
+    transition: .3s;
+    border-radius: 34px;
+}
+
+#woocommerce-integration-section .toggle-switch .slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#woocommerce-integration-section .toggle-switch input:checked + .slider {
+    background-color: #0968fe;
+}
+
+#woocommerce-integration-section .toggle-switch input:checked + .slider:before {
+    transform: translateX(24px);
+}
+
+#woocommerce-integration-section .toggle-switch:hover .slider:before {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+#woocommerce-integration-section label[for="woocommerce_integration_enabled"] {
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+#woocommerce-integration-status {
+    display: block;
+    padding: 5px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+#woocommerce-integration-section .woocommerce-integration-active {
+    color: #03B5AA;
+}
+
+#woocommerce-integration-section .description {
+    color: #3A4F66;
+    font-size: 13px;
+    margin-bottom: 25px;
+    line-height: 1.6;
+}
+
+#woocommerce-integration-section .description .note {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 4px 8px;
+    background-color: #fcf9e8;
+    border-left: 3px solid #dba617;
+    color: #3A4F66;
+    font-weight: 500;
+}
+
+/* INFO ICON */
+.info-icon {
+    margin-left: 8px;
+    vertical-align: middle;
+    color: #0968fe;
+    cursor: help;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(9, 104, 254, 0.1);
+    transition: all 0.2s ease;
+}
+
+.info-icon:hover {
+    background: rgba(9, 104, 254, 0.15);
+    transform: scale(1.05);
+}
+
+.info-icon::after {
+    visibility: hidden;
+    background-color: #fff;
+    color: #3A4F66;
+    text-align: left;
+    border-radius: 8px;
+    padding: 15px 18px;
+    position: absolute;
+    z-index: 1;
+    top: 150%;
+    left: 50%;
+    margin-left: -0px;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    font-size: 13px;
+    line-height: 1.5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    white-space: pre-wrap;
+    backdrop-filter: blur(10px);
+}
+
+.info-icon.tracking-number-info::after {
+    content: "Tracking Number:\A\A Automatically attempts to retrieve tracking numbers:\A\A • Supported plugins (AfterShip, Advanced Shipment Tracking, WooCommerce Shipment Tracking)\A\A • WooCommerce custom fields (using the name 'tracking_number')";
+    width: 400px;
+    white-space: pre-wrap;
+}
+
+.info-icon.customer-email-info::after {
+    content: "Important Privacy Notice:\A\A Customer email addresses are sensitive personal data. Only sync if:\A\A • Your privacy policy covers this usage\A • You comply with data protection laws (GDPR, etc.)\A\A Syncing customer emails with AI enables AI to provide order status updates using just the customer's email.";
+    width: 400px;
+    white-space: pre-wrap;
+}
+
+.info-icon:hover::after {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* PRODUCT DATA FIELDS */
+.collapsible-header {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    padding: 12px 8px;
+    background: #f8fafc;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    width: 90%;
+}
+
+.collapsible-header:hover {
+    background: #f0f2f5;
+}
+
+
+.collapsible-summary {
+    color: #646970;
+    font-size: 13px;
+    margin: 12px 0;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-radius: 6px;
+    border-left: 3px solid #0968fe;
+}
+
+.product-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    .product-fields-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .product-fields-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.product-field-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.product-field-option:hover {
+    background: rgba(9, 104, 254, 0.05);
+}
+
+.status-message {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 10px;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.status-message.status-success {
+    color: #047857;
+    background: #ecfdf5;
+}
+
+.status-message.status-error {
+    color: #be123c;
+    background: #fff1f2;
+}
+
+.status-message.status-info {
+    color: #0369a1;
+    background: #f0f9ff;
+}
+
+
+/* ORDER DATA FIELDS */
+.order-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    .order-fields-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .order-fields-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.order-field-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.order-field-option:hover {
+    background: rgba(9, 104, 254, 0.05);
+}
+
+
+
+/* DOWNLOAD FILES OPTION */
+#woocommerce-integration-content .download-files-option td {
+    background: #f8fafc!important;
+}
+
+
+/* LIST SECTIONS */
+.woocommerce-files-section {
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 8px;
+    margin-top: 30px;
+}
+
+.woocommerce-files-section h3 {
+    margin-top: 0;
+    color: #3A4F66;
+}
+
+#woocommerce-files-list {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+}
+
+#woocommerce-files-list li {
+    padding: 18px;
+    margin-bottom: 15px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    position: relative;
+}
+
+#woocommerce-files-list li:hover {
+    border-color: #0968fe;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-1px);
+}
+
+#woocommerce-files-list .qa-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-right: 10px;
+    transition: all 0.2s ease;
+}
+
+#woocommerce-files-list .qa-status.active {
+    background-color: rgba(3, 181, 170, 0.1);
+    color: #03B5AA;
+}
+
+#woocommerce-files-list .qa-status.active::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #03B5AA;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(3, 181, 170, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(3, 181, 170, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(3, 181, 170, 0);
+    }
+}
+
+#woocommerce-files-list .qa-status.disabled {
+    background-color: #f8fafc;
+    color: #6c757d;
+}
+
+#woocommerce-files-list .qa-status.disabled::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #6c757d;
+    border-radius: 50%;
+}
+
+#woocommerce-files-list .file-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+#woocommerce-files-list .file-name {
+    font-weight: 500;
+    color: #3A4F66;
+}
+
+#woocommerce-files-list .file-meta {
+    color: #646970;
+    font-size: 0.9em;
+}
+
+#woocommerce-files-list .delete-woo-file {
+    background: none;
+    border: none;
+    color: #3A4F66;
+    cursor: pointer;
+    font-size: 24px;
+    padding: 8px;
+    width: 36px;
+    height: 36px;
+    line-height: 1;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#woocommerce-files-list .delete-woo-file:hover {
+    color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+#woocommerce-files-list .empty-list {
+    color: #3A4F66;
+    font-style: italic;
+    text-align: center;
+    padding: 35px;
+    background: #f8fafc;
+    border: 2px dashed #e2e8f0;
+    border-radius: 6px;
+}
+
+#woocommerce-files-list .empty-list:hover {
+    border-color: #0968fe;
+    background: #fff;
+}
+
+#woocommerce-files-list .loading {
+    text-align: center;
+    padding: 20px;
+    color: #0968FE;
+    letter-spacing: 1.5px;
+    font-style: italic;
+}
+
+/* STATUS MESSAGES */
+.woocommerce-integration-loading {
+    color: #0968fe;
+    background-color: rgba(9, 104, 254, 0.1);
+    margin-left: 10px;
+}
+
+#sync_status,
+#product_fields_status,
+#order_fields_status,
+#download_status,
+#orders_download_status {
+
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    display: inline-block;
+}
+
+.status-info,
+.status-loading,
+.status-processing {
+    color: #0968fe;
+    background-color: rgba(9, 104, 254, 0.1);
+    margin-left: 10px;
+}
+
+.status-success {
+    color: #03B5AA;
+    background-color: rgba(3, 181, 170, 0.1);
+    margin-left: 10px;
+}
+
+.status-error {
+    color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+    margin-left: 10px;
+}
+
+.status-warning {
+    color: #856404;
+    background-color: rgba(133, 100, 4, 0.1);
+    margin-left: 10px;
+}
