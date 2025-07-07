@@ -23,19 +23,14 @@ class WPiko_Chatbot_Pro_GitHub_Config {
      */
     public static function get_config() {
         return array(
-            // GitHub repository owner (your username or organization)
+            // GitHub repository owner
             'github_user' => 'WPiko',
             
             // GitHub repository name
             'github_repo' => 'wpiko-chatbot-pro',
             
-            // GitHub Personal Access Token
-            // Generate at: https://github.com/settings/personal-access-tokens/new
-            // Required permissions: Contents (Read) for private repos
-            'github_token' => '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',
-            
             // Repository type (public or private)
-            'repo_type' => 'private',
+            'repo_type' => 'public',
             
             // Update check frequency (in hours)
             'check_frequency' => 12,
@@ -53,10 +48,10 @@ class WPiko_Chatbot_Pro_GitHub_Config {
     public static function validate_config() {
         $config = self::get_config();
         
-        // Check required fields
-        $required_fields = array('github_user', 'github_repo', 'github_token');
+        // Check required fields (token not required for public repos)
+        $required_fields = array('github_user', 'github_repo');
         foreach ($required_fields as $field) {
-            if (empty($config[$field]) || $config[$field] === 'your-github-username' || $config[$field] === 'your-github-personal-access-token') {
+            if (empty($config[$field]) || $config[$field] === 'your-github-username') {
                 return new WP_Error('missing_config', "GitHub configuration field '{$field}' is not properly set.");
             }
         }
@@ -74,9 +69,9 @@ class WPiko_Chatbot_Pro_GitHub_Config {
         
         $url = "https://api.github.com/repos/{$config['github_user']}/{$config['github_repo']}";
         
+        // Setup request args - no authentication needed for public repos
         $args = array(
             'headers' => array(
-                'Authorization' => 'token ' . $config['github_token'],
                 'Accept' => 'application/vnd.github.v3+json',
                 'User-Agent' => 'WPiko-Chatbot-Pro-Updater'
             ),
@@ -93,30 +88,10 @@ class WPiko_Chatbot_Pro_GitHub_Config {
         
         if ($response_code === 200) {
             return true;
-        } elseif ($response_code === 401) {
-            return new WP_Error('invalid_token', 'GitHub token is invalid or expired.');
         } elseif ($response_code === 404) {
-            return new WP_Error('repo_not_found', 'GitHub repository not found or access denied.');
+            return new WP_Error('repo_not_found', 'GitHub repository not found. Please check the repository name and ensure it is public.');
         } else {
             return new WP_Error('api_error', "GitHub API returned status code: {$response_code}");
         }
     }
 }
-
-// Example of how to set up your configuration:
-/*
-1. Replace 'your-github-username' with your actual GitHub username
-2. Replace 'your-github-personal-access-token' with your actual token
-3. If your repository name is different, update 'github_repo'
-
-To generate a GitHub Personal Access Token:
-1. Go to https://github.com/settings/personal-access-tokens/new
-2. Give it a descriptive name like "WPiko Chatbot Pro Updates"
-3. Set expiration (recommended: 1 year)
-4. For private repos, select: Repository access > Selected repositories > your-repo
-5. Under "Repository permissions", set "Contents" to "Read"
-6. Click "Generate token" and copy the token
-
-Security Note: Never commit your actual token to version control.
-Consider using environment variables or WordPress constants for production.
-*/

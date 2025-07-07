@@ -17,14 +17,14 @@ if (!defined('ABSPATH')) {
 function wpiko_chatbot_pro_github_status_widget() {
     $status = wpiko_chatbot_pro_get_github_status();
     ?>
-    <div class="wpiko-github-status-widget" style="background: #fff; border: 1px solid #ccd0d4; border-radius: 4px; padding: 15px; margin-bottom: 20px;">
-        <h3 style="margin-top: 0; color: #23282d;">
-            <span class="dashicons dashicons-update" style="margin-right: 5px;"></span>
+    <div class="wpiko-github-status-widget">
+        <h3>
+            <span class="dashicons dashicons-update"></span>
             GitHub Update System
         </h3>
         
         <?php if (!$status['config_valid']): ?>
-            <div style="padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; margin-bottom: 15px;">
+            <div class="github-config-required">
                 <strong>Configuration Required:</strong>
                 <p style="margin: 5px 0 0 0;">
                     <?php echo esc_html($status['config_error']); ?><br>
@@ -32,14 +32,14 @@ function wpiko_chatbot_pro_github_status_widget() {
                 </p>
             </div>
         <?php elseif (!$status['connection_valid']): ?>
-            <div style="padding: 10px; background: #f8d7da; border-left: 4px solid #dc3545; margin-bottom: 15px;">
+            <div class="github-connection-error">
                 <strong>Connection Error:</strong>
                 <p style="margin: 5px 0 0 0;">
                     <?php echo esc_html($status['connection_error']); ?>
                 </p>
             </div>
         <?php else: ?>
-            <div style="padding: 10px; background: #d1edff; border-left: 4px solid #0073aa; margin-bottom: 15px;">
+            <div class="github-connection-active">
                 <strong>✓ GitHub connection is active</strong>
                 <p style="margin: 5px 0 0 0;">
                     Automatic updates are working correctly.
@@ -47,43 +47,78 @@ function wpiko_chatbot_pro_github_status_widget() {
             </div>
             
             <?php if ($status['update_available']): ?>
-                <div style="padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; margin-bottom: 15px;">
+                <div class="github-update-available">
                     <strong>Update Available!</strong>
                     <p style="margin: 5px 0 0 0;">
                         A new version is available. 
-                        <a href="<?php echo admin_url('update-core.php'); ?>">Check for updates</a>
+                        <a href="<?php echo esc_url(admin_url('update-core.php')); ?>">Check for updates</a>
                     </p>
                 </div>
             <?php else: ?>
-                <p style="color: #46b450; margin: 0;">
-                    <span class="dashicons dashicons-yes-alt" style="margin-right: 5px;"></span>
+                <p class="github-status-up-to-date">
+                    <span class="dashicons dashicons-yes-alt"></span>
                     Your plugin is up to date.
                 </p>
             <?php endif; ?>
         <?php endif; ?>
         
-        <div style="border-top: 1px solid #e1e1e1; padding-top: 10px; margin-top: 15px;">
-            <p style="margin: 0; color: #666; font-size: 12px;">
-                Current Version: <strong><?php echo WPIKO_CHATBOT_PRO_VERSION; ?></strong> | 
-                <a href="#" onclick="wpikoChatbotProForceUpdateCheck(); return false;">Force Update Check</a>
+        <div class="github-status-footer">
+            <p class="github-status-version-info">
+                Current Version: <strong><?php echo esc_html(WPIKO_CHATBOT_PRO_VERSION); ?></strong> | 
+                <a href="#" onclick="wpikoChatbotProForceUpdateCheck(); return false;" id="force-update-link">Force Update Check</a>
             </p>
+            <div id="github-update-check-result"></div>
         </div>
     </div>
     
     <script>
     function wpikoChatbotProForceUpdateCheck() {
         if (confirm('This will force a check for updates. Continue?')) {
+            var $link = jQuery('#force-update-link');
+            var $result = jQuery('#github-update-check-result');
+            
+            // Show loading state
+            $link.text('Checking...');
+            $result.removeClass('github-update-success-message github-update-error-message')
+                   .text('Checking for updates...')
+                   .show();
+            
             var data = {
                 action: 'wpiko_chatbot_pro_force_update_check',
-                nonce: '<?php echo wp_create_nonce('wpiko_chatbot_pro_update_check'); ?>'
+                nonce: '<?php echo esc_attr(wp_create_nonce('wpiko_chatbot_pro_update_check')); ?>'
             };
             
-            jQuery.post(ajaxurl, data, function(response) {
-                if (response.success) {
-                    location.reload();
-                } else {
-                    alert('Update check failed: ' + (response.data || 'Unknown error'));
-                }
+            jQuery.post('<?php echo esc_url(admin_url('admin-ajax.php')); ?>', data, function(response) {
+                setTimeout(function() {
+                    $link.text('Force Update Check');
+                    $result.removeClass('github-update-success-message github-update-error-message');
+                    
+                    if (response.success) {
+                        $result.text(response.data.message || 'Update check completed successfully!')
+                               .addClass('github-update-success-message');
+                        
+                        // Auto-hide success message after 5 seconds and reload if update available
+                        setTimeout(function() {
+                            $result.fadeOut();
+                            if (response.data.update_available) {
+                                location.reload();
+                            }
+                        }, 5000);
+                    } else {
+                        var errorMessage = response.data && response.data.message ? 
+                                         response.data.message : 
+                                         (response.data || 'Update check failed. Please try again.');
+                        $result.text(errorMessage)
+                               .addClass('github-update-error-message');
+                    }
+                }, 500);
+            }).fail(function() {
+                setTimeout(function() {
+                    $link.text('Force Update Check');
+                    $result.removeClass('github-update-success-message github-update-error-message')
+                           .text('Network error. Please check your connection and try again.')
+                           .addClass('github-update-error-message');
+                }, 500);
             });
         }
     }
@@ -94,24 +129,68 @@ function wpiko_chatbot_pro_github_status_widget() {
 /**
  * AJAX handler for force update check
  */
+/**
+ * AJAX handler for forcing update checks
+ */
 function wpiko_chatbot_pro_ajax_force_update_check() {
     // Verify nonce
-    if (!wp_verify_nonce($_POST['nonce'], 'wpiko_chatbot_pro_update_check')) {
-        wp_die('Security check failed');
+    $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+    if (!wp_verify_nonce($nonce, 'wpiko_chatbot_pro_update_check')) {
+        wp_send_json_error(array('message' => 'Security check failed. Please refresh the page and try again.'));
     }
     
     // Check permissions
     if (!current_user_can('manage_options')) {
-        wp_die('Insufficient permissions');
+        wp_send_json_error(array('message' => 'Insufficient permissions. Administrator access required.'));
+    }
+    
+    // Check if helper function exists
+    if (!function_exists('wpiko_chatbot_pro_force_update_check')) {
+        wp_send_json_error(array('message' => 'Update helper function not available. Please check plugin installation.'));
+    }
+    
+    // Check if updater is available
+    $updater = wpiko_chatbot_pro_get_github_updater();
+    if (!$updater) {
+        wp_send_json_error(array('message' => 'GitHub updater not initialized. Please check configuration.'));
     }
     
     // Force update check
     $result = wpiko_chatbot_pro_force_update_check();
     
     if ($result) {
-        wp_send_json_success('Update check completed');
+        // Check if an update is available after clearing cache
+        $update_available = wpiko_chatbot_pro_is_update_available();
+        $latest_version_info = wpiko_chatbot_pro_get_latest_version_info();
+        
+        if ($update_available && $latest_version_info) {
+            $current_version = WPIKO_CHATBOT_PRO_VERSION;
+            $latest_version = isset($latest_version_info['tag_name']) ? ltrim($latest_version_info['tag_name'], 'v') : 'Unknown';
+            
+            wp_send_json_success(array(
+                'message' => "Update check completed! New version {$latest_version} is available (current: {$current_version}). The page will reload to show the update.",
+                'update_available' => true,
+                'current_version' => $current_version,
+                'latest_version' => $latest_version
+            ));
+        } else {
+            wp_send_json_success(array(
+                'message' => 'Update check completed successfully. Your plugin is up to date!',
+                'update_available' => false,
+                'current_version' => WPIKO_CHATBOT_PRO_VERSION
+            ));
+        }
     } else {
-        wp_send_json_error('Update check failed');
+        // Get GitHub status for more detailed error information
+        $github_status = wpiko_chatbot_pro_get_github_status();
+        
+        if (!$github_status['config_valid']) {
+            wp_send_json_error(array('message' => 'GitHub configuration error: ' . $github_status['config_error']));
+        } elseif (!$github_status['connection_valid']) {
+            wp_send_json_error(array('message' => 'GitHub connection error: ' . $github_status['connection_error']));
+        } else {
+            wp_send_json_error(array('message' => 'Update check failed. Please check your GitHub configuration and try again.'));
+        }
     }
 }
 add_action('wp_ajax_wpiko_chatbot_pro_force_update_check', 'wpiko_chatbot_pro_ajax_force_update_check');

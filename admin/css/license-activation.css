@@ -1,0 +1,181 @@
+/* TAB - LICENSE ACTIVATION */
+.license-activation-section {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(58, 79, 102, 0.08);
+}
+
+.wpiko-chatbot-check-button {
+    margin-top: 20px!important;
+}
+
+#wpiko-delete-license {
+    color: #dc3545!important;
+    border-color: #dc3545!important;
+    padding: 8px 16px !important;
+    font-weight: 500;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+    display: inline-flex !important;
+    align-items: center;
+}
+
+#wpiko-delete-license .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    margin-right: 5px;
+    display: inline-flex;
+    align-items: center;
+}
+
+#wpiko-delete-license:hover {
+    background: #dc3545 !important;
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+}
+
+.license-status {
+    font-weight: bold;
+    font-style: italic;
+}
+
+.license-status.active {
+    color: #03B5AA;
+}
+
+.license-status.expired {
+    color: #dc3545;
+}
+
+.license-status.inactive {
+    color: #ffb900;
+}
+
+/* Success/Error Messages */
+#wpiko-chatbot-license-check-result {
+margin-top: 26px;
+margin-left: 15px;
+    padding: 15px;
+    border-radius: 8px;
+    display: inline-block;
+    font-size: 13px;
+    font-style: italic;
+}
+
+.license-success-message {
+    color: #03B5AA;
+    background-color: rgba(3, 181, 170, 0.1);
+}
+
+.license-error-message {
+    color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+
+/* GitHub Status Widget */
+.wpiko-github-status-widget {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(58, 79, 102, 0.08);
+    margin-top: 20px;
+}
+
+.wpiko-github-status-widget h3 {
+    margin-top: 0;
+    color: #23282d;
+}
+
+.wpiko-github-status-widget h3 .dashicons {
+    margin-right: 5px;
+}
+
+.wpiko-github-status-widget .github-config-required {
+    padding: 10px;
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    margin-bottom: 15px;
+}
+
+.wpiko-github-status-widget .github-connection-error {
+    padding: 10px;
+    background: #f8d7da;
+    border-left: 4px solid #dc3545;
+    margin-bottom: 15px;
+}
+
+.wpiko-github-status-widget .github-connection-active {
+    padding: 10px;
+    background: #d1edff;
+    border-left: 4px solid #0073aa;
+    margin-bottom: 15px;
+}
+
+.wpiko-github-status-widget .github-update-available {
+    padding: 10px;
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    margin-bottom: 15px;
+}
+
+.wpiko-github-status-widget .github-status-up-to-date {
+    color: #46b450;
+    margin: 0;
+}
+
+.wpiko-github-status-widget .github-status-up-to-date .dashicons {
+    margin-right: 5px;
+}
+
+.wpiko-github-status-widget .github-status-footer {
+    border-top: 1px solid #e1e1e1;
+    padding-top: 10px;
+    margin-top: 15px;
+}
+
+.wpiko-github-status-widget .github-status-version-info {
+    margin: 0;
+    color: #666;
+    font-size: 12px;
+}
+
+/* GitHub Update Check Messages */
+#github-update-check-result {
+    padding: 12px 15px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+    animation: fadeIn 0.3s ease;
+    margin-top: 10px;
+    display: none;
+}
+
+.github-update-success-message {
+    color: #03B5AA;
+    background-color: rgba(3, 181, 170, 0.1);
+    border-color: rgba(3, 181, 170, 0.2);
+}
+
+.github-update-error-message {
+    color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+    border-color: rgba(220, 53, 69, 0.2);
+}
+
+/* Fade in animation for messages */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

@@ -13,7 +13,6 @@ function wpiko_chatbot_license_activation_page() {
         if (!isset($_POST['wpiko_chatbot_license_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['wpiko_chatbot_license_nonce'])), 'wpiko_chatbot_license_action')) {
             // If nonce verification fails, display an error message
             echo '<div class="error"><p>Security check failed. Please try again.</p></div>';
-            wpiko_chatbot_log('Nonce verification failed in license activation page', 'warning');
         } else {
             // Only process the form data if nonce verification passes
             $license_key = sanitize_text_field(wp_unslash($_POST['wpiko_chatbot_license_key']));
@@ -50,20 +49,20 @@ function wpiko_chatbot_license_activation_page() {
                         $activate_data = json_decode(wp_remote_retrieve_body($activate_response), true);
                         if (isset($activate_data['activated']) && $activate_data['activated']) {
                             // Proceed with saving license data
-                            $encrypted_license_key = wpiko_chatbot_encrypt_data($license_key);
+                            $encrypted_license_key = wpiko_chatbot_pro_encrypt_data($license_key);
                             update_option('wpiko_chatbot_license_key', $encrypted_license_key);
-                            $encrypted_active = wpiko_chatbot_encrypt_data('active');
+                            $encrypted_active = wpiko_chatbot_pro_encrypt_data('active');
                             update_option('wpiko_chatbot_license_status', $encrypted_active);
                             update_option('wpiko_chatbot_license_domain', $domain);
                             update_option('wpiko_chatbot_license_product_type', 'chatbot');
                             update_option('wpiko_chatbot_license_source_domain', wp_parse_url($verify_url, PHP_URL_HOST));
 
                             if (isset($activate_data['expiration_date'])) {
-                                $encrypted_expiration = wpiko_chatbot_encrypt_data($activate_data['expiration_date']);
+                                $encrypted_expiration = wpiko_chatbot_pro_encrypt_data($activate_data['expiration_date']);
                                 update_option('wpiko_chatbot_license_expiration', $encrypted_expiration);
                             }
                             if (isset($activate_data['is_lifetime']) && $activate_data['is_lifetime']) {
-                                $encrypted_lifetime = wpiko_chatbot_encrypt_data('1');
+                                $encrypted_lifetime = wpiko_chatbot_pro_encrypt_data('1');
                                 update_option('wpiko_chatbot_license_is_lifetime', $encrypted_lifetime);
                             }
                             if (isset($activate_data['source_domain'])) {
@@ -88,7 +87,7 @@ function wpiko_chatbot_license_activation_page() {
     }
 
     $encrypted_license_key = get_option('wpiko_chatbot_license_key', '');
-    $decrypted_license_key = wpiko_chatbot_decrypt_data($encrypted_license_key);
+    $decrypted_license_key = wpiko_chatbot_pro_decrypt_data($encrypted_license_key);
     $masked_license_key = '';
 
     if (!empty($decrypted_license_key)) {
@@ -98,11 +97,11 @@ function wpiko_chatbot_license_activation_page() {
     }
 
     $encrypted_status = get_option('wpiko_chatbot_license_status', '');
-    $license_status = $encrypted_status ? wpiko_chatbot_decrypt_data($encrypted_status) : 'inactive';
+    $license_status = $encrypted_status ? wpiko_chatbot_pro_decrypt_data($encrypted_status) : 'inactive';
     $encrypted_expiration = get_option('wpiko_chatbot_license_expiration', '');
-    $license_expiration = wpiko_chatbot_decrypt_data($encrypted_expiration);
+    $license_expiration = wpiko_chatbot_pro_decrypt_data($encrypted_expiration);
     $encrypted_lifetime = get_option('wpiko_chatbot_license_is_lifetime', '');
-    $is_lifetime = wpiko_chatbot_decrypt_data($encrypted_lifetime) === '1';
+    $is_lifetime = wpiko_chatbot_pro_decrypt_data($encrypted_lifetime) === '1';
 
     // Generate nonces for AJAX requests
     $delete_nonce = wp_create_nonce('wpiko_chatbot_delete_license');
@@ -128,7 +127,7 @@ function wpiko_chatbot_license_activation_page() {
         <?php endif; ?>
         <?php if ($license_status === 'expired'): ?>
             <div class="notice notice-error">
-                <p><?php esc_html_e('Your license has expired. Please renew to continue using all features of the plugin.', 'wpiko-chatbot'); ?></p>
+                <p><?php esc_html_e('Your license has expired. Please renew to continue using all features of the plugin.', 'wpiko-chatbot-pro'); ?></p>
             </div>
         <?php endif; ?>
         <form method="post" action="">
@@ -179,7 +178,7 @@ function wpiko_chatbot_license_activation_page() {
         </form>
         <?php if (in_array($license_status, ['active', 'expired'])): ?>
             <button id="wpiko-chatbot-manual-license-check" class="button button-primary wpiko-chatbot-check-button">
-                <?php esc_html_e('Refresh License', 'wpiko-chatbot'); ?>
+                <?php esc_html_e('Refresh License', 'wpiko-chatbot-pro'); ?>
             </button>
             <span id="wpiko-chatbot-license-check-result"></span>
         <?php endif; ?>
@@ -194,7 +193,7 @@ function wpiko_chatbot_license_activation_page() {
     
     // Ensure the status is always stored encrypted
     if ($license_status !== 'inactive') {
-        $encrypted_status = wpiko_chatbot_encrypt_data($license_status);
+        $encrypted_status = wpiko_chatbot_pro_encrypt_data($license_status);
         update_option('wpiko_chatbot_license_status', $encrypted_status);
     }
     

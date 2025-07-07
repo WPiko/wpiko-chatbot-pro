@@ -1,0 +1,76 @@
+/* TAB - CONTACT FORM SETTINGS */
+.chatbot-contact-form-section {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(58, 79, 102, 0.08);
+}
+
+.chatbot-contact-form-section form > .form-table  {
+    background: #fbfbfb;
+    border: 1px solid #EFF2F6;
+}
+
+/* Contact Form Collapsible Settings */
+.contact-form-settings-collapsible {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    max-height: 0;
+}
+
+.contact-form-settings-collapsible.active {
+    max-height: 3000px;
+}
+
+/* remove border from */
+.enable-form-dropdown-row,
+.enable-google-recaptcha-row,
+.recaptcha-site-key-row,
+.recaptcha-secret-key-row  {
+    border-bottom: 2px solid #ffffff;
+}
+
+/* Instructions cCollapsible Link */
+.instructions-link-collapsible {
+    position: relative;
+}
+
+.collapsible-header {
+    background: #f0f0f0;
+    border: none;
+    padding: 10px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.collapsible-header:hover {
+    background: #e0e0e0;
+}
+
+.collapsible-header::after {
+    content: '▼';
+    float: right;
+    transition: transform 0.3s ease;
+}
+
+.collapsible-header.active::after {
+    transform: rotate(180deg);
+}
+
+.collapsible-content {
+    display: none;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+}
+
+.collapsible-content.active {
+    display: block;
+}
+
+.instruction-content {
+    margin: 10px 0;
+}

@@ -251,15 +251,15 @@
     align-items: center;
     justify-content: space-between;
     font-weight: 600;
-    padding: 12px 8px;
-    background: #f8fafc;
+    padding: 12px 8px!important;
+    background: #f8fafc!important;
     border-radius: 8px;
     transition: all 0.2s ease;
-    width: 90%;
+    width: 90%!important;
 }
 
 .collapsible-header:hover {
-    background: #f0f2f5;
+    background: #f0f2f5!important;
 }
 
 

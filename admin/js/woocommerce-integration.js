@@ -740,6 +740,45 @@ jQuery(document).ready(function($) {
     $(document).on('woocommerceIntegrationLoaded', initializeWooCommerceIntegration);
     initializeWooCommerceIntegration();
 
+    // Add click handler for WooCommerce integration button
+    $(document).on('click', '#woocommerce-integration-button', function() {
+        // Check if WooCommerce is active
+        if (typeof wpikoChatbot !== 'undefined' && wpikoChatbot.is_woocommerce_active === false) {
+            alert('WooCommerce is not active. Please install and activate WooCommerce to use this feature.');
+            return;
+        }
+        
+        // Show the modal
+        $('#woocommerce-integration-modal').fadeIn();
+        
+        // Load WooCommerce integration content if not already loaded
+        var $container = $('#woocommerce-integration-container');
+        if ($container.is(':empty')) {
+            $container.html('<div class="loading">Loading WooCommerce Integration...</div>');
+            
+            $.ajax({
+                url: wpikoChatbot.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'wpiko_chatbot_load_woocommerce_integration',
+                    security: wpikoChatbot.nonce
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $container.html(response.data);
+                        // Trigger custom event to initialize WooCommerce integration
+                        $(document).trigger('woocommerceIntegrationLoaded');
+                    } else {
+                        $container.html('<div class="error">Failed to load WooCommerce Integration.</div>');
+                    }
+                },
+                error: function() {
+                    $container.html('<div class="error">Error loading WooCommerce Integration.</div>');
+                }
+            });
+        }
+    });
+
     // Make functions available globally
     window.wpikoChatbotWooCommerce = {
         initializeWooCommerceIntegration: initializeWooCommerceIntegration,

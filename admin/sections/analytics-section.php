@@ -279,8 +279,9 @@ function wpiko_chatbot_analytics_section() {
             <div class="no-data-message">
                 <p>No conversations found for the selected date range</p>
             </div>
-        <?php else: ?>
+        <?php endif; ?>
 
+        <?php if ($has_data): ?>
         <!-- Basic Analytics Cards (Available to all users) -->
         <div class="analytics-grid">
             <div class="analytics-card highlight-card">
@@ -338,6 +339,7 @@ function wpiko_chatbot_analytics_section() {
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <?php if ($is_premium): ?>
             <!-- Premium Analytics Section -->
@@ -643,40 +645,41 @@ function wpiko_chatbot_analytics_section() {
     </div>
    
     </div>
-    <?php else: ?>
-        <?php 
-            $license_status = wpiko_chatbot_decrypt_data(get_option('wpiko_chatbot_license_status', ''));
-            $is_license_expired = $license_status === 'expired';
-            
-                if ($is_license_expired): ?>
-                    <div class="premium-feature-notice">
-                        <h3>🔒 Analytics Dashboard Disabled</h3>
-                        <p>Your license has expired. Advanced analytics features have been disabled.</p>
-                        <p>Renew your license to regain access to:</p>
-                        <ul>
-                            <li>📊 Detailed Message Activity Graphs</li>
-                            <li>📍 User Location Insights</li>
-                            <li>📱 Device Usage Statistics</li>
-                            <li>⏰ Peak Activity Hours</li>
-                            <li>📈 Custom Date Range Analysis</li>
-                        </ul>
-                        <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Renew License</a>
-                    </div>
-                <?php else: ?>
-                    <div class="premium-feature-notice">
-                        <h3>📈 Unlock Advanced Analytics</h3>
-                        <p>Upgrade to Premium to access:</p>
-                        <ul>
-                            <li>✨ Real-time Message Activity Tracking</li>
-                            <li>🌍 Global User Distribution Maps</li>
-                            <li>📱 Cross-device Usage Analytics</li>
-                            <li>⚡ Performance Metrics Dashboard</li>
-                            <li>🔄 Custom Date Range Filtering</li>
-                        </ul>
-                        <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Upgrade to Premium</a>
-                    </div>
-                <?php endif; ?>
-            <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if (!$is_premium): ?>
+            <?php 
+                $license_status = wpiko_chatbot_decrypt_data(get_option('wpiko_chatbot_license_status', ''));
+                $is_license_expired = $license_status === 'expired';
+                
+                    if ($is_license_expired): ?>
+                        <div class="premium-feature-notice">
+                            <h3>🔒 Analytics Dashboard Disabled</h3>
+                            <p>Your license has expired. Advanced analytics features have been disabled.</p>
+                            <p>Renew your license to regain access to:</p>
+                            <ul>
+                                <li>📊 Detailed Message Activity Graphs</li>
+                                <li>📍 User Location Insights</li>
+                                <li>📱 Device Usage Statistics</li>
+                                <li>⏰ Peak Activity Hours</li>
+                                <li>📈 Custom Date Range Analysis</li>
+                            </ul>
+                            <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Renew License</a>
+                        </div>
+                    <?php else: ?>
+                        <div class="premium-feature-notice">
+                            <h3>📈 Unlock Advanced Analytics</h3>
+                            <p>Upgrade to Premium to access:</p>
+                            <ul>
+                                <li>✨ Real-time Message Activity Tracking</li>
+                                <li>🌍 Global User Distribution Maps</li>
+                                <li>📱 Cross-device Usage Analytics</li>
+                                <li>⚡ Performance Metrics Dashboard</li>
+                                <li>🔄 Custom Date Range Filtering</li>
+                            </ul>
+                            <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Upgrade to Premium</a>
+                        </div>
+                    <?php endif; ?>
         <?php endif; ?>
     
     <?php

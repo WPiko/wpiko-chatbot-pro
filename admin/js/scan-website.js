@@ -205,9 +205,12 @@ jQuery(document).ready(function($) {
                             'File uploaded successfully to Assistant API. <br>' +
                             '</span>'
                         );
+                        // Add a small delay to ensure cache cleanup completes before refreshing the list
                         if (typeof wpikoChatbotFileManagement !== 'undefined' && 
                             typeof wpikoChatbotFileManagement.refreshUrlProcessingFileList === 'function') {
-                            wpikoChatbotFileManagement.refreshUrlProcessingFileList();
+                            setTimeout(function() {
+                                wpikoChatbotFileManagement.refreshUrlProcessingFileList();
+                            }, 500); // 500ms delay to allow cache cleanup to complete
                         }
                     } else {
                         $('#url-processing-status').append(
