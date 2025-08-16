@@ -6,6 +6,10 @@
     box-shadow: 0 2px 8px rgba(58, 79, 102, 0.08);
 }
 
+.chatbot-contact-form-section .description {
+    margin-bottom: 10px;
+}
+
 .chatbot-contact-form-section form > .form-table  {
     background: #fbfbfb;
     border: 1px solid #EFF2F6;

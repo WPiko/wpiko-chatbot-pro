@@ -31,6 +31,24 @@
     font-size: 16px;
     font-weight: 500;
     line-height: 1.4;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+#email-capture-overlay p {
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+/* Mobile responsive padding for email capture */
+@media (max-width: 768px) {
+    #email-capture-overlay h3 {
+        padding: 0 10px;
+    }
+    
+    #email-capture-overlay p {
+        padding: 0 10px;
+    }
 }
 
 #email-capture-overlay input[type="text"],

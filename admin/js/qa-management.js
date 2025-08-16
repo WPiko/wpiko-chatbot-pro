@@ -29,6 +29,7 @@ function initializeQaManagement() {
     
     // Initialize QA files list if it exists
     if ($("#qa-files-list").length) {
+        updateQAFileInfo();
         if (typeof wpikoChatbotFileManagement !== 'undefined' && 
             typeof wpikoChatbotFileManagement.refreshQAFileList === 'function') {
             wpikoChatbotFileManagement.refreshQAFileList();
@@ -68,6 +69,65 @@ function initializeQaManagement() {
             $qaStatus.empty().hide();
         }
 
+        // Update Q&A file information display
+        function updateQAFileInfo() {
+            var $qaPairsCount = $('#qa-pairs-count');
+            var $qaFileStatus = $('#qa-file-status');
+            var $qaFileUpdated = $('#qa-file-updated');
+            
+            // Update Q&A pairs count
+            $qaPairsCount.text(qaCount || '0');
+            
+            // Get detailed file information
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'wpiko_chatbot_get_qa_file_info',
+                    security: wpikoChatbotAdmin.nonce
+                },
+                success: function(response) {
+                    if (response.success) {
+                        var data = response.data;
+                        
+                        // Update pairs count
+                        $qaPairsCount.text(data.qa_count || '0');
+                        
+                        // Update file status
+                        if (data.has_file && data.qa_count > 0) {
+                            $qaFileStatus.text('Synchronized').addClass('status-active').removeClass('status-error status-syncing');
+                        } else if (data.qa_count > 0) {
+                            $qaFileStatus.text('Needs Sync').addClass('status-syncing').removeClass('status-active status-error');
+                        } else {
+                            $qaFileStatus.text('No Data').addClass('status-error').removeClass('status-active status-syncing');
+                        }
+                        
+                        // Update last updated time
+                        if (data.latest_update) {
+                            var date = new Date(data.latest_update);
+                            var now = new Date();
+                            var diffTime = Math.abs(now - date);
+                            var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            
+                            if (diffDays === 1) {
+                                $qaFileUpdated.text('Today');
+                            } else if (diffDays < 7) {
+                                $qaFileUpdated.text(diffDays + ' days ago');
+                            } else {
+                                $qaFileUpdated.text(date.toLocaleDateString());
+                            }
+                        } else {
+                            $qaFileUpdated.text('Never');
+                        }
+                    }
+                },
+                error: function() {
+                    $qaFileStatus.text('Error').addClass('status-error').removeClass('status-active status-syncing');
+                    $qaFileUpdated.text('Unknown');
+                }
+            });
+        }
+
         // Load existing Q&A pairs
         function loadQaPairs() {
             showStatus('Loading Q&A pairs...', 'processing');
@@ -93,6 +153,7 @@ function initializeQaManagement() {
                             clearStatus(); // Clear the loading status when no pairs found
                         }
                         updateButtonStates();
+                        updateQAFileInfo(); // Update file info after loading
                     } else {
                         showStatus('Error loading Q&A pairs: ' + response.data.message, 'error');
                     }
@@ -177,6 +238,7 @@ function initializeQaManagement() {
                     if (response.success) {
                         showStatus('All Q&A pairs saved and file generated successfully.', 'success');
                         loadQaPairs();
+                        updateQAFileInfo(); // Update file info after saving
                         if (typeof wpikoChatbotFileManagement !== 'undefined' && 
                             typeof wpikoChatbotFileManagement.refreshQAFileList === 'function') {
                             wpikoChatbotFileManagement.refreshQAFileList();
@@ -221,6 +283,7 @@ function initializeQaManagement() {
                             $qaList.empty();
                             qaCount = 0;
                             updateButtonStates();
+                            updateQAFileInfo(); // Update file info after deletion
                             showStatus('All Q&A pairs deleted successfully.', 'success');
                         
                             if (typeof wpikoChatbotFileManagement !== 'undefined' && 

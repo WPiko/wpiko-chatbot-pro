@@ -60,9 +60,31 @@ if (!defined('ABSPATH')) {
                 </div>      
                 <div id="qa-list"></div>
                 
-                <h3>Q&A Files List</h3>
-                <p class="description">View and manage your Q&A files uploaded to the Assistant API's knowledge base.</p>
-                <ul id="qa-files-list"></ul>
+                <div class="qa-file-section">
+                    <h3>
+                        Q&A Knowledge Base File
+                    </h3>
+                    <p class="description">Your Q&A knowledge base file is automatically synchronized with OpenAI's Assistant API. This file contains all your custom Q&A pairs and is used to train your chatbot's responses.</p>
+                    <div id="qa-file-status-container">
+                        <div id="qa-file-info" class="qa-file-info-box">
+                            <div class="qa-file-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">Q&A Pairs:</span>
+                                    <span class="stat-value" id="qa-pairs-count">-</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">File Status:</span>
+                                    <span class="stat-value" id="qa-file-status">-</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Last Updated:</span>
+                                    <span class="stat-value" id="qa-file-updated">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <ul id="qa-files-list"></ul>
+                </div>
                 <button id="save-all-qa-button" class="button button-primary">Save All Q&A</button>
             </div>
             
@@ -103,8 +125,10 @@ if (!defined('ABSPATH')) {
                         
                         <?php if ($has_qa_files): ?>
                         <div class="qa-files-section">
-                            <h3>Q&A Files List</h3>
-                            <p class="description">View your Q&A files uploaded to the Assistant API's knowledge base.</p>
+                            <h3>
+                                Q&A Knowledge Base Files
+                            </h3>
+                            <p class="description">View your existing Q&A knowledge base files uploaded to the Assistant API.</p>
                             <ul id="qa-files-list"></ul>
                         </div>
                         <?php endif; ?>

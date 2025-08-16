@@ -14,10 +14,16 @@ if (!defined('ABSPATH')) {
  */
 function wpiko_chatbot_pro_add_tab($tabs) {
    
+    // Add Email Capture tab
+    $tabs['email_capture'] = array(
+        'label' => 'Email Capture',
+        'icon' => 'dashicons-email',
+    );
+   
     // Add Contact Form tab
     $tabs['contact_form'] = array(
         'label' => 'Contact Form',
-        'icon' => 'dashicons-email',
+        'icon' => 'dashicons-email-alt',
     );
     
     // Add Product Card tabs only if WooCommerce is active
@@ -53,6 +59,16 @@ function wpiko_chatbot_pro_admin_menu() {
     if (!isset($submenu['ai-chatbot'])) {
         return;
     }
+    
+    // Add Email Capture submenu
+    add_submenu_page(
+        'ai-chatbot', 
+        'Email Capture', 
+        'Email Capture', 
+        'manage_options', 
+        'ai-chatbot&tab=email_capture', 
+        'wpiko_chatbot_admin_page'
+    );
     
     // Add Contact Form submenu
     add_submenu_page(
@@ -108,6 +124,14 @@ function wpiko_chatbot_pro_enqueue_styles($hook) {
     
     $version = WPIKO_CHATBOT_PRO_VERSION;
         
+    // Add email capture CSS
+    wp_enqueue_style(
+        'wpiko-chatbot-email-capture-css', 
+        WPIKO_CHATBOT_PRO_URL . 'admin/css/email-capture.css', 
+        array(), 
+        $version
+    );
+    
     // Add Premium feature styles CSS
     wp_enqueue_style(
         'wpiko-chatbot-premium-feature-style-css', 
@@ -211,6 +235,11 @@ add_action('admin_enqueue_scripts', 'wpiko_chatbot_pro_enqueue_styles');
  * Add section content to the switch statement in the base plugin
  */
 function wpiko_chatbot_pro_add_tab_content($active_tab) {
+    if ($active_tab === 'email_capture') {
+        require_once WPIKO_CHATBOT_PRO_PATH . 'admin/sections/email-capture-section.php';
+        wpiko_chatbot_email_capture_section();
+        return true;
+    }
     if ($active_tab === 'analytics') {
         require_once WPIKO_CHATBOT_PRO_PATH . 'admin/sections/analytics-section.php';
         wpiko_chatbot_analytics_section();
@@ -370,6 +399,8 @@ add_action('wpiko_chatbot_conversation_auto_delete_settings', 'wpiko_chatbot_pro
 
 /**
  * Add email capture option to the chatbot menu
+ * NOTE: This function is no longer used as Email Capture has been moved to its own section
+ * Keeping for backward compatibility but not hooking it to the action
  */
 function wpiko_chatbot_pro_add_email_capture_to_menu() {
     // Handle email capture setting save
@@ -408,7 +439,7 @@ function wpiko_chatbot_pro_add_email_capture_to_menu() {
     </tr>
     <?php
 }
-add_action('wpiko_chatbot_menu_options_before_sound', 'wpiko_chatbot_pro_add_email_capture_to_menu');
+// Removed hook: add_action('wpiko_chatbot_menu_options_before_sound', 'wpiko_chatbot_pro_add_email_capture_to_menu');
 
 /**
  * Add Scan Website button to AI Configuration section

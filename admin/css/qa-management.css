@@ -37,6 +37,7 @@
     width: 28px; 
     height: 28px;
     background: linear-gradient(to right, #6498FC, #0968FE);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -198,6 +199,92 @@
 }
 
 
+/* Q&A File Section */
+.qa-file-section {
+    margin-top: 35px;
+    padding-top: 25px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.qa-file-section h3 {
+    display: flex;
+    align-items: center;
+    color: #3A4F66;
+    margin-bottom: 12px;
+}
+
+.qa-file-info-box {
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    transition: all 0.3s ease;
+}
+
+.qa-file-info-box:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+}
+
+.qa-file-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stat-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #3A4F66;
+}
+
+.stat-value.status-active {
+    color: #03B5AA;
+}
+
+.stat-value.status-syncing {
+    color: #f59e0b;
+}
+
+.stat-value.status-error {
+    color: #dc3545;
+}
+
+@media screen and (max-width: 768px) {
+    .qa-file-stats {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .stat-item {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .stat-item:last-child {
+        border-bottom: none;
+    }
+}
+
 /* List Sections */
 #qa-files-list {
     list-style: none;
@@ -206,22 +293,22 @@
 }
 
 #qa-files-list li {
-    padding: 18px;
+    padding: 20px;
     margin-bottom: 15px;
-    background: #fff;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    border-radius: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
 }
 
 #qa-files-list li:hover {
-    border-color: #0968fe;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    transform: translateY(-1px);
+    border-color: #03B5AA;
+    box-shadow: 0 8px 24px rgba(3, 181, 170, 0.1);
+    transform: translateY(-2px);
 }
 
 #qa-files-list .qa-status {
@@ -284,29 +371,34 @@
     }
     
 #qa-files-list .file-name {
-    font-weight: 500;
+    font-weight: 600;
     color: #3A4F66;
+    font-size: 15px;
+    margin-bottom: 2px;
 }
 
 #qa-files-list .file-meta {
-    color: #3A4F66;
-    font-size: 0.9em;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 400;
 }
 
 #qa-files-list .empty-list {
-    color: #3A4F66;
+    color: #64748b;
     font-style: italic;
     text-align: center;
-    padding: 35px;
-    background: #f8fafc;
-    border: 2px dashed #e2e8f0;
-    border-radius: 10px;
-    transition: all 0.2s ease;
+    padding: 40px 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    font-size: 14px;
 }
 
 #qa-files-list .empty-list:hover {
-    border-color: #0968fe;
-    background: #fff;
+    border-color: #03B5AA;
+    background: linear-gradient(135deg, #ffffff 0%, #f0fdfc 100%);
+    color: #3A4F66;
 }
 
 #qa-files-list .loading {

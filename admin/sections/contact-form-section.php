@@ -255,7 +255,7 @@ function wpiko_chatbot_contact_form_section() {
             </div>
         <?php else: ?>
             <div class="premium-feature-notice">
-                <h3>📧 Unlock Contact Form</h3>
+                <h3>📨 Unlock Contact Form</h3>
                 <p>Upgrade to Premium to enhance your chatbot with integrated contact form:</p>
                 <ul>
                     <li>✨ Enable contact form in chatbot menu</li>

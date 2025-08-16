@@ -334,6 +334,35 @@ function wpiko_chatbot_pro_ajax_get_qa_pairs() {
 }
 add_action('wp_ajax_wpiko_chatbot_get_qa_pairs', 'wpiko_chatbot_pro_ajax_get_qa_pairs');
 
+// AJAX handler for getting Q&A file information
+function wpiko_chatbot_pro_ajax_get_qa_file_info() {
+    check_ajax_referer('wpiko_chatbot_nonce', 'security');
+
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(array('message' => 'Unauthorized'));
+    }
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'wpiko_chatbot_qa';
+    
+    // Get Q&A pairs count and latest update
+    $qa_count = $wpdb->get_var("SELECT COUNT(*) FROM `{$wpdb->prefix}wpiko_chatbot_qa`");
+    $latest_update = $wpdb->get_var("SELECT MAX(updated_at) FROM `{$wpdb->prefix}wpiko_chatbot_qa`");
+    
+    // Get file ID from options
+    $file_id = get_option('wpiko_chatbot_qa_file_id', '');
+    
+    $response = array(
+        'qa_count' => intval($qa_count),
+        'latest_update' => $latest_update,
+        'file_id' => $file_id,
+        'has_file' => !empty($file_id)
+    );
+
+    wp_send_json_success($response);
+}
+add_action('wp_ajax_wpiko_chatbot_get_qa_file_info', 'wpiko_chatbot_pro_ajax_get_qa_file_info');
+
 // AJAX handler for downloading Q&A file
 function wpiko_chatbot_pro_ajax_download_qa_file() {
     check_ajax_referer('wpiko_chatbot_nonce', 'security');

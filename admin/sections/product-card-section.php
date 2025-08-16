@@ -116,7 +116,8 @@ function wpiko_chatbot_product_card_section() {
                                 <input type="checkbox" id="wpiko_enable_product_cards" name="wpiko_chatbot_enable_product_cards" value="1" <?php checked(1, $enable_product_cards, true); ?>>
                                 <span class="wpiko-slider round"></span>
                             </label>
-                            <p class="description">Enable or disable product cards in chatbot responses.</p>
+                            <label for="wpiko_enable_product_cards">Enable the product cards feature in the chatbot</label>
+                            <p class="description">When enabled, products in chat appear as cards with an image, title, description, and price to enhance shopping experience.</p>
                         </td>
                     </tr>
                 </table>

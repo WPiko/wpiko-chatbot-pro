@@ -1,0 +1,31 @@
+/* TAB - EMAIL CAPTURE SETTINGS */
+.email-capture-section {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(58, 79, 102, 0.08);
+}
+
+.email-capture-section h2 {
+    margin-bottom: 10px;
+}
+
+.email-capture-section .description {
+    margin-bottom: 10px;
+}
+
+.email-capture-section form > .form-table {
+    background: #fbfbfb;
+    border: 1px solid #EFF2F6;
+}
+
+/* Email Capture Collapsible Settings */
+.email-capture-settings-collapsible {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    max-height: 0;
+}
+
+.email-capture-settings-collapsible.active {
+    max-height: 1000px;
+}

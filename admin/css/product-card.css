@@ -12,6 +12,10 @@
     border: 1px solid #EFF2F6;
 }
 
+.product-card-section .description {
+    margin-bottom: 10px;
+}
+
 /* Product Card Collapsible Settings */
 .product-card-settings-collapsible {
     overflow: hidden;
