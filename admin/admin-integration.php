@@ -122,7 +122,7 @@ function wpiko_chatbot_pro_enqueue_styles($hook) {
         return;
     }
     
-    $version = WPIKO_CHATBOT_PRO_VERSION;
+    $version = apply_filters('wpiko_chatbot_pro_asset_version', WPIKO_CHATBOT_PRO_VERSION);
         
     // Add email capture CSS
     wp_enqueue_style(

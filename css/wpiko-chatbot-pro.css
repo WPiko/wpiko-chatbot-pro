@@ -28,14 +28,18 @@
     margin-bottom: 20px;
     color: var(--chatbot-name-color);
     width: 100%;
-    font-size: 16px;
-    font-weight: 500;
+    font-size: 15px;
+    font-weight: 600;
     line-height: 1.4;
     padding: 0 20px;
     box-sizing: border-box;
 }
 
 #email-capture-overlay p {
+    margin-bottom: 20px;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.4;
     padding: 0 20px;
     box-sizing: border-box;
 }
@@ -62,17 +66,18 @@
     border-radius: 30px;
     text-align: center;
     letter-spacing: 1.4px;
+    font-size: 14px;
 }
 
 #email-capture-overlay button {
     background-color: var(--primary-color);
     color: var(--primary-text-color);
     border: none;
-    padding: 20px;
+    padding: 18px;
     border-radius: 30px;
     cursor: pointer;
-    font-size: 16px;
-letter-spacing: 0.5px;
+    font-size: 15px;
+    letter-spacing: 0.5px;
 }
 
 #email-capture-overlay #submit-email:hover {

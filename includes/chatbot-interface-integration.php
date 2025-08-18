@@ -28,7 +28,7 @@ add_action('init', 'wpiko_chatbot_pro_add_contact_form_menu');
  * Enqueue contact form scripts
  */
 function wpiko_chatbot_pro_enqueue_contact_form_scripts() {
-    $version = defined('WPIKO_CHATBOT_PRO_VERSION') ? WPIKO_CHATBOT_PRO_VERSION : '1.0.0';
+    $version = apply_filters('wpiko_chatbot_pro_asset_version', defined('WPIKO_CHATBOT_PRO_VERSION') ? WPIKO_CHATBOT_PRO_VERSION : '1.0.0');
     
     // Enqueue contact form CSS
     wp_enqueue_style(
@@ -120,7 +120,7 @@ function wpiko_chatbot_pro_enqueue_contact_form_assets() {
         return;
     }
     
-    $version = defined('WPIKO_CHATBOT_PRO_VERSION') ? WPIKO_CHATBOT_PRO_VERSION : '1.0.0';
+    $version = apply_filters('wpiko_chatbot_pro_asset_version', defined('WPIKO_CHATBOT_PRO_VERSION') ? WPIKO_CHATBOT_PRO_VERSION : '1.0.0');
     
     // Enqueue contact form CSS
     wp_enqueue_style(
