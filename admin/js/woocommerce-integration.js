@@ -171,26 +171,51 @@ jQuery(document).ready(function($) {
                     },
                     success: function(response) {
                         if (response.success && response.data) {
-                            // Update the Products System Instructions textarea
-                            if (response.data.products !== undefined && $('#products_system_instructions').length) {
-                                $('#products_system_instructions').val(response.data.products);
-                            }
+                            // Check current API type
+                            var currentApiType = (typeof wpikoChatbotAdmin !== 'undefined' && wpikoChatbotAdmin.apiType) ? wpikoChatbotAdmin.apiType : 'assistant';
                             
-                            // Update other system instructions fields if needed
-                            if (response.data.main !== undefined && $('#main_system_instructions').length) {
-                                $('#main_system_instructions').val(response.data.main);
-                            }
-                            
-                            if (response.data.specific !== undefined && $('#specific_system_instructions').length) {
-                                $('#specific_system_instructions').val(response.data.specific);
-                            }
-                            
-                            if (response.data.knowledge !== undefined && $('#knowledge_system_instructions').length) {
-                                $('#knowledge_system_instructions').val(response.data.knowledge);
-                            }
-                            
-                            if (response.data.orders !== undefined && $('#orders_system_instructions').length) {
-                                $('#orders_system_instructions').val(response.data.orders);
+                            if (currentApiType === 'responses') {
+                                // Update Responses API fields
+                                if (response.data.products !== undefined && $('#responses_products_system_instructions').length) {
+                                    $('#responses_products_system_instructions').val(response.data.products);
+                                }
+                                
+                                if (response.data.main !== undefined && $('#responses_main_system_instructions').length) {
+                                    $('#responses_main_system_instructions').val(response.data.main);
+                                }
+                                
+                                if (response.data.specific !== undefined && $('#responses_specific_system_instructions').length) {
+                                    $('#responses_specific_system_instructions').val(response.data.specific);
+                                }
+                                
+                                if (response.data.knowledge !== undefined && $('#responses_knowledge_system_instructions').length) {
+                                    $('#responses_knowledge_system_instructions').val(response.data.knowledge);
+                                }
+                                
+                                if (response.data.orders !== undefined && $('#responses_orders_system_instructions').length) {
+                                    $('#responses_orders_system_instructions').val(response.data.orders);
+                                }
+                            } else {
+                                // Update Assistant API fields (existing behavior)
+                                if (response.data.products !== undefined && $('#products_system_instructions').length) {
+                                    $('#products_system_instructions').val(response.data.products);
+                                }
+                                
+                                if (response.data.main !== undefined && $('#main_system_instructions').length) {
+                                    $('#main_system_instructions').val(response.data.main);
+                                }
+                                
+                                if (response.data.specific !== undefined && $('#specific_system_instructions').length) {
+                                    $('#specific_system_instructions').val(response.data.specific);
+                                }
+                                
+                                if (response.data.knowledge !== undefined && $('#knowledge_system_instructions').length) {
+                                    $('#knowledge_system_instructions').val(response.data.knowledge);
+                                }
+                                
+                                if (response.data.orders !== undefined && $('#orders_system_instructions').length) {
+                                    $('#orders_system_instructions').val(response.data.orders);
+                                }
                             }
                         }
                     }
@@ -460,7 +485,15 @@ jQuery(document).ready(function($) {
             
             // Update Orders System Instructions visibility
             var ordersAutoSync = $('#orders_auto_sync').val();
-            var $ordersInstructions = $('#orders_system_instructions').closest('tr');
+            var currentApiType = (typeof wpikoChatbotAdmin !== 'undefined' && wpikoChatbotAdmin.apiType) ? wpikoChatbotAdmin.apiType : 'assistant';
+            
+            var $ordersInstructions;
+            if (currentApiType === 'responses') {
+                $ordersInstructions = $('#responses_orders_system_instructions').closest('tr');
+            } else {
+                $ordersInstructions = $('#orders_system_instructions').closest('tr');
+            }
+            
             if (ordersAutoSync === 'disabled') {
                 $ordersInstructions.hide();
             } else {
@@ -698,7 +731,15 @@ jQuery(document).ready(function($) {
 
         // Set initial Orders System Instructions visibility
         var initialOrdersAutoSync = $ordersSync.val();
-        var $ordersInstructions = $('#orders_system_instructions').closest('tr');
+        var currentApiType = (typeof wpikoChatbotAdmin !== 'undefined' && wpikoChatbotAdmin.apiType) ? wpikoChatbotAdmin.apiType : 'assistant';
+        
+        var $ordersInstructions;
+        if (currentApiType === 'responses') {
+            $ordersInstructions = $('#responses_orders_system_instructions').closest('tr');
+        } else {
+            $ordersInstructions = $('#orders_system_instructions').closest('tr');
+        }
+        
         if (initialOrdersAutoSync === 'disabled') {
             $ordersInstructions.hide();
         } else {

@@ -202,7 +202,7 @@ jQuery(document).ready(function($) {
                     if (response.success) {
                         $('#url-processing-status').append(
                             '<span class="success">' +
-                            'File uploaded successfully to Assistant API. <br>' +
+                            response.data.message + ' <br>' +
                             '</span>'
                         );
                         // Add a small delay to ensure cache cleanup completes before refreshing the list
@@ -215,7 +215,7 @@ jQuery(document).ready(function($) {
                     } else {
                         $('#url-processing-status').append(
                             '<span class="error">' +
-                            'Error uploading to Assistant API: ' + (response.data ? response.data.message : 'Upload failed') + '<br>' +
+                            'Error uploading: ' + (response.data ? response.data.message : 'Upload failed') + '<br>' +
                             '</span>'
                         );
                     }
@@ -223,7 +223,7 @@ jQuery(document).ready(function($) {
                 error: function(xhr, status, error) {
                     $('#url-processing-status').append(
                         '<span class="error">' +
-                        'An error occurred while uploading to Assistant API. <br>' +
+                        'An error occurred while uploading file. <br>' +
                         'Status: ' + status + '<br>' +
                         'Error: ' + error +
                         '</span>'

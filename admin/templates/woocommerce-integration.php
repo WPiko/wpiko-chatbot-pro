@@ -16,22 +16,39 @@ if (!defined('ABSPATH')) {
     </h3>
     <div id="woocommerce-integration-content">
         <?php 
-        // Get current license status
+        // Get current license status and API type
         $license_status = wpiko_chatbot_decrypt_data(get_option('wpiko_chatbot_license_status', ''));
         $is_license_expired = $license_status === 'expired';
+        $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
+        $api_display_name = ($api_type === 'responses') ? 'Responses API' : 'Assistant API';
         
-        // Get the assistant ID from options
-        $assistant_id = get_option('wpiko_chatbot_assistant_id', '');
-        
-        // Check if there are any existing WooCommerce files
+        // Check if there are any existing WooCommerce files based on current API
         $has_woo_files = false;
-        if ($assistant_id) {
-            $files_result = wpiko_chatbot_list_assistant_files($assistant_id);
-            if ($files_result['success']) {
-                foreach ($files_result['files'] as $file) {
-                    if (strpos($file['filename'], 'woocommerce_') === 0) {
-                        $has_woo_files = true;
-                        break;
+        if ($api_type === 'responses') {
+            // Check for Responses API files
+            $responses_vector_store_id = get_option('wpiko_chatbot_responses_vector_store_id', '');
+            if ($responses_vector_store_id && function_exists('wpiko_chatbot_list_responses_files')) {
+                $files_result = wpiko_chatbot_list_responses_files();
+                if ($files_result['success']) {
+                    foreach ($files_result['files'] as $file) {
+                        if (strpos($file['filename'], 'woocommerce_') === 0) {
+                            $has_woo_files = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        } else {
+            // Check for Assistant API files
+            $assistant_id = get_option('wpiko_chatbot_assistant_id', '');
+            if ($assistant_id) {
+                $files_result = wpiko_chatbot_list_assistant_files($assistant_id);
+                if ($files_result['success']) {
+                    foreach ($files_result['files'] as $file) {
+                        if (strpos($file['filename'], 'woocommerce_') === 0) {
+                            $has_woo_files = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -74,7 +91,7 @@ if (!defined('ABSPATH')) {
             </th>
             <td>
                 <div class="collapsible-content" id="product-fields-content" style="display:none;">
-                    <p class="description">Choose which product data fields to include when syncing with the Assistant API.</p>
+                    <p class="description">Choose which product data fields to include when syncing with the <?php echo esc_html($api_display_name); ?>.</p>
                     
                     <?php 
                     $field_options = wpiko_chatbot_get_product_fields_options(); 
@@ -129,7 +146,7 @@ if (!defined('ABSPATH')) {
             <th scope="row"><label for="sync_existing_products">Sync Products Manually</label></th>
             <td>
                 <button type="button" id="sync_existing_products" class="button button-secondary">Sync Existing Products</button>
-                <p class="description">Click to manually synchronize all existing WooCommerce products with the Assistant API.</p>
+                <p class="description">Click to manually synchronize all existing WooCommerce products with the <?php echo esc_html($api_display_name); ?>.</p>
                 <span id="sync_status"></span>
             </td>
         </tr>
@@ -156,7 +173,7 @@ if (!defined('ABSPATH')) {
             </th>
             <td>
                 <div class="collapsible-content" id="order-fields-content" style="display:none;">
-                    <p class="description">Choose which order data fields to include when syncing with the Assistant API.</p>
+                    <p class="description">Choose which order data fields to include when syncing with the <?php echo esc_html($api_display_name); ?>.</p>
                     
                     <?php 
                     $field_options = wpiko_chatbot_get_order_fields_options(); 
@@ -240,7 +257,7 @@ if (!defined('ABSPATH')) {
                 <button type="button" id="download_products_json" class="button button-secondary" <?php disabled(!wpiko_chatbot_is_woocommerce_integration_enabled()); ?>>Download Products JSON</button>
                 <button type="button" id="download_orders_json" class="button button-secondary" <?php disabled(!wpiko_chatbot_is_woocommerce_integration_enabled()); ?>>Download Orders JSON</button>
                 <p class="description">
-                    Click to download and preview WooCommerce products or orders file without uploading to Assistant API. 
+                    Click to download and preview WooCommerce products or orders file without uploading to <?php echo esc_html($api_display_name); ?>. 
                     This is for preview purposes only and does not affect the AI Assistant's knowledge.
                 </p>
                 <span id="download_status" class="status-message"></span>
@@ -252,7 +269,7 @@ if (!defined('ABSPATH')) {
         
             <div class="woocommerce-files-section">
                 <h3>WooCommerce List</h3>
-                <p class="description">View and manage the WooCommerce products and orders information you’ve synced with the Assistant API.</p>
+                <p class="description">View and manage the WooCommerce products and orders information you’ve synced with the AI Assistant.</p>
                 <ul id="woocommerce-files-list"></ul>
             </div>
             
@@ -295,7 +312,7 @@ if (!defined('ABSPATH')) {
                     
                     <div class="woocommerce-files-section">
                         <h3>WooCommerce List</h3>
-                        <p class="description">View the WooCommerce products and orders information previously synced with the Assistant API.</p>
+                        <p class="description">View the WooCommerce products and orders information previously synced with the AI Assistant.</p>
                         <ul id="woocommerce-files-list"></ul>
                     </div>
                 </div>
@@ -345,7 +362,7 @@ if (!defined('ABSPATH')) {
                     
                     <div class="woocommerce-files-section">
                         <h3>WooCommerce List</h3>
-                        <p class="description">View the WooCommerce products and orders information previously synced with the Assistant API.</p>
+                        <p class="description">View the WooCommerce products and orders information previously synced with the AI Assistant.</p>
                         <ul id="woocommerce-files-list"></ul>
                     </div>
                 </div>

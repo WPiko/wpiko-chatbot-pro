@@ -439,7 +439,7 @@ function wpiko_chatbot_pro_ajax_process_url() {
 }
 add_action('wp_ajax_wpiko_chatbot_process_url', 'wpiko_chatbot_pro_ajax_process_url');
 
-// Function to handle the file upload to Assistant API
+// Function to handle the file upload to Assistant API or Responses API
 function wpiko_chatbot_pro_upload_qa_to_assistant() {
     check_ajax_referer('wpiko_chatbot_nonce', 'security');
 
@@ -451,18 +451,87 @@ function wpiko_chatbot_pro_upload_qa_to_assistant() {
     $content = isset($_POST['content']) ? sanitize_textarea_field(wp_unslash($_POST['content'])) : '';
     $filename = isset($_POST['filename']) ? sanitize_file_name(wp_unslash($_POST['filename'])) : '';
 
-    $file_id = wpiko_chatbot_upload_qa_file($filename, $content);
+    // Check which API is currently selected
+    $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
+    
+    if ($api_type === 'responses') {
+        $file_id = wpiko_chatbot_upload_qa_file_to_responses($filename, $content);
+        $success_message = 'File uploaded successfully to Responses API';
+    } else {
+        $file_id = wpiko_chatbot_upload_qa_file($filename, $content);
+        $success_message = 'File uploaded successfully to Assistant API';
+    }
+    
     if (!$file_id) {
-        wp_send_json_error(['message' => 'Failed to upload file to Assistant API']);
+        wp_send_json_error(['message' => 'Failed to upload file to ' . ($api_type === 'responses' ? 'Responses API' : 'Assistant API')]);
     }
 
     wp_send_json_success([
         'file_id' => $file_id,
-        'message' => 'File uploaded successfully to Assistant API',
+        'message' => $success_message,
         'cache_cleared' => true // Indicate that cache management was handled
     ]);
 }
 add_action('wp_ajax_wpiko_chatbot_upload_qa_to_assistant', 'wpiko_chatbot_pro_upload_qa_to_assistant');
+
+// Function to upload the Q&A file to Responses API
+function wpiko_chatbot_upload_qa_file_to_responses($filename, $content) {
+    $api_key = wpiko_chatbot_decrypt_api_key(get_option('wpiko_chatbot_api_key', ''));
+
+    if (!$api_key) {
+        wpiko_chatbot_log_error("API key is missing for Responses API upload.");
+        return false;
+    }
+
+    // Use WordPress Filesystem API
+    global $wp_filesystem;
+    if (!function_exists('WP_Filesystem')) {
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+    }
+    WP_Filesystem();
+    
+    // Create a temporary file using wp_tempnam()
+    $temp_file_path = wp_tempnam($filename);
+    
+    // Write content to the file using WP_Filesystem
+    $wp_filesystem->put_contents($temp_file_path, $content);
+
+    // Prepare file data for upload
+    $file_data = [
+        'tmp_name' => $temp_file_path,
+        'name' => $filename . '.txt',
+        'type' => 'text/plain',
+    ];
+
+    // Upload the file to Responses API vector store
+    $result = wpiko_chatbot_upload_file_to_responses($file_data);
+
+    // Delete the temporary file when done
+    $wp_filesystem->delete($temp_file_path);
+
+    if ($result['success']) {
+        $new_file_id = $result['file_id'];
+
+        // Get the old file ID for this URL BEFORE saving the new one
+        $old_file_id = get_option('wpiko_chatbot_responses_qa_file_' . md5($filename), '');
+
+        // Delete the old file if it exists
+        if ($old_file_id) {
+            wpiko_chatbot_delete_responses_file($old_file_id);
+        }
+
+        // Store the new file ID for future reference
+        update_option('wpiko_chatbot_responses_qa_file_' . md5($filename), $new_file_id);
+
+        // Clear the file cache to ensure fresh data is loaded next time
+        wpiko_chatbot_clear_file_cache();
+
+        return $new_file_id;
+    } else {
+        wpiko_chatbot_log_error("Failed to upload Q&A file to Responses API: " . $result['message']);
+        return false;
+    }
+}
 
 // Function to upload the Q&A file
 function wpiko_chatbot_upload_qa_file($filename, $content) {

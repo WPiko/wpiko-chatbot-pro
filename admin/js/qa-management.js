@@ -239,10 +239,13 @@ function initializeQaManagement() {
                         showStatus('All Q&A pairs saved and file generated successfully.', 'success');
                         loadQaPairs();
                         updateQAFileInfo(); // Update file info after saving
-                        if (typeof wpikoChatbotFileManagement !== 'undefined' && 
-                            typeof wpikoChatbotFileManagement.refreshQAFileList === 'function') {
-                            wpikoChatbotFileManagement.refreshQAFileList();
-                        }
+                        // Refresh the Q&A file list with a slight delay to ensure file is indexed
+                        setTimeout(function() {
+                            if (typeof wpikoChatbotFileManagement !== 'undefined' && 
+                                typeof wpikoChatbotFileManagement.refreshQAFileList === 'function') {
+                                wpikoChatbotFileManagement.refreshQAFileList();
+                            }
+                        }, 2000); // 2-second delay to allow for file indexing
                     } else {
                         showStatus('Error saving Q&A pairs: ' + response.data.message, 'error');
                     }
@@ -286,10 +289,13 @@ function initializeQaManagement() {
                             updateQAFileInfo(); // Update file info after deletion
                             showStatus('All Q&A pairs deleted successfully.', 'success');
                         
-                            if (typeof wpikoChatbotFileManagement !== 'undefined' && 
-                                typeof wpikoChatbotFileManagement.refreshQAFileList === 'function') {
-                                wpikoChatbotFileManagement.refreshQAFileList();
-                            }
+                            // Refresh the Q&A file list with a slight delay
+                            setTimeout(function() {
+                                if (typeof wpikoChatbotFileManagement !== 'undefined' && 
+                                    typeof wpikoChatbotFileManagement.refreshQAFileList === 'function') {
+                                    wpikoChatbotFileManagement.refreshQAFileList();
+                                }
+                            }, 1000);
                         } else {
                             showStatus('Error deleting Q&A pairs: ' + response.data.message, 'error');
                         }

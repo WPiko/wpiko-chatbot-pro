@@ -460,6 +460,24 @@ function wpiko_chatbot_pro_add_scan_website_button() {
 add_action('wpiko_chatbot_scan_website_button', 'wpiko_chatbot_pro_add_scan_website_button');
 
 /**
+ * Add Scan Website button to Responses API Configuration section
+ */
+function wpiko_chatbot_pro_add_responses_scan_website_button() {
+    // Get license status using pro plugin functions
+    $is_license_valid = wpiko_chatbot_pro_is_license_active();
+    
+    ?>
+    <button type="button" id="responses-scan-website-button" class="button button-secondary premium-feature <?php echo !$is_license_valid ? 'premium-locked' : ''; ?>">
+        <span class="dashicons dashicons-admin-site-alt3"></span> Scan Website
+        <?php if (!wpiko_chatbot_pro_is_license_active()): ?>
+            <span class="premium-feature-badge">Premium</span>
+        <?php endif; ?>
+    </button>
+    <?php
+}
+add_action('wpiko_chatbot_responses_scan_website_button', 'wpiko_chatbot_pro_add_responses_scan_website_button');
+
+/**
  * Add Scan Website modal to AI Configuration section
  */
 function wpiko_chatbot_pro_add_scan_website_modal() {
@@ -476,6 +494,24 @@ function wpiko_chatbot_pro_add_scan_website_modal() {
     <?php
 }
 add_action('wpiko_chatbot_scan_website_modal', 'wpiko_chatbot_pro_add_scan_website_modal');
+
+/**
+ * Add Scan Website modal to Responses API Configuration section
+ */
+function wpiko_chatbot_pro_add_responses_scan_website_modal() {
+    ?>
+    <!-- Modal container for responses website scanning -->
+    <div id="responses-scan-website-modal" class="wpiko-modal">
+        <div class="wpiko-modal-content">
+            <span class="wpiko-modal-close">&times;</span>
+            <div id="responses-scan-website-container">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+    <?php
+}
+add_action('wpiko_chatbot_responses_scan_website_modal', 'wpiko_chatbot_pro_add_responses_scan_website_modal');
 
 /**
  * Add Q&A Builder button to AI Configuration section
@@ -496,6 +532,24 @@ function wpiko_chatbot_pro_add_qa_builder_button() {
 add_action('wpiko_chatbot_qa_builder_button', 'wpiko_chatbot_pro_add_qa_builder_button');
 
 /**
+ * Add Q&A Builder button to Responses API Configuration section
+ */
+function wpiko_chatbot_pro_add_responses_qa_builder_button() {
+    // Get license status using pro plugin functions
+    $is_license_valid = wpiko_chatbot_pro_is_license_active();
+    
+    ?>
+    <button type="button" id="responses-qa-management-button" class="button button-secondary premium-feature <?php echo !$is_license_valid ? 'premium-locked' : ''; ?>">
+        <span class="dashicons dashicons-insert"></span> Q&A Builder
+        <?php if (!wpiko_chatbot_pro_is_license_active()): ?>
+            <span class="premium-feature-badge">Premium</span>
+        <?php endif; ?>
+    </button>
+    <?php
+}
+add_action('wpiko_chatbot_responses_qa_builder_button', 'wpiko_chatbot_pro_add_responses_qa_builder_button');
+
+/**
  * Add Q&A Builder modal to AI Configuration section
  */
 function wpiko_chatbot_pro_add_qa_builder_modal() {
@@ -512,6 +566,24 @@ function wpiko_chatbot_pro_add_qa_builder_modal() {
     <?php
 }
 add_action('wpiko_chatbot_qa_builder_modal', 'wpiko_chatbot_pro_add_qa_builder_modal');
+
+/**
+ * Add Q&A Builder modal to Responses API Configuration section
+ */
+function wpiko_chatbot_pro_add_responses_qa_builder_modal() {
+    ?>
+    <!-- Modal container for responses QA management -->
+    <div id="responses-qa-management-modal" class="wpiko-modal">
+        <div class="wpiko-modal-content">
+            <span class="wpiko-modal-close">&times;</span>
+            <div id="responses-qa-management-container">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+    <?php
+}
+add_action('wpiko_chatbot_responses_qa_builder_modal', 'wpiko_chatbot_pro_add_responses_qa_builder_modal');
 
 /**
  * Add WooCommerce Integration button to AI Configuration section
@@ -532,6 +604,24 @@ function wpiko_chatbot_pro_add_woocommerce_integration_button() {
 add_action('wpiko_chatbot_woocommerce_integration_button', 'wpiko_chatbot_pro_add_woocommerce_integration_button');
 
 /**
+ * Add WooCommerce Integration button to Responses API Configuration section
+ */
+function wpiko_chatbot_pro_add_responses_woocommerce_integration_button() {
+    // Get license status using pro plugin functions
+    $is_license_valid = wpiko_chatbot_pro_is_license_active();
+    
+    ?>
+    <button type="button" id="responses-woocommerce-integration-button" class="button button-secondary premium-feature <?php echo !$is_license_valid ? 'premium-locked' : ''; ?>">
+        <span class="dashicons dashicons-update-alt"></span> Woocommerce Integration
+        <?php if (!wpiko_chatbot_pro_is_license_active()): ?>
+            <span class="premium-feature-badge">Premium</span>
+        <?php endif; ?>
+    </button>
+    <?php
+}
+add_action('wpiko_chatbot_responses_woocommerce_integration_button', 'wpiko_chatbot_pro_add_responses_woocommerce_integration_button');
+
+/**
  * Add WooCommerce Integration modal to AI Configuration section
  */
 function wpiko_chatbot_pro_add_woocommerce_integration_modal() {
@@ -550,6 +640,24 @@ function wpiko_chatbot_pro_add_woocommerce_integration_modal() {
 add_action('wpiko_chatbot_woocommerce_integration_modal', 'wpiko_chatbot_pro_add_woocommerce_integration_modal');
 
 /**
+ * Add WooCommerce Integration modal to Responses API Configuration section
+ */
+function wpiko_chatbot_pro_add_responses_woocommerce_integration_modal() {
+    ?>
+    <!-- Modal container for responses Woocommerce integration -->
+    <div id="responses-woocommerce-integration-modal" class="wpiko-modal">
+        <div class="wpiko-modal-content">
+            <span class="wpiko-modal-close">&times;</span>
+            <div id="responses-woocommerce-integration-container">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+    <?php
+}
+add_action('wpiko_chatbot_responses_woocommerce_integration_modal', 'wpiko_chatbot_pro_add_responses_woocommerce_integration_modal');
+
+/**
  * Functions to load Scan Website template content
  */
 function wpiko_chatbot_pro_load_scan_website_callback() {
@@ -562,6 +670,66 @@ function wpiko_chatbot_pro_load_scan_website_callback() {
     wp_send_json_success($content);
 }
 add_action('wp_ajax_wpiko_chatbot_load_scan_website', 'wpiko_chatbot_pro_load_scan_website_callback', 20);
+
+/**
+ * Functions to load Responses Scan Website template content
+ */
+function wpiko_chatbot_pro_load_responses_scan_website_callback() {
+    check_ajax_referer('wpiko_chatbot_nonce', 'security');
+    
+    // Set a flag to indicate we're loading for Responses API
+    set_transient('wpiko_scan_website_api_context', 'responses', 30);
+    
+    ob_start();
+    include WPIKO_CHATBOT_PRO_PATH . 'admin/templates/scan-website.php';
+    $content = ob_get_clean();
+    
+    // Clean up the transient
+    delete_transient('wpiko_scan_website_api_context');
+    
+    wp_send_json_success($content);
+}
+add_action('wp_ajax_wpiko_chatbot_load_responses_scan_website', 'wpiko_chatbot_pro_load_responses_scan_website_callback', 20);
+
+/**
+ * Functions to load Responses QA Management template content
+ */
+function wpiko_chatbot_pro_load_responses_qa_management_callback() {
+    check_ajax_referer('wpiko_chatbot_nonce', 'security');
+    
+    // Set a flag to indicate we're loading for Responses API
+    set_transient('wpiko_qa_management_api_context', 'responses', 30);
+    
+    ob_start();
+    include WPIKO_CHATBOT_PRO_PATH . 'admin/templates/qa-management.php';
+    $content = ob_get_clean();
+    
+    // Clean up the transient
+    delete_transient('wpiko_qa_management_api_context');
+    
+    wp_send_json_success($content);
+}
+add_action('wp_ajax_wpiko_chatbot_load_responses_qa_management', 'wpiko_chatbot_pro_load_responses_qa_management_callback', 20);
+
+/**
+ * Functions to load Responses WooCommerce Integration template content
+ */
+function wpiko_chatbot_pro_load_responses_woocommerce_integration_callback() {
+    check_ajax_referer('wpiko_chatbot_nonce', 'security');
+    
+    // Set a flag to indicate we're loading for Responses API
+    set_transient('wpiko_woocommerce_integration_api_context', 'responses', 30);
+    
+    ob_start();
+    include WPIKO_CHATBOT_PRO_PATH . 'admin/templates/woocommerce-integration.php';
+    $content = ob_get_clean();
+    
+    // Clean up the transient
+    delete_transient('wpiko_woocommerce_integration_api_context');
+    
+    wp_send_json_success($content);
+}
+add_action('wp_ajax_wpiko_chatbot_load_responses_woocommerce_integration', 'wpiko_chatbot_pro_load_responses_woocommerce_integration_callback', 20);
 
 /**
  * Functions to load QA Management template content
@@ -681,6 +849,44 @@ function wpiko_chatbot_pro_add_woocommerce_system_instructions() {
     <?php endif;
 }
 add_action('wpiko_chatbot_advanced_system_instructions', 'wpiko_chatbot_pro_add_woocommerce_system_instructions');
+
+/**
+ * Add WooCommerce system instructions to Responses API Configuration section
+ */
+function wpiko_chatbot_pro_add_responses_woocommerce_system_instructions() {
+    // Only add if WooCommerce is active, license is valid, and integration is enabled
+    if (!wpiko_chatbot_is_woocommerce_active() || !wpiko_chatbot_is_license_active()) {
+        return;
+    }
+    
+    $instructions = wpiko_chatbot_get_system_instructions();
+    $orders_auto_sync = get_option('wpiko_chatbot_orders_auto_sync', 'disabled');
+    ?>
+    <tr valign="top" class="products-instructions-row" data-woo-dependent="true" style="display: <?php echo wpiko_chatbot_is_woocommerce_integration_enabled() ? 'table-row' : 'none'; ?>">
+        <th scope="row">Products System Instructions</th>
+        <td>
+            <textarea name="responses_products_system_instructions" id="responses_products_system_instructions" class="large-text" rows="5"><?php
+                echo esc_textarea($instructions['products']);
+            ?></textarea>
+            <p class="description">Edit product-related system instructions for your responses assistant only if necessary.</p>
+        </td>
+    </tr>
+    <?php 
+    // Only show Orders System Instructions if Orders Auto-Sync is enabled
+    if ($orders_auto_sync !== 'disabled'): 
+    ?>
+    <tr valign="top">
+        <th scope="row">Orders System Instructions</th>
+        <td>
+            <textarea name="responses_orders_system_instructions" id="responses_orders_system_instructions" class="large-text" rows="5"><?php 
+                echo esc_textarea($instructions['orders']); 
+            ?></textarea>
+            <p class="description">Edit order-related system instructions for your responses assistant only if necessary.</p>
+        </td>
+    </tr>
+    <?php endif;
+}
+add_action('wpiko_chatbot_responses_advanced_system_instructions', 'wpiko_chatbot_pro_add_responses_woocommerce_system_instructions');
 
 /**
  * Add WooCommerce integration state to frontend JavaScript

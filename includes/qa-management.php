@@ -70,10 +70,21 @@ function wpiko_chatbot_pro_delete_qa($id) {
 
 // Function to delete the Q&A file
 function wpiko_chatbot_pro_delete_qa_file() {
-    $file_id = get_option('wpiko_chatbot_qa_file_id', '');
-    if ($file_id) {
-        wpiko_chatbot_delete_file_from_wpiko($file_id);
-        delete_option('wpiko_chatbot_qa_file_id');
+    // Check which API is currently selected
+    $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
+    
+    if ($api_type === 'responses') {
+        $file_id = get_option('wpiko_chatbot_responses_qa_file_id', '');
+        if ($file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
+            wpiko_chatbot_delete_responses_file($file_id);
+            delete_option('wpiko_chatbot_responses_qa_file_id');
+        }
+    } else {
+        $file_id = get_option('wpiko_chatbot_qa_file_id', '');
+        if ($file_id) {
+            wpiko_chatbot_delete_file_from_wpiko($file_id);
+            delete_option('wpiko_chatbot_qa_file_id');
+        }
     }
 }
 
@@ -132,21 +143,43 @@ function wpiko_chatbot_pro_cleanup_and_generate_qa_file($qa_pairs = null) {
         }
 
         $filename = 'qa_data_questions-and-answers';
-        $file_id = wpiko_chatbot_upload_qa_file($filename, $content);
+        
+        // Check which API is currently selected and use the appropriate upload function
+        $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
+        if ($api_type === 'responses') {
+            $file_id = wpiko_chatbot_upload_qa_file_to_responses($filename, $content);
+        } else {
+            $file_id = wpiko_chatbot_upload_qa_file($filename, $content);
+        }
 
         if ($file_id) {
-            $old_file_id = get_option('wpiko_chatbot_qa_file_id', '');
-            if ($old_file_id) {
-                if (wpiko_chatbot_delete_file_from_wpiko($old_file_id)) {
+            // Check which API was used and clean up old files accordingly
+            $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
+            
+            if ($api_type === 'responses') {
+                $old_file_id = get_option('wpiko_chatbot_responses_qa_file_id', '');
+                if ($old_file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
+                    wpiko_chatbot_delete_responses_file($old_file_id);
                     // Remove the old file from cache to ensure list displays correctly
                     if (function_exists('wpiko_chatbot_remove_cached_file')) {
                         wpiko_chatbot_remove_cached_file($old_file_id);
                     }
                 }
+                update_option('wpiko_chatbot_responses_qa_file_id', $file_id);
+            } else {
+                $old_file_id = get_option('wpiko_chatbot_qa_file_id', '');
+                if ($old_file_id) {
+                    if (wpiko_chatbot_delete_file_from_wpiko($old_file_id)) {
+                        // Remove the old file from cache to ensure list displays correctly
+                        if (function_exists('wpiko_chatbot_remove_cached_file')) {
+                            wpiko_chatbot_remove_cached_file($old_file_id);
+                        }
+                    }
+                }
+                update_option('wpiko_chatbot_qa_file_id', $file_id);
             }
 
             wpiko_chatbot_log('New Q&A file created with ID: ' . $file_id, 'info');
-            update_option('wpiko_chatbot_qa_file_id', $file_id);
             return true;
         }
 
@@ -349,8 +382,13 @@ function wpiko_chatbot_pro_ajax_get_qa_file_info() {
     $qa_count = $wpdb->get_var("SELECT COUNT(*) FROM `{$wpdb->prefix}wpiko_chatbot_qa`");
     $latest_update = $wpdb->get_var("SELECT MAX(updated_at) FROM `{$wpdb->prefix}wpiko_chatbot_qa`");
     
-    // Get file ID from options
-    $file_id = get_option('wpiko_chatbot_qa_file_id', '');
+    // Get file ID from options based on current API type
+    $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
+    if ($api_type === 'responses') {
+        $file_id = get_option('wpiko_chatbot_responses_qa_file_id', '');
+    } else {
+        $file_id = get_option('wpiko_chatbot_qa_file_id', '');
+    }
     
     $response = array(
         'qa_count' => intval($qa_count),
