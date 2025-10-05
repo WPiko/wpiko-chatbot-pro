@@ -151,7 +151,7 @@ jQuery(document).ready(function($) {
                             statusMessage += 'File "' + response.data.filename + '.txt" has been downloaded. <br>';
                         }
                         
-                        statusMessage += 'Uploading to Assistant API... <br>' +
+                        statusMessage += 'Uploading to the knowledge base... <br>' +
                             '</span>';
 
                         $('#url-processing-status').html(statusMessage);

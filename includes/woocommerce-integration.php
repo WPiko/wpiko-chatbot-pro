@@ -139,7 +139,7 @@ function wpiko_chatbot_check_woocommerce_license_status() {
 add_action('admin_init', 'wpiko_chatbot_check_woocommerce_license_status');
 
 
-// Function to enable/disable WooCommerce integration
+// Function to enable/disable WooCommerce integration - Only for Responses API
 function wpiko_chatbot_toggle_woocommerce_integration($enable) {
     $current_state = get_option('wpiko_chatbot_woocommerce_integration_enabled', false);
     $new_state = $enable ? true : false;
@@ -148,16 +148,8 @@ function wpiko_chatbot_toggle_woocommerce_integration($enable) {
         update_option('wpiko_chatbot_woocommerce_integration_enabled', $new_state);
         if ($new_state) {
             if (wpiko_chatbot_pro_is_main_wc_active()) {
-                // Skip initial sync, only update instructions for the currently selected API
-                $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
-                
-                if ($api_type === 'responses') {
-                    // Update Responses API instructions
-                    wpiko_chatbot_update_responses_woo_instructions(true);
-                } else {
-                    // Update Assistant API instructions
-                    wpiko_chatbot_update_assistant_instructions(true);
-                }
+                // Update Responses API instructions
+                wpiko_chatbot_update_responses_woo_instructions(true);
             }
         } else {
             // Disable auto-sync options
@@ -179,30 +171,6 @@ function wpiko_chatbot_toggle_woocommerce_integration($enable) {
                 $instructions['products'],
                 $instructions['orders']
             );
-
-            // Delete the products and orders files from both APIs if they exist
-            $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
-            
-            // Delete Assistant API files
-            $products_file_id = wpiko_chatbot_get_woo_file_id();
-            if ($products_file_id) {
-                if (wpiko_chatbot_delete_file_from_wpiko($products_file_id)) {
-                    wpiko_chatbot_set_woo_file_id('');
-                    $messages[] = 'WooCommerce products file deleted successfully from Assistant API.';
-                } else {
-                    wpiko_chatbot_log_error("Failed to delete WooCommerce products file from Assistant API: " . $products_file_id);
-                    $messages[] = 'Failed to delete WooCommerce products file from Assistant API.';
-                }
-            }
-
-            $orders_file_id = get_option('wpiko_chatbot_orders_file_id');
-            if ($orders_file_id) {
-                if (wpiko_chatbot_delete_file_from_wpiko($orders_file_id)) {
-                    delete_option('wpiko_chatbot_orders_file_id');
-                } else {
-                    wpiko_chatbot_log_error("Failed to delete WooCommerce orders file from Assistant API: " . $orders_file_id);
-                }
-            }
             
             // Delete Responses API files
             $responses_products_file_id = get_option('wpiko_chatbot_responses_woo_file_id', '');
@@ -229,15 +197,8 @@ function wpiko_chatbot_toggle_woocommerce_integration($enable) {
             // Clear the scheduled cron job
             wp_clear_scheduled_hook('wpiko_chatbot_sync_products');
 
-            // Clear instructions based on API type
-            $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
-            if ($api_type === 'responses') {
-                // Remove instructions from Responses API
-                wpiko_chatbot_update_responses_woo_instructions(false);
-            } else {
-                // Remove instructions from Assistant API
-                wpiko_chatbot_update_assistant_instructions(false);
-            }
+            // Remove instructions from Responses API
+            wpiko_chatbot_update_responses_woo_instructions(false);
         }
     }
 
@@ -265,7 +226,7 @@ Provide orders data only if customer provide you with Order number, or Email add
 Never provide orders email.";
 }
 
-// Function to update Responses API with WooCommerce instructions
+// Function to update woo instructions - Only for Responses API
 function wpiko_chatbot_update_responses_woo_instructions($add_instructions) {
     // Get system instructions
     $instructions = wpiko_chatbot_get_system_instructions();
@@ -301,81 +262,6 @@ function wpiko_chatbot_update_responses_woo_instructions($add_instructions) {
     return true;
 }
 
-function wpiko_chatbot_update_assistant_instructions($add_instructions) {
-    $assistant_id = get_option('wpiko_chatbot_assistant_id');
-    $api_key = wpiko_chatbot_decrypt_api_key(get_option('wpiko_chatbot_api_key', ''));
-    
-    if (!$assistant_id || !$api_key) {
-        wpiko_chatbot_log_error("Assistant ID or API key is missing.");
-        return false;
-    }
-    
-    $headers = array(
-        'Authorization' => 'Bearer ' . $api_key,
-        'Content-Type' => 'application/json',
-        'OpenAI-Beta' => 'assistants=v2'
-    );
-    
-    // Get current assistant details and system instructions
-    $response = wp_remote_get("https://api.openai.com/v1/assistants/{$assistant_id}", array(
-        'headers' => $headers
-    ));
-    
-    if (is_wp_error($response)) {
-        wpiko_chatbot_log_error("Failed to get assistant details: " . $response->get_error_message());
-        return false;
-    }
-    
-    // Get system instructions
-    $instructions = wpiko_chatbot_get_system_instructions();
-    
-    // Prepare products instructions
-    $woo_products_instructions = wpiko_chatbot_get_woo_products_instructions_template();
-    
-    if ($add_instructions) {
-        $instructions['products'] = $woo_products_instructions;
-    } else {
-        $instructions['products'] = '';
-    }
-    
-    // Update system instructions in database
-    $result = wpiko_chatbot_update_system_instructions(
-        $instructions['main'],
-        $instructions['specific'],
-        $instructions['knowledge'],
-        $instructions['products'],
-        $instructions['orders']
-    );
-    
-    if (!$result) {
-        wpiko_chatbot_log_error("Failed to update system instructions in database");
-        return false;
-    }
-    
-    // Combine instructions and update assistant
-    $combined_instructions = wpiko_chatbot_combine_instructions();
-    
-    // Update assistant with combined instructions
-    $update_response = wp_remote_post("https://api.openai.com/v1/assistants/{$assistant_id}", array(
-        'headers' => $headers,
-        'body' => json_encode(array('instructions' => $combined_instructions)),
-        'method' => 'POST'
-    ));
-    
-    if (is_wp_error($update_response)) {
-        wpiko_chatbot_log_error("Failed to update assistant instructions: " . $update_response->get_error_message());
-        return false;
-    }
-    
-    $update_body = json_decode(wp_remote_retrieve_body($update_response), true);
-    if (isset($update_body['error'])) {
-        wpiko_chatbot_log_error("Failed to update assistant instructions: " . $update_body['error']['message']);
-        return false;
-    }
-    
-    return true;
-}
-
 // Function to get product field preferences
 function wpiko_chatbot_get_product_fields_options() {
     $defaults = array(
@@ -403,7 +289,7 @@ function wpiko_chatbot_update_product_fields_options($options) {
     return update_option('wpiko_chatbot_product_fields_options', $options);
 }
 
-// Function to format product data for Assistant API
+// Function to format product data
 function wpiko_chatbot_format_product_data($product) {
     $categories = wp_list_pluck(get_the_terms($product->get_id(), 'product_cat') ?: array(), 'name');
     $tags = wp_list_pluck(get_the_terms($product->get_id(), 'product_tag') ?: array(), 'name');
@@ -574,49 +460,25 @@ function wpiko_chatbot_sync_existing_products() {
             'type' => 'application/json',
         ];
 
-        // Check which API is currently selected and use the appropriate upload function
-        $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
-        if ($api_type === 'responses') {
-            $result = wpiko_chatbot_upload_file_to_responses($file_data);
-            
-            // Update Responses API instructions if needed
-            if (!get_option('wpiko_chatbot_responses_woo_file_id', '')) {
-                wpiko_chatbot_update_responses_woo_instructions(true);
-            }
-        } else {
-            // Get the Assistant ID
-            $assistant_id = get_option('wpiko_chatbot_assistant_id');
-            if (!$assistant_id) {
-                throw new Exception("Assistant ID not found");
-            }
-            $result = wpiko_chatbot_upload_file($file_data, $assistant_id);
-            
-            // Update Assistant API instructions if needed
-            if (!wpiko_chatbot_get_woo_file_id()) {
-                wpiko_chatbot_update_assistant_instructions(true);
-            }
+        // Upload to Responses API
+        $result = wpiko_chatbot_upload_file_to_responses($file_data);
+        
+        // Update Responses API instructions if needed
+        if (!get_option('wpiko_chatbot_responses_woo_file_id', '')) {
+            wpiko_chatbot_update_responses_woo_instructions(true);
         }
 
         if ($result['success']) {
             // File uploaded successfully
             $new_file_id = $result['file_id'];
             
-            // Delete the old file if it exists and handle API-specific file IDs
-            if ($api_type === 'responses') {
-                $old_file_id = get_option('wpiko_chatbot_responses_woo_file_id', '');
-                if ($old_file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
-                    $delete_result = wpiko_chatbot_delete_responses_file($old_file_id);
-                    wpiko_chatbot_log_error("Attempted to delete old Responses file. Result: " . ($delete_result['success'] ? "Success" : "Failed"));
-                }
-                update_option('wpiko_chatbot_responses_woo_file_id', $new_file_id);
-            } else {
-                $old_file_id = wpiko_chatbot_get_woo_file_id();
-                if ($old_file_id) {
-                    $delete_result = wpiko_chatbot_delete_file_from_wpiko($old_file_id);
-                    wpiko_chatbot_log_error("Attempted to delete old Assistant file. Result: " . ($delete_result ? "Success" : "Failed"));
-                }
-                wpiko_chatbot_set_woo_file_id($new_file_id);
+            // Delete the old file if it exists
+            $old_file_id = get_option('wpiko_chatbot_responses_woo_file_id', '');
+            if ($old_file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
+                $delete_result = wpiko_chatbot_delete_responses_file($old_file_id);
+                wpiko_chatbot_log_error("Attempted to delete old Responses file. Result: " . ($delete_result['success'] ? "Success" : "Failed"));
             }
+            update_option('wpiko_chatbot_responses_woo_file_id', $new_file_id);
 
             // Delete the temporary file
             $wp_filesystem->delete($temp_file_path);
@@ -719,42 +581,23 @@ function wpiko_chatbot_fallback_sync_products() {
             'type' => 'application/json',
         ];
         
-        // Check which API is currently selected and use the appropriate upload function
-        $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
-        if ($api_type === 'responses') {
-            $result = wpiko_chatbot_upload_file_to_responses($file_data);
-            
-            // Update Responses API instructions if needed
-            if (!get_option('wpiko_chatbot_responses_woo_file_id', '')) {
-                wpiko_chatbot_update_responses_woo_instructions(true);
-            }
-        } else {
-            $assistant_id = get_option('wpiko_chatbot_assistant_id');
-            $result = wpiko_chatbot_upload_file($file_data, $assistant_id);
-            
-            // Update Assistant API instructions if needed
-            if (!wpiko_chatbot_get_woo_file_id()) {
-                wpiko_chatbot_update_assistant_instructions(true);
-            }
+        // Upload to Responses API
+        $result = wpiko_chatbot_upload_file_to_responses($file_data);
+        
+        // Update Responses API instructions if needed
+        if (!get_option('wpiko_chatbot_responses_woo_file_id', '')) {
+            wpiko_chatbot_update_responses_woo_instructions(true);
         }
         
         if ($result['success']) {
             $new_file_id = $result['file_id'];
             
-            // Handle API-specific file management
-            if ($api_type === 'responses') {
-                $old_file_id = get_option('wpiko_chatbot_responses_woo_file_id', '');
-                if ($old_file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
-                    wpiko_chatbot_delete_responses_file($old_file_id);
-                }
-                update_option('wpiko_chatbot_responses_woo_file_id', $new_file_id);
-            } else {
-                $old_file_id = wpiko_chatbot_get_woo_file_id();
-                if ($old_file_id) {
-                    wpiko_chatbot_delete_file_from_wpiko($old_file_id);
-                }
-                wpiko_chatbot_set_woo_file_id($new_file_id);
+            // Handle API-specific file management for Responses API
+            $old_file_id = get_option('wpiko_chatbot_responses_woo_file_id', '');
+            if ($old_file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
+                wpiko_chatbot_delete_responses_file($old_file_id);
             }
+            update_option('wpiko_chatbot_responses_woo_file_id', $new_file_id);
             
             // Clean up the temporary file
             $wp_filesystem->delete($temp_file_path);
@@ -797,151 +640,6 @@ function wpiko_chatbot_get_sync_status() {
     );
     
     return $status;
-}
-
-// Function to upload file to OpenAI
-function wpiko_chatbot_upload_file_to_wpiko($file_path, $file_name) {
-    $api_key = wpiko_chatbot_decrypt_api_key(get_option('wpiko_chatbot_api_key', ''));
-    $url = 'https://api.openai.com/v1/files';
-
-    $file_content = file_get_contents($file_path);
-    if ($file_content === false) {
-        wpiko_chatbot_log_error('Failed to read file content');
-        return false;
-    }
-
-    $boundary = wp_generate_password(24);
-    $payload = '';
-    
-    // Add the purpose field
-    $payload .= "--" . $boundary . "\r\n";
-    $payload .= "Content-Disposition: form-data; name=\"purpose\"\r\n\r\n";
-    $payload .= "assistants\r\n";
-
-    // Add the file content
-    $payload .= "--" . $boundary . "\r\n";
-    $payload .= "Content-Disposition: form-data; name=\"file\"; filename=\"" . basename($file_name) . "\"\r\n";
-    $payload .= "Content-Type: application/json\r\n\r\n";
-    $payload .= $file_content . "\r\n";
-    $payload .= "--" . $boundary . "--\r\n";
-
-    $args = [
-        'headers' => [
-            'Authorization' => "Bearer $api_key",
-            'Content-Type' => 'multipart/form-data; boundary=' . $boundary,
-        ],
-        'body' => $payload,
-    ];
-
-    $response = wp_remote_post($url, $args);
-
-    if (is_wp_error($response)) {
-        wpiko_chatbot_log_error('Error uploading file - ' . $response->get_error_message());
-        return false;
-    }
-
-    $body = json_decode(wp_remote_retrieve_body($response), true);
-
-    if (isset($body['id'])) {
-        return $body['id'];
-    } else {
-        wpiko_chatbot_log_error('Error uploading file - ' . json_encode($body));
-        return false;
-    }
-}
-
-// Function to associate file with Assistant
-function wpiko_chatbot_associate_file_with_assistant($file_id) {
-    $api_key = wpiko_chatbot_decrypt_api_key(get_option('wpiko_chatbot_api_key', ''));
-    $assistant_id = get_option('wpiko_chatbot_assistant_id');
-    $url = "https://api.openai.com/v1/assistants/$assistant_id/files";
-
-    $args = [
-        'headers' => [
-            'Authorization' => "Bearer $api_key",
-            'Content-Type' => 'application/json',
-            'OpenAI-Beta' => 'assistants=v2',
-        ],
-        'body' => json_encode(['file_id' => $file_id]),
-    ];
-
-    $response = wp_remote_post($url, $args);
-
-    if (is_wp_error($response)) {
-        wpiko_chatbot_log_error('Error associating file with Assistant - ' . $response->get_error_message());
-        return false;
-    }
-
-    $body = json_decode(wp_remote_retrieve_body($response), true);
-
-    if (isset($body['id'])) {
-        return true;
-    } else {
-        wpiko_chatbot_log_error('Error associating file with Assistant - ' . json_encode($body));
-        return false;
-    }
-}
-
-// Delete old file from OpenAI
-function wpiko_chatbot_delete_file_from_wpiko($file_id) {
-    $api_key = wpiko_chatbot_decrypt_api_key(get_option('wpiko_chatbot_api_key', ''));
-    $url = "https://api.openai.com/v1/files/{$file_id}";
-
-    $args = [
-        'method' => 'DELETE',
-        'headers' => [
-            'Authorization' => "Bearer $api_key",
-            'OpenAI-Beta' => 'assistants=v2',
-        ],
-    ];
-
-    $response = wp_remote_request($url, $args);
-
-    if (is_wp_error($response)) {
-        wpiko_chatbot_log_error('Error deleting file from OpenAI - ' . $response->get_error_message());
-        return false;
-    }
-
-    $body = json_decode(wp_remote_retrieve_body($response), true);
-
-    if (isset($body['deleted']) && $body['deleted']) {
-        // Remove from cache when successfully deleted from OpenAI
-        if (function_exists('wpiko_chatbot_remove_cached_file')) {
-            wpiko_chatbot_remove_cached_file($file_id);
-        }
-        return true;
-    } else {
-        wpiko_chatbot_log_error('Error deleting file from OpenAI - ' . json_encode($body));
-        return false;
-    }
-}
-
-function wpiko_chatbot_get_file_details($file_id) {
-    $api_key = wpiko_chatbot_decrypt_api_key(get_option('wpiko_chatbot_api_key', ''));
-    $url = "https://api.openai.com/v1/files/$file_id";
-
-    $args = [
-        'headers' => [
-            'Authorization' => "Bearer $api_key",
-            'OpenAI-Beta' => 'assistants=v2',
-        ],
-    ];
-
-    $response = wp_remote_get($url, $args);
-
-    if (is_wp_error($response)) {
-        wpiko_chatbot_log_error('Error retrieving file details - ' . $response->get_error_message());
-        return false;
-    }
-
-    $body = json_decode(wp_remote_retrieve_body($response), true);
-
-    if (isset($body['filename'])) {
-        return ['filename' => $body['filename']];
-    } else {
-        wpiko_chatbot_log_error('Error retrieving file details - ' . json_encode($body));
-        return false;
-    }
 }
 
 // Function to download JSON file
@@ -1008,31 +706,6 @@ function wpiko_chatbot_deactivation() {
 }
 register_deactivation_hook(__FILE__, 'wpiko_chatbot_deactivation');
 
-// Function to get the assistant details - edit-assistant-section refreshed
-function wpiko_chatbot_get_assistant_details_internal($assistant_id) {
-    $encrypted_api_key = get_option('wpiko_chatbot_api_key', '');
-    $api_key = wpiko_chatbot_decrypt_api_key($encrypted_api_key);
-    $response = wp_remote_get("https://api.openai.com/v1/assistants/{$assistant_id}", array(
-        'headers' => array(
-            'Authorization' => "Bearer {$api_key}",
-            'Content-Type' => 'application/json',
-            'OpenAI-Beta' => 'assistants=v2'
-        )
-    ));
-
-    if (is_wp_error($response)) {
-        return false;
-    }
-
-    $body = json_decode(wp_remote_retrieve_body($response), true);
-    
-    if (isset($body['error'])) {
-        return false;
-    }
-
-    return $body;
-}
-
 // AJAX handler for toggling WooCommerce integration
 function wpiko_chatbot_toggle_woocommerce_integration_ajax() {
     check_ajax_referer('wpiko_chatbot_nonce', 'security');
@@ -1053,14 +726,9 @@ function wpiko_chatbot_toggle_woocommerce_integration_ajax() {
             $message = 'WooCommerce Integration disabled successfully.';
         }
         
-        // Get the updated assistant details
-        $assistant_id = get_option('wpiko_chatbot_assistant_id', '');
-        $assistant_details = wpiko_chatbot_get_assistant_details_internal($assistant_id);
-        
         wp_send_json_success(array(
             'enabled' => $current_state, 
-            'message' => $message,
-            'assistant_details' => $assistant_details
+            'message' => $message
         ));
     } catch (Exception $e) {
         wpiko_chatbot_log_error('Error toggling WooCommerce integration - ' . $e->getMessage());
@@ -1451,42 +1119,23 @@ function wpiko_chatbot_sync_orders($retry_count = 0) {
         'type' => 'application/json',
     ];
 
-    // Check which API is currently selected and use the appropriate upload function
-    $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
-    if ($api_type === 'responses') {
-        $result = wpiko_chatbot_upload_file_to_responses($file_data);
-        
-        // Update Responses API instructions if needed
-        if (!get_option('wpiko_chatbot_responses_orders_file_id', '')) {
-            wpiko_chatbot_update_responses_woo_instructions(true);
-        }
-    } else {
-        $assistant_id = get_option('wpiko_chatbot_assistant_id');
-        $result = wpiko_chatbot_upload_file($file_data, $assistant_id);
-        
-        // Update Assistant API instructions if needed
-        if (!get_option('wpiko_chatbot_orders_file_id', '')) {
-            wpiko_chatbot_update_assistant_order_instructions(true);
-        }
+    // Upload to Responses API
+    $result = wpiko_chatbot_upload_file_to_responses($file_data);
+    
+    // Update Responses API instructions if needed
+    if (!get_option('wpiko_chatbot_responses_orders_file_id', '')) {
+        wpiko_chatbot_update_responses_woo_instructions(true);
     }
 
     if ($result['success']) {
         $new_file_id = $result['file_id'];
         
-        // Handle API-specific file management
-        if ($api_type === 'responses') {
-            $old_file_id = get_option('wpiko_chatbot_responses_orders_file_id', '');
-            if ($old_file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
-                wpiko_chatbot_delete_responses_file($old_file_id);
-            }
-            update_option('wpiko_chatbot_responses_orders_file_id', $new_file_id);
-        } else {
-            $old_file_id = get_option('wpiko_chatbot_orders_file_id');
-            if ($old_file_id) {
-                wpiko_chatbot_delete_file_from_wpiko($old_file_id);
-            }
-            update_option('wpiko_chatbot_orders_file_id', $new_file_id);
+        // Handle API-specific file management for Responses API
+        $old_file_id = get_option('wpiko_chatbot_responses_orders_file_id', '');
+        if ($old_file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
+            wpiko_chatbot_delete_responses_file($old_file_id);
         }
+        update_option('wpiko_chatbot_responses_orders_file_id', $new_file_id);
         
         // Clean up the temporary file
         $wp_filesystem->delete($temp_file_path);
@@ -1522,58 +1171,43 @@ function wpiko_chatbot_update_orders_auto_sync() {
     $sync_option = isset($_POST['sync_option']) ? sanitize_text_field(wp_unslash($_POST['sync_option'])) : 'disabled';
     update_option('wpiko_chatbot_orders_auto_sync', $sync_option);
 
-    $instructions_updated = wpiko_chatbot_update_assistant_order_instructions($sync_option !== 'disabled');
+    $instructions_updated = wpiko_chatbot_update_responses_woo_instructions($sync_option !== 'disabled');
 
     if ($sync_option !== 'disabled') {
         $result = wpiko_chatbot_sync_orders();
         if ($result) {
-            // Get the updated assistant details
-            $assistant_id = get_option('wpiko_chatbot_assistant_id', '');
-            $assistant_details = wpiko_chatbot_get_assistant_details_internal($assistant_id);
-            
             wp_send_json_success(array(
-                'message' => 'Orders sync setting updated and synced successfully. ' . ($instructions_updated ? 'Assistant instructions updated.' : 'Failed to update assistant instructions.'),
-                'sync_option' => $sync_option,
-                'assistant_details' => $assistant_details
+                'message' => 'Orders sync setting updated and synced successfully. ' . ($instructions_updated ? 'Instructions updated.' : 'Failed to update instructions.'),
+                'sync_option' => $sync_option
             ));
         } else {
             wp_send_json_error(array(
-                'message' => 'Orders sync setting updated, but sync failed. ' . ($instructions_updated ? 'Assistant instructions updated.' : 'Failed to update assistant instructions.'),
+                'message' => 'Orders sync setting updated, but sync failed. ' . ($instructions_updated ? 'Instructions updated.' : 'Failed to update instructions.'),
                 'sync_option' => $sync_option
             ));
         }
     } else {
         // Delete the woocommerce_orders.json file
-        $file_id = get_option('wpiko_chatbot_orders_file_id');
-        if ($file_id) {
-            $delete_result = wpiko_chatbot_delete_file_from_wpiko($file_id);
-            if ($delete_result) {
-                delete_option('wpiko_chatbot_orders_file_id');
-                
-                // Get the updated assistant details
-                $assistant_id = get_option('wpiko_chatbot_assistant_id', '');
-                $assistant_details = wpiko_chatbot_get_assistant_details_internal($assistant_id);
+        $file_id = get_option('wpiko_chatbot_responses_orders_file_id', '');
+        if ($file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
+            $delete_result = wpiko_chatbot_delete_responses_file($file_id);
+            if ($delete_result['success']) {
+                delete_option('wpiko_chatbot_responses_orders_file_id');
                 
                 wp_send_json_success(array(
-                    'message' => 'Orders sync disabled and file deleted successfully. ' . ($instructions_updated ? 'Assistant instructions updated.' : 'Failed to update assistant instructions.'),
-                    'sync_option' => 'disabled',
-                    'assistant_details' => $assistant_details
+                    'message' => 'Orders sync disabled and file deleted successfully. ' . ($instructions_updated ? 'Instructions updated.' : 'Failed to update instructions.'),
+                    'sync_option' => 'disabled'
                 ));
             } else {
                 wp_send_json_error(array(
-                    'message' => 'Orders sync disabled, but failed to delete the file. ' . ($instructions_updated ? 'Assistant instructions updated.' : 'Failed to update assistant instructions.'),
+                    'message' => 'Orders sync disabled, but failed to delete the file. ' . ($instructions_updated ? 'Instructions updated.' : 'Failed to update instructions.'),
                     'sync_option' => 'disabled'
                 ));
             }
         } else {
-            // Get the updated assistant details
-            $assistant_id = get_option('wpiko_chatbot_assistant_id', '');
-            $assistant_details = wpiko_chatbot_get_assistant_details_internal($assistant_id);
-            
             wp_send_json_success(array(
-                'message' => 'Orders sync disabled successfully. ' . ($instructions_updated ? 'Assistant instructions updated.' : 'Failed to update assistant instructions.'),
-                'sync_option' => 'disabled',
-                'assistant_details' => $assistant_details
+                'message' => 'Orders sync disabled successfully. ' . ($instructions_updated ? 'Instructions updated.' : 'Failed to update instructions.'),
+                'sync_option' => 'disabled'
             ));
         }
     }
@@ -1601,89 +1235,7 @@ add_action('wp_ajax_update_orders_auto_sync', 'wpiko_chatbot_update_orders_auto_
 
 // Function to update assistant with woo orders instructions
 function wpiko_chatbot_update_assistant_order_instructions($add_instructions) {
-    $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
-    
-    if ($api_type === 'responses') {
-        // Update Responses API instructions
-        return wpiko_chatbot_update_responses_woo_instructions($add_instructions);
-    } else {
-        // Update Assistant API instructions
-        $assistant_id = get_option('wpiko_chatbot_assistant_id');
-        $api_key = wpiko_chatbot_decrypt_api_key(get_option('wpiko_chatbot_api_key', ''));
-        
-        if (!$assistant_id || !$api_key) {
-            wpiko_chatbot_log_error("Assistant ID or API key is missing.");
-            return false;
-        }
-        
-        $headers = array(
-            'Authorization' => 'Bearer ' . $api_key,
-            'Content-Type' => 'application/json',
-            'OpenAI-Beta' => 'assistants=v2'
-        );
-        
-        // Get current assistant details
-        $response = wp_remote_get("https://api.openai.com/v1/assistants/{$assistant_id}", array(
-            'headers' => $headers
-        ));
-        
-        if (is_wp_error($response)) {
-            wpiko_chatbot_log_error("Failed to get assistant details: " . $response->get_error_message());
-            return false;
-        }
-        
-        $body = json_decode(wp_remote_retrieve_body($response), true);
-        $current_instructions = $body['instructions'] ?? '';
-        
-        // Get system instructions
-        $instructions = wpiko_chatbot_get_system_instructions();
-        
-        // Prepare new orders instructions
-        $woo_order_instructions = wpiko_chatbot_get_woo_orders_instructions_template();
-        
-        if ($add_instructions) {
-            $instructions['orders'] = $woo_order_instructions;
-        } else {
-            $instructions['orders'] = '';
-        }
-        
-        // Update system instructions in database
-        $result = wpiko_chatbot_update_system_instructions(
-            $instructions['main'],
-            $instructions['specific'],
-            $instructions['knowledge'],
-            $instructions['products'],
-            $instructions['orders']
-        );
-        
-        if (!$result) {
-            wpiko_chatbot_log_error("Failed to update system instructions in database");
-            return false;
-        }
-        
-        // Combine instructions and update assistant
-        $combined_instructions = wpiko_chatbot_combine_instructions();
-        
-        // Update assistant with combined instructions
-        $update_response = wp_remote_post("https://api.openai.com/v1/assistants/{$assistant_id}", array(
-            'headers' => $headers,
-            'body' => json_encode(array('instructions' => $combined_instructions)),
-            'method' => 'POST'
-        ));
-        
-        if (is_wp_error($update_response)) {
-            wpiko_chatbot_log_error("Failed to update assistant instructions: " . $update_response->get_error_message());
-            return false;
-        }
-        
-        $update_body = json_decode(wp_remote_retrieve_body($update_response), true);
-        if (isset($update_body['error'])) {
-            wpiko_chatbot_log_error("Failed to update assistant instructions: " . $update_body['error']['message']);
-            return false;
-        }
-        
-        return true;
-    }
+    return wpiko_chatbot_update_responses_woo_instructions($add_instructions);
 }
 
 // Download Orders JSON" button

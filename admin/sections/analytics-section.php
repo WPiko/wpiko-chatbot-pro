@@ -52,6 +52,12 @@ function wpiko_chatbot_analytics_section() {
         $date_range = '7';
     }
 
+    // Get location view preference (default to country)
+    // Validate location view parameter to prevent invalid values
+    $allowed_location_views = array('country', 'city', 'region');
+    $location_view_param = isset($_GET['location_view']) ? sanitize_text_field(wp_unslash($_GET['location_view'])) : 'country';
+    $location_view = in_array($location_view_param, $allowed_location_views, true) ? $location_view_param : 'country';
+    
     // Set the date range based on selection
     if ($date_range === 'custom' && $custom_start_date && $custom_end_date) {
         // Ensure end date is not before start date
@@ -95,7 +101,7 @@ function wpiko_chatbot_analytics_section() {
 
     $total_messages = $wpdb->get_var($wpdb->prepare(
         "SELECT COUNT(*) FROM {$wpdb->prefix}wpiko_chatbot_conversations 
-        WHERE timestamp >= %s AND timestamp <= %s",
+        WHERE role IN ('user', 'assistant') AND timestamp >= %s AND timestamp <= %s",
         $current_period_start,
         $current_period_end
     ));
@@ -139,6 +145,7 @@ function wpiko_chatbot_analytics_section() {
         SELECT AVG(message_count) FROM (
             SELECT session_id, COUNT(*) as message_count 
             FROM {$wpdb->prefix}wpiko_chatbot_conversations 
+            WHERE role IN ('user', 'assistant')
             GROUP BY session_id
         ) as conversation_counts
     ");
@@ -213,26 +220,53 @@ function wpiko_chatbot_analytics_section() {
     $conversation_lengths = $wpdb->get_results($wpdb->prepare("
         SELECT session_id, COUNT(*) as message_count
         FROM {$wpdb->prefix}wpiko_chatbot_conversations 
-        WHERE timestamp >= %s AND timestamp <= %s
+        WHERE role IN ('user', 'assistant') AND timestamp >= %s AND timestamp <= %s
         GROUP BY session_id
     ", $current_period_start, $current_period_end));
 
-    // Get conversation country 
-    $country_distribution = $wpdb->get_results($wpdb->prepare("
-        SELECT 
-            country,
-            COUNT(DISTINCT session_id) as count
-        FROM {$wpdb->prefix}wpiko_chatbot_conversations 
-        WHERE country IS NOT NULL
-            AND timestamp >= %s AND timestamp <= %s
-        GROUP BY country
-        ORDER BY count DESC
-        LIMIT 5
-    ", $current_period_start, $current_period_end));
+    // Get location distribution based on selected view
+    if ($location_view === 'city') {
+        $location_distribution = $wpdb->get_results($wpdb->prepare("
+            SELECT 
+                city as location,
+                COUNT(DISTINCT session_id) as count
+            FROM {$wpdb->prefix}wpiko_chatbot_conversations 
+            WHERE city IS NOT NULL AND city != ''
+                AND timestamp >= %s AND timestamp <= %s
+            GROUP BY city
+            ORDER BY count DESC
+            LIMIT 5
+        ", $current_period_start, $current_period_end));
+    } elseif ($location_view === 'region') {
+        $location_distribution = $wpdb->get_results($wpdb->prepare("
+            SELECT 
+                region as location,
+                COUNT(DISTINCT session_id) as count
+            FROM {$wpdb->prefix}wpiko_chatbot_conversations 
+            WHERE region IS NOT NULL AND region != ''
+                AND timestamp >= %s AND timestamp <= %s
+            GROUP BY region
+            ORDER BY count DESC
+            LIMIT 5
+        ", $current_period_start, $current_period_end));
+    } else {
+        // Default to country
+        $location_distribution = $wpdb->get_results($wpdb->prepare("
+            SELECT 
+                country as location,
+                COUNT(DISTINCT session_id) as count
+            FROM {$wpdb->prefix}wpiko_chatbot_conversations 
+            WHERE country IS NOT NULL AND country != ''
+                AND timestamp >= %s AND timestamp <= %s
+            GROUP BY country
+            ORDER BY count DESC
+            LIMIT 5
+        ", $current_period_start, $current_period_end));
+    }
 
     $analyticsData = [
         'dailyMessages' => $daily_messages,
-        'countryDistribution' => $country_distribution,
+        'locationDistribution' => $location_distribution,
         'conversationLengths' => $conversation_lengths
     ];
 
@@ -247,6 +281,7 @@ function wpiko_chatbot_analytics_section() {
                     <form id="analytics-date-range" method="get" action="">
                         <input type="hidden" name="page" value="ai-chatbot">
                         <input type="hidden" name="tab" value="analytics">
+                        <input type="hidden" name="location_view" value="<?php echo esc_attr($location_view); ?>">
                         <?php wp_nonce_field('wpiko_analytics_filter', 'wpiko_analytics_nonce'); ?>
                         <select name="date_range" id="date_range">
                             <option value="7" <?php selected($date_range, '7'); ?>>Last 7 Days</option>
@@ -497,17 +532,33 @@ function wpiko_chatbot_analytics_section() {
             <div class="analytics-card half-width">
                 <div class="card-header">
                     <h3>Top User Locations</h3>
+                    <div class="location-view-toggle">
+                        <button type="button" class="location-toggle-btn <?php echo $location_view === 'country' ? 'active' : ''; ?>" data-view="country">Country</button>
+                        <button type="button" class="location-toggle-btn <?php echo $location_view === 'city' ? 'active' : ''; ?>" data-view="city">City</button>
+                        <button type="button" class="location-toggle-btn <?php echo $location_view === 'region' ? 'active' : ''; ?>" data-view="region">Region</button>
+                    </div>
                 </div>
                 <div class="locations-list">
-                    <?php foreach ($country_distribution as $country): ?>
-                        <div class="location-item">
-                            <span class="country"><?php echo esc_html($country->country); ?></span>
-                            <div class="activity-bar-container">
-                                <div class="activity-bar" style="width: <?php echo esc_attr(($country->count / $country_distribution[0]->count) * 100); ?>%"></div>
+                    <?php if (!empty($location_distribution)): ?>
+                        <?php 
+                        $max_count = !empty($location_distribution) ? $location_distribution[0]->count : 1;
+                        foreach ($location_distribution as $location): 
+                            $location_name = !empty($location->location) ? $location->location : 'Unknown';
+                            $percentage = $max_count > 0 ? ($location->count / $max_count) * 100 : 0;
+                        ?>
+                            <div class="location-item">
+                                <span class="location-name" title="<?php echo esc_attr($location_name); ?>"><?php echo esc_html($location_name); ?></span>
+                                <div class="activity-bar-container">
+                                    <div class="activity-bar" style="width: <?php echo esc_attr($percentage); ?>%"></div>
+                                </div>
+                                <span class="count"><?php echo number_format($location->count); ?></span>
                             </div>
-                            <span class="count"><?php echo number_format($country->count); ?></span>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="no-data-message">
+                            <p>No <?php echo esc_html($location_view); ?> data available for the selected period</p>
                         </div>
-                    <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -696,8 +747,9 @@ function wpiko_chatbot_analytics_section() {
     // Pass PHP data to JavaScript
     var analyticsData = {
         dailyMessages: <?php echo wp_json_encode($daily_messages); ?>,
-        countryDistribution: <?php echo wp_json_encode($country_distribution); ?>,
-        conversationLengths: <?php echo wp_json_encode($conversation_lengths); ?>
+        locationDistribution: <?php echo wp_json_encode($location_distribution); ?>,
+        conversationLengths: <?php echo wp_json_encode($conversation_lengths); ?>,
+        currentLocationView: '<?php echo esc_js($location_view); ?>'
     };
     </script>
     <?php

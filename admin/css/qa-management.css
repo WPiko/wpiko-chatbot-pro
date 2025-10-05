@@ -234,13 +234,13 @@
     gap: 20px;
 }
 
-.stat-item {
+.qa-file-info-box .stat-item {
     display: flex;
     flex-direction: column;
     gap: 4px;
 }
 
-.stat-label {
+.qa-file-info-box .stat-label {
     font-size: 12px;
     font-weight: 600;
     color: #64748b;
@@ -248,7 +248,7 @@
     letter-spacing: 0.5px;
 }
 
-.stat-value {
+.qa-file-info-box .stat-value {
     font-size: 16px;
     font-weight: 600;
     color: #3A4F66;

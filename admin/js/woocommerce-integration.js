@@ -1,6 +1,6 @@
 jQuery(document).ready(function($) {
     function initializeWooCommerceIntegration() {
-        var $container = $('#woocommerce-integration-container');
+        var $container = $('#responses-woocommerce-integration-container');
         
         // Check if container exists
         if (!$container.length) {
@@ -155,72 +155,42 @@ jQuery(document).ready(function($) {
 
         // Function to update assistant details
         function updateAssistantDetails(details) {
-            if (details) {
-                // Update the main instructions textarea if it exists
-                if (details.instructions && $('#edit_assistant_instructions').length) {
-                    $('#edit_assistant_instructions').val(details.instructions);
-                }
-                
-                // Get system instructions from database and update specific textareas
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'get_system_instructions',
-                        security: wpikoChatbotAdmin.nonce
-                    },
-                    success: function(response) {
-                        if (response.success && response.data) {
-                            // Check current API type
-                            var currentApiType = (typeof wpikoChatbotAdmin !== 'undefined' && wpikoChatbotAdmin.apiType) ? wpikoChatbotAdmin.apiType : 'assistant';
-                            
-                            if (currentApiType === 'responses') {
-                                // Update Responses API fields
-                                if (response.data.products !== undefined && $('#responses_products_system_instructions').length) {
-                                    $('#responses_products_system_instructions').val(response.data.products);
-                                }
-                                
-                                if (response.data.main !== undefined && $('#responses_main_system_instructions').length) {
-                                    $('#responses_main_system_instructions').val(response.data.main);
-                                }
-                                
-                                if (response.data.specific !== undefined && $('#responses_specific_system_instructions').length) {
-                                    $('#responses_specific_system_instructions').val(response.data.specific);
-                                }
-                                
-                                if (response.data.knowledge !== undefined && $('#responses_knowledge_system_instructions').length) {
-                                    $('#responses_knowledge_system_instructions').val(response.data.knowledge);
-                                }
-                                
-                                if (response.data.orders !== undefined && $('#responses_orders_system_instructions').length) {
-                                    $('#responses_orders_system_instructions').val(response.data.orders);
-                                }
-                            } else {
-                                // Update Assistant API fields (existing behavior)
-                                if (response.data.products !== undefined && $('#products_system_instructions').length) {
-                                    $('#products_system_instructions').val(response.data.products);
-                                }
-                                
-                                if (response.data.main !== undefined && $('#main_system_instructions').length) {
-                                    $('#main_system_instructions').val(response.data.main);
-                                }
-                                
-                                if (response.data.specific !== undefined && $('#specific_system_instructions').length) {
-                                    $('#specific_system_instructions').val(response.data.specific);
-                                }
-                                
-                                if (response.data.knowledge !== undefined && $('#knowledge_system_instructions').length) {
-                                    $('#knowledge_system_instructions').val(response.data.knowledge);
-                                }
-                                
-                                if (response.data.orders !== undefined && $('#orders_system_instructions').length) {
-                                    $('#orders_system_instructions').val(response.data.orders);
-                                }
-                            }
+            // Get system instructions from database and update specific textareas
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'get_system_instructions',
+                    security: wpikoChatbotAdmin.nonce
+                },
+                success: function(response) {
+                    if (response.success && response.data) {
+                        // Check current API type
+                        var currentApiType = (typeof wpikoChatbotAdmin !== 'undefined' && wpikoChatbotAdmin.apiType) ? wpikoChatbotAdmin.apiType : 'responses';
+                        
+                        // Update Responses API fields
+                        if (response.data.products !== undefined && $('#responses_products_system_instructions').length) {
+                            $('#responses_products_system_instructions').val(response.data.products);
+                        }
+                        
+                        if (response.data.main !== undefined && $('#responses_main_system_instructions').length) {
+                            $('#responses_main_system_instructions').val(response.data.main);
+                        }
+                        
+                        if (response.data.specific !== undefined && $('#responses_specific_system_instructions').length) {
+                            $('#responses_specific_system_instructions').val(response.data.specific);
+                        }
+                        
+                        if (response.data.knowledge !== undefined && $('#responses_knowledge_system_instructions').length) {
+                            $('#responses_knowledge_system_instructions').val(response.data.knowledge);
+                        }
+                        
+                        if (response.data.orders !== undefined && $('#responses_orders_system_instructions').length) {
+                            $('#responses_orders_system_instructions').val(response.data.orders);
                         }
                     }
-                });
-            }
+                }
+            });
         }
 
         // Function to check sync progress with improved error handling
@@ -336,7 +306,7 @@ jQuery(document).ready(function($) {
                     security: wpikoChatbotAdmin.nonce,
                     enabled: isEnabled
                 },
-                success: function(response) {
+                        success: function(response) {
                     if (response.success) {
                         var newState = response.data.enabled;
                         $wooCommerceIntegration.prop('checked', newState);
@@ -348,12 +318,9 @@ jQuery(document).ready(function($) {
                             if (typeof wpikoChatbotFileManagement !== 'undefined') {
                                 wpikoChatbotFileManagement.refreshWooCommerceFileList();
                             }
-                            if (response.data.assistant_details) {
-                                updateAssistantDetails(response.data.assistant_details);
-                            }
-                        }, 1000);
-
-                        if (!newState) {
+                            // Get system instructions
+                            updateAssistantDetails();
+                        }, 1000);                        if (!newState) {
                             $productsAutoUpdate.val('disabled');
                             $ordersSync.val('disabled').trigger('change');
                         }
@@ -474,9 +441,7 @@ jQuery(document).ready(function($) {
             alert(response.data.message);
             
             // Update system instructions and UI
-            if (response.data.assistant_details) {
-                updateAssistantDetails(response.data.assistant_details);
-            }
+            updateAssistantDetails();
             
             // Update WooCommerce file list if needed
             if (typeof wpikoChatbotFileManagement !== 'undefined') {
@@ -485,14 +450,7 @@ jQuery(document).ready(function($) {
             
             // Update Orders System Instructions visibility
             var ordersAutoSync = $('#orders_auto_sync').val();
-            var currentApiType = (typeof wpikoChatbotAdmin !== 'undefined' && wpikoChatbotAdmin.apiType) ? wpikoChatbotAdmin.apiType : 'assistant';
-            
-            var $ordersInstructions;
-            if (currentApiType === 'responses') {
-                $ordersInstructions = $('#responses_orders_system_instructions').closest('tr');
-            } else {
-                $ordersInstructions = $('#orders_system_instructions').closest('tr');
-            }
+            var $ordersInstructions = $('#responses_orders_system_instructions').closest('tr');
             
             if (ordersAutoSync === 'disabled') {
                 $ordersInstructions.hide();
@@ -731,14 +689,7 @@ jQuery(document).ready(function($) {
 
         // Set initial Orders System Instructions visibility
         var initialOrdersAutoSync = $ordersSync.val();
-        var currentApiType = (typeof wpikoChatbotAdmin !== 'undefined' && wpikoChatbotAdmin.apiType) ? wpikoChatbotAdmin.apiType : 'assistant';
-        
-        var $ordersInstructions;
-        if (currentApiType === 'responses') {
-            $ordersInstructions = $('#responses_orders_system_instructions').closest('tr');
-        } else {
-            $ordersInstructions = $('#orders_system_instructions').closest('tr');
-        }
+        var $ordersInstructions = $('#responses_orders_system_instructions').closest('tr');
         
         if (initialOrdersAutoSync === 'disabled') {
             $ordersInstructions.hide();
@@ -793,7 +744,7 @@ jQuery(document).ready(function($) {
         $('#woocommerce-integration-modal').fadeIn();
         
         // Load WooCommerce integration content if not already loaded
-        var $container = $('#woocommerce-integration-container');
+        var $container = $('#responses-woocommerce-integration-container');
         if ($container.is(':empty')) {
             $container.html('<div class="loading">Loading WooCommerce Integration...</div>');
             

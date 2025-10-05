@@ -20,19 +20,14 @@ if (!defined('ABSPATH')) {
     $license_status = wpiko_chatbot_decrypt_data(get_option('wpiko_chatbot_license_status', ''));
     $is_license_expired = $license_status === 'expired';
     
-    // Get the assistant ID from options
-    $assistant_id = get_option('wpiko_chatbot_assistant_id', '');
-    
     // Check if there are any existing scanned page files
     $has_scanned_files = false;
-    if ($assistant_id) {
-        $files_result = wpiko_chatbot_list_assistant_files($assistant_id);
-        if ($files_result['success']) {
-            foreach ($files_result['files'] as $file) {
-                if (strpos($file['filename'], 'page_') === 0) {
-                    $has_scanned_files = true;
-                    break;
-                }
+    $files_result = wpiko_chatbot_list_responses_files();
+    if ($files_result['success']) {
+        foreach ($files_result['files'] as $file) {
+            if (strpos($file['filename'], 'page_') === 0) {
+                $has_scanned_files = true;
+                break;
             }
         }
     }
@@ -44,7 +39,7 @@ if (!defined('ABSPATH')) {
     ?>
 
     <?php if (wpiko_chatbot_is_license_active()): ?>
-        <p class="description">Scan your website content to generate questions and answers for your AI assistant's knowledge base.</p>
+        <p class="description">Scan your website to generate Q&A for the AI Assistant knowledge base.</p>
         <table class="form-table">
             <tr valign="top">
                 <th scope="row"><label for="process_url_search">Search Page</label></th>
@@ -108,7 +103,7 @@ if (!defined('ABSPATH')) {
                 </div>
             <?php endif; ?>
             <h3>Website Pages List</h3>
-            <p class="description">View and manage the website pages you've uploaded to the Assistant API's knowledge base.</p>
+            <p class="description">View and manage the pages you’ve uploaded to the AI Assistant knowledge base.</p>
             <ul id="url-processing-files-list"></ul>
         </div>    
     <?php endif; ?>

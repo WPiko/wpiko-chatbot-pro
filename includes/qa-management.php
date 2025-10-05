@@ -3,6 +3,15 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
+/**
+ * Q&A Management functionality - Compatible with Responses API only
+ */
+
+// Helper function to check if we're using Responses API
+function wpiko_chatbot_pro_is_using_responses_api() {
+    return true;
+}
+
 // Create the Q&A table
 function wpiko_chatbot_pro_create_qa_table() {
     global $wpdb;
@@ -70,21 +79,10 @@ function wpiko_chatbot_pro_delete_qa($id) {
 
 // Function to delete the Q&A file
 function wpiko_chatbot_pro_delete_qa_file() {
-    // Check which API is currently selected
-    $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
-    
-    if ($api_type === 'responses') {
-        $file_id = get_option('wpiko_chatbot_responses_qa_file_id', '');
-        if ($file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
-            wpiko_chatbot_delete_responses_file($file_id);
-            delete_option('wpiko_chatbot_responses_qa_file_id');
-        }
-    } else {
-        $file_id = get_option('wpiko_chatbot_qa_file_id', '');
-        if ($file_id) {
-            wpiko_chatbot_delete_file_from_wpiko($file_id);
-            delete_option('wpiko_chatbot_qa_file_id');
-        }
+    $file_id = get_option('wpiko_chatbot_responses_qa_file_id', '');
+    if ($file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
+        wpiko_chatbot_delete_responses_file($file_id);
+        delete_option('wpiko_chatbot_responses_qa_file_id');
     }
 }
 
@@ -106,7 +104,7 @@ function wpiko_chatbot_pro_release_qa_lock() {
     delete_option($lock_key);
 }
 
-// Generate Q&A file and upload to Assistant API
+// Generate Q&A file
 function wpiko_chatbot_pro_cleanup_and_generate_qa_file($qa_pairs = null) {
     global $wpdb;
     
@@ -116,9 +114,6 @@ function wpiko_chatbot_pro_cleanup_and_generate_qa_file($qa_pairs = null) {
     }
 
     try {
-        // Clean up duplicates when explicitly asked to through the AJAX call
-        // This function will focus just on generating the file
-        
         // If no Q&A pairs provided, fetch from database
         if ($qa_pairs === null) {
             $table_name = $wpdb->prefix . 'wpiko_chatbot_qa';
@@ -144,40 +139,19 @@ function wpiko_chatbot_pro_cleanup_and_generate_qa_file($qa_pairs = null) {
 
         $filename = 'qa_data_questions-and-answers';
         
-        // Check which API is currently selected and use the appropriate upload function
-        $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
-        if ($api_type === 'responses') {
-            $file_id = wpiko_chatbot_upload_qa_file_to_responses($filename, $content);
-        } else {
-            $file_id = wpiko_chatbot_upload_qa_file($filename, $content);
-        }
+        // Always use Responses API for uploads
+        $file_id = wpiko_chatbot_upload_qa_file_to_responses($filename, $content);
 
         if ($file_id) {
-            // Check which API was used and clean up old files accordingly
-            $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
-            
-            if ($api_type === 'responses') {
-                $old_file_id = get_option('wpiko_chatbot_responses_qa_file_id', '');
-                if ($old_file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
-                    wpiko_chatbot_delete_responses_file($old_file_id);
-                    // Remove the old file from cache to ensure list displays correctly
-                    if (function_exists('wpiko_chatbot_remove_cached_file')) {
-                        wpiko_chatbot_remove_cached_file($old_file_id);
-                    }
+            $old_file_id = get_option('wpiko_chatbot_responses_qa_file_id', '');
+            if ($old_file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
+                wpiko_chatbot_delete_responses_file($old_file_id);
+                // Remove the old file from cache to ensure list displays correctly
+                if (function_exists('wpiko_chatbot_remove_cached_file')) {
+                    wpiko_chatbot_remove_cached_file($old_file_id);
                 }
-                update_option('wpiko_chatbot_responses_qa_file_id', $file_id);
-            } else {
-                $old_file_id = get_option('wpiko_chatbot_qa_file_id', '');
-                if ($old_file_id) {
-                    if (wpiko_chatbot_delete_file_from_wpiko($old_file_id)) {
-                        // Remove the old file from cache to ensure list displays correctly
-                        if (function_exists('wpiko_chatbot_remove_cached_file')) {
-                            wpiko_chatbot_remove_cached_file($old_file_id);
-                        }
-                    }
-                }
-                update_option('wpiko_chatbot_qa_file_id', $file_id);
             }
+            update_option('wpiko_chatbot_responses_qa_file_id', $file_id);
 
             wpiko_chatbot_log('New Q&A file created with ID: ' . $file_id, 'info');
             return true;
@@ -329,7 +303,7 @@ function wpiko_chatbot_pro_ajax_delete_qa() {
 
     $id = intval($_POST['id']);
 
-    $result = wpiko_chatbot_delete_qa($id);
+    $result = wpiko_chatbot_pro_delete_qa($id);
 
     if ($result) {
         wp_send_json_success(array('message' => 'Q&A deleted successfully'));
@@ -382,13 +356,7 @@ function wpiko_chatbot_pro_ajax_get_qa_file_info() {
     $qa_count = $wpdb->get_var("SELECT COUNT(*) FROM `{$wpdb->prefix}wpiko_chatbot_qa`");
     $latest_update = $wpdb->get_var("SELECT MAX(updated_at) FROM `{$wpdb->prefix}wpiko_chatbot_qa`");
     
-    // Get file ID from options based on current API type
-    $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
-    if ($api_type === 'responses') {
-        $file_id = get_option('wpiko_chatbot_responses_qa_file_id', '');
-    } else {
-        $file_id = get_option('wpiko_chatbot_qa_file_id', '');
-    }
+    $file_id = get_option('wpiko_chatbot_responses_qa_file_id', '');
     
     $response = array(
         'qa_count' => intval($qa_count),
@@ -489,11 +457,9 @@ function wpiko_chatbot_pro_validate_directory($path) {
 
 function wpiko_chatbot_pro_check_duplicate_qa_files() {
     $upload_dir = wp_upload_dir();
-    $assistant_id = get_option('wpiko_chatbot_assistant_id', '');
     
     wpiko_chatbot_log('Starting duplicate Q&A files check...', 'info');
     wpiko_chatbot_log('Upload base directory: ' . $upload_dir['basedir'], 'info');
-    wpiko_chatbot_log('Assistant ID: ' . ($assistant_id ? $assistant_id : 'Not found'), 'info');
     
     // Initialize the WordPress Filesystem
     global $wp_filesystem;
@@ -507,44 +473,47 @@ function wpiko_chatbot_pro_check_duplicate_qa_files() {
         return false;
     }
     
-    // Ensure proper directory structure
+    // Ensure proper directory structure for Responses API files only
     $base_dir = $upload_dir['basedir'] . '/wpiko-chatbot';
-    $assistant_dir = $base_dir . '/assistants/' . $assistant_id;
     
-    // Validate directories
-    if (!wpiko_chatbot_pro_validate_directory($base_dir) || 
-        (!empty($assistant_id) && !wpiko_chatbot_pro_validate_directory($assistant_dir))) {
+    // Validate directory
+    if (!wpiko_chatbot_pro_validate_directory($base_dir)) {
         wpiko_chatbot_log('Failed to validate directories', 'error');
         return false;
     }
     
-    // Check for duplicate files in OpenAI assistant
+    // Check for duplicate files in Responses API vector store
     $api_duplicates_cleaned = false;
-    if (!empty($assistant_id)) {
-        wpiko_chatbot_log('Checking OpenAI assistant files...', 'info');
-        $api_result = wpiko_chatbot_list_assistant_files($assistant_id);
+    $responses_vector_store_id = get_option('wpiko_chatbot_responses_vector_store_id', '');
+    if (!empty($responses_vector_store_id) && function_exists('wpiko_chatbot_list_responses_files')) {
+        wpiko_chatbot_log('Checking Responses API files...', 'info');
+        $api_result = wpiko_chatbot_list_responses_files();
         if ($api_result['success'] && !empty($api_result['files'])) {
             $qa_files = array_filter($api_result['files'], function($file) {
                 return strpos($file['filename'], 'qa_data_questions-and-answers') !== false;
             });
             
             if (count($qa_files) > 1) {
-                wpiko_chatbot_log('Found ' . count($qa_files) . ' duplicate files in OpenAI assistant', 'warning');
-                // Sort by creation time, newest first
-                usort($qa_files, function($a, $b) {
-                    return $b['created_at'] - $a['created_at'];
-                });
+                wpiko_chatbot_log('Found ' . count($qa_files) . ' duplicate files in Responses API', 'warning');
+                // Sort by creation time, newest first (implementation may vary based on Responses API structure)
+                if (isset($qa_files[0]['created_at'])) {
+                    usort($qa_files, function($a, $b) {
+                        return $b['created_at'] - $a['created_at'];
+                    });
+                }
                 
                 // Keep the newest file, delete others
                 $newest_file = array_shift($qa_files);
                 $delete_success = true;
                 foreach ($qa_files as $file) {
-                    $delete_result = wpiko_chatbot_delete_assistant_file($assistant_id, $file['id']);
-                    if ($delete_result['success']) {
-                        wpiko_chatbot_log('Successfully deleted OpenAI file: ' . $file['filename'], 'info');
-                    } else {
-                        wpiko_chatbot_log('Failed to delete OpenAI file: ' . $file['filename'], 'error');
-                        $delete_success = false;
+                    if (function_exists('wpiko_chatbot_delete_responses_file')) {
+                        $delete_result = wpiko_chatbot_delete_responses_file($file['id']);
+                        if ($delete_result) {
+                            wpiko_chatbot_log('Successfully deleted Responses API file: ' . $file['filename'], 'info');
+                        } else {
+                            wpiko_chatbot_log('Failed to delete Responses API file: ' . $file['filename'], 'error');
+                            $delete_success = false;
+                        }
                     }
                 }
                 $api_duplicates_cleaned = $delete_success;
@@ -555,7 +524,6 @@ function wpiko_chatbot_pro_check_duplicate_qa_files() {
     // Check local files
     wpiko_chatbot_log('Checking local files...', 'info');
     $paths = array(
-        $upload_dir['basedir'] . '/wpiko-chatbot/assistants/' . $assistant_id,
         $upload_dir['basedir'] . '/wpiko-chatbot'
     );
     
@@ -614,7 +582,7 @@ function wpiko_chatbot_pro_check_duplicate_qa_files() {
         }
         
         wpiko_chatbot_log('Deleted ' . $deleted_count . ' duplicate files', 'info');
-        return $deleted_count > 0;
+        return $deleted_count > 0 || $api_duplicates_cleaned;
     }
     
     wpiko_chatbot_log('No duplicate Q&A files found', 'info');

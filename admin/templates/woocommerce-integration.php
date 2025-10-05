@@ -16,39 +16,20 @@ if (!defined('ABSPATH')) {
     </h3>
     <div id="woocommerce-integration-content">
         <?php 
-        // Get current license status and API type
+        // Get current license status
         $license_status = wpiko_chatbot_decrypt_data(get_option('wpiko_chatbot_license_status', ''));
         $is_license_expired = $license_status === 'expired';
-        $api_type = get_option('wpiko_chatbot_api_type', 'assistant');
-        $api_display_name = ($api_type === 'responses') ? 'Responses API' : 'Assistant API';
         
-        // Check if there are any existing WooCommerce files based on current API
+        // Check if there are any existing WooCommerce files
         $has_woo_files = false;
-        if ($api_type === 'responses') {
-            // Check for Responses API files
-            $responses_vector_store_id = get_option('wpiko_chatbot_responses_vector_store_id', '');
-            if ($responses_vector_store_id && function_exists('wpiko_chatbot_list_responses_files')) {
-                $files_result = wpiko_chatbot_list_responses_files();
-                if ($files_result['success']) {
-                    foreach ($files_result['files'] as $file) {
-                        if (strpos($file['filename'], 'woocommerce_') === 0) {
-                            $has_woo_files = true;
-                            break;
-                        }
-                    }
-                }
-            }
-        } else {
-            // Check for Assistant API files
-            $assistant_id = get_option('wpiko_chatbot_assistant_id', '');
-            if ($assistant_id) {
-                $files_result = wpiko_chatbot_list_assistant_files($assistant_id);
-                if ($files_result['success']) {
-                    foreach ($files_result['files'] as $file) {
-                        if (strpos($file['filename'], 'woocommerce_') === 0) {
-                            $has_woo_files = true;
-                            break;
-                        }
+        $responses_vector_store_id = get_option('wpiko_chatbot_responses_vector_store_id', '');
+        if ($responses_vector_store_id && function_exists('wpiko_chatbot_list_responses_files')) {
+            $files_result = wpiko_chatbot_list_responses_files();
+            if ($files_result['success']) {
+                foreach ($files_result['files'] as $file) {
+                    if (strpos($file['filename'], 'woocommerce_') === 0) {
+                        $has_woo_files = true;
+                        break;
                     }
                 }
             }
@@ -56,7 +37,7 @@ if (!defined('ABSPATH')) {
         ?>
 
         <?php if (wpiko_chatbot_is_license_active()): ?>
-            <p class="description">Integrate your WooCommerce products and orders information with the AI Assistant.</p>
+            <p class="description">Integrate your WooCommerce products and orders with the AI Assistant knowledge base.</p>
         <table class="form-table">
         
         <tr valign="top">

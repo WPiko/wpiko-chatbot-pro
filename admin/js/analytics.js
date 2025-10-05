@@ -38,6 +38,45 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Location view toggle handling
+    const locationToggleBtns = document.querySelectorAll('.location-toggle-btn');
+    
+    locationToggleBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const selectedView = this.getAttribute('data-view');
+            
+            // Add loading state
+            const locationsCard = this.closest('.analytics-card');
+            if (locationsCard) {
+                locationsCard.classList.add('loading');
+            }
+            
+            // Update URL with location view parameter
+            const url = new URL(window.location);
+            url.searchParams.set('location_view', selectedView);
+            
+            // Keep existing date range parameters
+            if (dateRangeSelect && dateRangeSelect.value) {
+                url.searchParams.set('date_range', dateRangeSelect.value);
+            }
+            if (startDate && startDate.value) {
+                url.searchParams.set('start_date', startDate.value);
+            }
+            if (endDate && endDate.value) {
+                url.searchParams.set('end_date', endDate.value);
+            }
+            
+            // Add nonce to the URL
+            const nonceField = document.querySelector('input[name="wpiko_analytics_nonce"]');
+            if (nonceField) {
+                url.searchParams.set('wpiko_analytics_nonce', nonceField.value);
+            }
+            
+            // Navigate to the new URL
+            window.location.href = url.toString();
+        });
+    });
+
     // Handle chart dot hover effects
     const chartDots = document.querySelectorAll('.chart-dot');
     const chartArea = document.querySelector('.chart-area');
