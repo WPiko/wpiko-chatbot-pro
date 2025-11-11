@@ -26,6 +26,17 @@
     max-height: 3000px;
 }
 
+/* reCAPTCHA Options Collapsible */
+.recaptcha-options-collapsible {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    max-height: 0;
+}
+
+.recaptcha-options-collapsible.active {
+    max-height: 2000px;
+}
+
 /* remove border from */
 .enable-form-dropdown-row,
 .enable-google-recaptcha-row,
@@ -77,4 +88,90 @@
 
 .instruction-content {
     margin: 10px 0;
+}
+
+/* Score Guide Styling */
+.score-guide {
+    background: linear-gradient(135deg, #ffffff, #f8fbff);
+    border: 2px solid #e3ecf9;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 15px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(9, 104, 254, 0.05);
+}
+
+.score-guide strong {
+    color: #0B1C3B;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.score-guide-item {
+    display: flex;
+    align-items: center;
+    margin: 8px 0;
+    padding: 12px 15px;
+    background: #ffffff;
+    border-radius: 8px;
+    color: #43516A;
+    font-size: 13px;
+    line-height: 1.5;
+    border-left: 4px solid transparent;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.score-guide-item:hover {
+    transform: translateX(4px);
+    box-shadow: 0 2px 6px rgba(9, 104, 254, 0.12);
+}
+
+.score-guide-item::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: linear-gradient(135deg, #0968FE, #5b9fff);
+    border-radius: 50%;
+    margin-right: 15px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(9, 104, 254, 0.3);
+}
+
+.score-guide-range {
+    display: inline-block;
+    min-width: 85px;
+    font-weight: 700;
+    color: #0968FE;
+    font-size: 14px;
+    background: linear-gradient(135deg, #e8f2ff, #f0f7ff);
+    padding: 4px 10px;
+    border-radius: 6px;
+    margin-right: 12px;
+    text-align: center;
+    border: 1px solid #d1e4ff;
+}
+
+.score-guide-description {
+    flex-grow: 1;
+    color: #43516A;
+    font-size: 13px;
+}
+
+.score-guide-note {
+    background: linear-gradient(135deg, #fff9e6, #fffdf5);
+    border-left: 4px solid #ffa500;
+    padding: 14px 16px;
+    margin-top: 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #2c3338;
+    line-height: 1.6;
+    box-shadow: 0 2px 6px rgba(255, 165, 0, 0.1);
+    position: relative;
+}
+
+.score-guide-note strong {
+    color: #d97706;
+    font-weight: 600;
 }

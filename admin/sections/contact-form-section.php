@@ -21,6 +21,7 @@ function wpiko_chatbot_contact_form_section() {
         $enable_recaptcha = isset($_POST['wpiko_chatbot_enable_recaptcha']) ? '1' : '0';
         $recaptcha_site_key = isset($_POST['wpiko_chatbot_recaptcha_site_key']) ? sanitize_text_field(wp_unslash($_POST['wpiko_chatbot_recaptcha_site_key'])) : '';
         $recaptcha_secret_key = isset($_POST['wpiko_chatbot_recaptcha_secret_key']) ? sanitize_text_field(wp_unslash($_POST['wpiko_chatbot_recaptcha_secret_key'])) : '';
+        $recaptcha_threshold = isset($_POST['wpiko_chatbot_recaptcha_threshold']) ? sanitize_text_field(wp_unslash($_POST['wpiko_chatbot_recaptcha_threshold'])) : '0.5';
         $hide_recaptcha_badge = isset($_POST['wpiko_chatbot_hide_recaptcha_badge']) ? '1' : '0';
         
         update_option('wpiko_chatbot_enable_contact_form', $enable_contact_form);
@@ -30,6 +31,7 @@ function wpiko_chatbot_contact_form_section() {
         update_option('wpiko_chatbot_enable_recaptcha', $enable_recaptcha);
         update_option('wpiko_chatbot_recaptcha_site_key', $recaptcha_site_key);
         update_option('wpiko_chatbot_recaptcha_secret_key', $recaptcha_secret_key);
+        update_option('wpiko_chatbot_recaptcha_threshold', $recaptcha_threshold);
         update_option('wpiko_chatbot_hide_recaptcha_badge', $hide_recaptcha_badge);
         
         // Show success message
@@ -44,6 +46,7 @@ function wpiko_chatbot_contact_form_section() {
     $enable_recaptcha = get_option('wpiko_chatbot_enable_recaptcha', '0');
     $recaptcha_site_key = get_option('wpiko_chatbot_recaptcha_site_key', '');
     $recaptcha_secret_key = get_option('wpiko_chatbot_recaptcha_secret_key', '');
+    $recaptcha_threshold = get_option('wpiko_chatbot_recaptcha_threshold', '0.5');
     $hide_recaptcha_badge = get_option('wpiko_chatbot_hide_recaptcha_badge', '0');
     
     // Display the form
@@ -131,6 +134,10 @@ function wpiko_chatbot_contact_form_section() {
                         <p class="description"><strong>Note:</strong> You must use reCAPTCHA v3 for this integration to work properly. <a href="https://www.google.com/recaptcha/admin" target="_blank">Create your reCAPTCHA keys here</a>.</p>
                     </td>
                 </tr>
+                </table>
+                
+                <div class="recaptcha-options-collapsible <?php echo $enable_recaptcha ? 'active' : ''; ?>">
+                    <table class="form-table">
                 
                 <tr class="recaptcha-site-key-row">
                     <th scope="row">reCAPTCHA Site Key</th>
@@ -148,6 +155,51 @@ function wpiko_chatbot_contact_form_section() {
                     </td>
                 </tr>
                 
+                <tr class="recaptcha-threshold-row">
+                    <th scope="row">reCAPTCHA Score Threshold</th>
+                    <td>
+                        <input type="number" 
+                               id="wpiko_chatbot_recaptcha_threshold" 
+                               name="wpiko_chatbot_recaptcha_threshold" 
+                               value="<?php echo esc_attr($recaptcha_threshold); ?>" 
+                               min="0" 
+                               max="1" 
+                               step="0.1" 
+                               style="width: 100px;">
+                        <p class="description">
+                            Set the minimum score required to accept submissions (0.0 - 1.0). 
+                            <strong>Default: 0.5 (Recommended)</strong>
+                        </p>
+                        <div class="score-guide">
+                            <strong style="display: block; margin-bottom: 10px; color: #0968FE;">Score Guide:</strong>
+                            <div class="score-guide-item">
+                                <span class="score-guide-range">0.9-1.0</span>
+                                <span class="score-guide-description">Very strict - may block some legitimate users</span>
+                            </div>
+                            <div class="score-guide-item">
+                                <span class="score-guide-range">0.7-0.8</span>
+                                <span class="score-guide-description">Strict - good balance for high-security needs</span>
+                            </div>
+                            <div class="score-guide-item">
+                                <span class="score-guide-range">0.5</span>
+                                <span class="score-guide-description">Balanced - recommended for most sites</span>
+                            </div>
+                            <div class="score-guide-item">
+                                <span class="score-guide-range">0.3-0.4</span>
+                                <span class="score-guide-description">Lenient - more spam may pass through</span>
+                            </div>
+                            <div class="score-guide-item">
+                                <span class="score-guide-range">0.0-0.2</span>
+                                <span class="score-guide-description">Very lenient - not recommended</span>
+                            </div>
+                            <div class="score-guide-note">
+                                <strong>Note:</strong> reCAPTCHA v3 assigns a score to each submission. Lower scores indicate bot-like behavior. 
+                                If you're getting spam, increase this value. If legitimate users are blocked, decrease it slightly.
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                
                 <tr>
                     <th scope="row">Hide reCAPTCHA Badge</th>
                     <td>
@@ -160,6 +212,11 @@ function wpiko_chatbot_contact_form_section() {
                         <p class="description"><strong>Note:</strong> According to Google's terms, you must inform users that you're using reCAPTCHA. A note is added to the form when this option is enabled.</p>
                     </td>
                 </tr>
+                
+                </table>
+                </div>
+                
+                <table class="form-table">
                 
                 <tr>
                     <th scope="row">Chatbot Contact Link</th>
@@ -229,6 +286,15 @@ function wpiko_chatbot_contact_form_section() {
                         $('.contact-form-settings-collapsible').addClass('active');
                     } else {
                         $('.contact-form-settings-collapsible').removeClass('active');
+                    }
+                });
+
+                // Toggle reCAPTCHA options visibility based on checkbox state
+                $('#wpiko_chatbot_enable_recaptcha').change(function() {
+                    if ($(this).is(':checked')) {
+                        $('.recaptcha-options-collapsible').addClass('active');
+                    } else {
+                        $('.recaptcha-options-collapsible').removeClass('active');
                     }
                 });
 

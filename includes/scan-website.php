@@ -263,7 +263,7 @@ $chunk_json";
                 'Content-Type' => 'application/json',
             ],
             'body' => json_encode([
-                'model' => 'gpt-4o',
+                'model' => 'gpt-4.1',
                 'messages' => [
                     ['role' => 'system', 'content' => 'You are a specialist in creating Q&A content from web page segments. Always maintain consistent formatting between question and answer pairs.'],
                     ['role' => 'user', 'content' => $chunk_prompt]

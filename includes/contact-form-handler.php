@@ -27,6 +27,61 @@ function wpiko_chatbot_pro_contact_form_handler() {
     // Check if thread_id is empty or not provided - we only want to save to existing threads
     $save_to_conversation = !empty($thread_id);
     
+    // HONEYPOT CHECK: Block if honeypot field is filled (bots fill hidden fields)
+    $honeypot = isset($_POST['website_url']) ? sanitize_text_field(wp_unslash($_POST['website_url'])) : '';
+    if (!empty($honeypot)) {
+        // Silently fail - don't give bots feedback
+        wpiko_chatbot_log(sprintf(
+            'Contact form honeypot triggered - Email: %s, Name: %s, IP: %s',
+            $email,
+            $name,
+            isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : 'unknown'
+        ), 'warning');
+        wp_send_json_error(array('message' => 'Please complete all required fields correctly.'));
+        return;
+    }
+    
+    // TIMESTAMP VALIDATION: Check if form was submitted too quickly (likely a bot)
+    $form_timestamp = isset($_POST['form_timestamp']) ? intval($_POST['form_timestamp']) : 0;
+    $current_time = time();
+    $min_time = 3; // Minimum 3 seconds to fill form
+    
+    if ($form_timestamp > 0) {
+        $time_taken = $current_time - $form_timestamp;
+        if ($time_taken < $min_time) {
+            wpiko_chatbot_log(sprintf(
+                'Contact form submitted too fast (%d seconds) - Email: %s, Name: %s, IP: %s',
+                $time_taken,
+                $email,
+                $name,
+                isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : 'unknown'
+            ), 'warning');
+            wp_send_json_error(array('message' => 'Please take your time filling out the form.'));
+            return;
+        }
+    }
+    
+    // RATE LIMITING: Check if this email has submitted too many times recently
+    $rate_limit_key = 'wpiko_contact_rate_' . md5($email);
+    $submission_count = get_transient($rate_limit_key);
+    $max_submissions = 3; // Max 3 submissions per hour
+    $rate_limit_window = HOUR_IN_SECONDS; // 1 hour
+    
+    if ($submission_count !== false && $submission_count >= $max_submissions) {
+        $error_message = 'You have submitted too many contact forms. Please try again later.';
+        if ($save_to_conversation) {
+            wpiko_chatbot_save_message($user_id, $thread_id, 'error', $error_message, $email);
+        }
+        wpiko_chatbot_log(sprintf(
+            'Contact form rate limit exceeded - Email: %s, Count: %d, IP: %s',
+            $email,
+            $submission_count,
+            isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : 'unknown'
+        ), 'warning');
+        wp_send_json_error(array('message' => $error_message));
+        return;
+    }
+    
     // Check reCAPTCHA if enabled
     $enable_recaptcha = get_option('wpiko_chatbot_enable_recaptcha', '0');
     if ($enable_recaptcha === '1') {
@@ -79,6 +134,29 @@ function wpiko_chatbot_pro_contact_form_handler() {
             if ($save_to_conversation) {
                 wpiko_chatbot_save_message($user_id, $thread_id, 'error', $error_message, $email);
             }
+            wp_send_json_error(array('message' => $error_message));
+            return;
+        }
+        
+        // Check the reCAPTCHA score (0.0 to 1.0)
+        $score_threshold = (float)get_option('wpiko_chatbot_recaptcha_threshold', '0.5');
+        $score = isset($verify_response['score']) ? (float)$verify_response['score'] : 0.0;
+        
+        if ($score < $score_threshold) {
+            $error_message = 'Contact Form - Suspicious activity detected. Please try again later.';
+            // Save error message to conversation history if thread exists
+            if ($save_to_conversation) {
+                wpiko_chatbot_save_message($user_id, $thread_id, 'error', $error_message, $email);
+            }
+            // Log the failed attempt for monitoring
+            wpiko_chatbot_log(sprintf(
+                'Contact form blocked - Low reCAPTCHA score (%.2f, threshold: %.2f) - Email: %s, Name: %s, IP: %s',
+                $score,
+                $score_threshold,
+                $email,
+                $name,
+                isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : 'unknown'
+            ), 'warning');
             wp_send_json_error(array('message' => $error_message));
             return;
         }
@@ -272,6 +350,10 @@ function wpiko_chatbot_pro_contact_form_handler() {
     }
     
     if ($sent) {
+        // Increment rate limit counter
+        $new_count = ($submission_count !== false) ? $submission_count + 1 : 1;
+        set_transient($rate_limit_key, $new_count, $rate_limit_window);
+        
         // Success message
         $success_message = 'Contact Form - Your message has been sent successfully. We will get back to you as soon as possible.';
         // Save success message to conversation history as an assistant response if thread exists

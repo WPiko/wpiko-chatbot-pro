@@ -176,6 +176,17 @@ document.addEventListener('DOMContentLoaded', function() {
                             <textarea id="contact-message" name="message" rows="4" required></textarea>
                         </div>`;
 
+        // Add honeypot field (hidden from users, bots will fill it)
+        formHTML += `
+                        <div style="position: absolute; left: -9999px; top: -9999px;">
+                            <label for="website_url">Website (leave blank)</label>
+                            <input type="text" id="website_url" name="website_url" tabindex="-1" autocomplete="off">
+                        </div>`;
+        
+        // Add timestamp field to detect instant submissions
+        formHTML += `
+                        <input type="hidden" name="form_timestamp" value="${Math.floor(Date.now() / 1000)}">`;
+
         // Add file uploads if enabled
         if (wpikoChatbot.enable_attachments === '1') {
             formHTML += `
