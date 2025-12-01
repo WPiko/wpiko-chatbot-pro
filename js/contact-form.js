@@ -361,12 +361,31 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create a FormData object directly from the form element
         const formData = new FormData(form);
         
-        // Submit using fetch API
+        // Create AbortController for timeout handling
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for form submission
+        
+        // Submit using fetch API with timeout
         fetch(wpikoChatbot.ajax_url, {
             method: 'POST',
-            body: formData
+            body: formData,
+            signal: controller.signal
         })
-        .then(response => response.json())
+        .then(response => {
+            clearTimeout(timeoutId);
+            if (!response.ok) {
+                // Handle HTTP errors
+                if (response.status === 429) {
+                    throw new Error('Too many requests. Please wait a moment before trying again.');
+                } else if (response.status >= 500) {
+                    throw new Error('Server error. Please try again in a few moments.');
+                } else if (response.status === 403) {
+                    throw new Error('Access denied. Please refresh the page and try again.');
+                }
+                throw new Error('Request failed with status: ' + response.status);
+            }
+            return response.json();
+        })
         .then(response => {
             if (response.success) {
                 // Show success message
@@ -390,8 +409,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(error => {
+            clearTimeout(timeoutId);
             console.error('Error submitting form:', error);
-            showContactFormError('Failed to send your message. Please try again later.');
+            
+            // Provide specific error messages based on error type
+            let errorMessage = 'Failed to send your message. Please try again later.';
+            
+            if (error.name === 'AbortError') {
+                errorMessage = 'The request timed out. Please check your connection and try again.';
+            } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            showContactFormError(errorMessage);
         });
     }
     
