@@ -171,7 +171,7 @@ function wpiko_chatbot_pro_process_product_links($text) {
     // Handle markdown-style links
     $text = preg_replace_callback('/\[([^\]]+)\]\s*\(?\s*((?:https?:\/\/|www\.)[^\s\)]+)\s*\)?/', function($matches) use ($site_domain) {
         $linkText = $matches[1];
-        $url = trim($matches[2], '()');
+        $url = trim($matches[2], '()*');
         if (strpos($url, 'www.') === 0) {
             $url = 'http://' . $url;
         }
@@ -195,7 +195,7 @@ function wpiko_chatbot_pro_process_product_links($text) {
     // Handle plain URLs
     $urlPattern = '/((?:https?:\/\/|www\.)[^\s<>"]+)(?![^<>]*>|[^<>]*<\/a>)/i';
     $text = preg_replace_callback($urlPattern, function($matches) use ($site_domain) {
-        $url = rtrim($matches[1], '.,:;!?');
+        $url = rtrim($matches[1], '.,:;!?*');
         if (strpos($url, 'www.') === 0) {
             $url = 'http://' . $url;
         }

@@ -3,7 +3,7 @@
  * Plugin Name: WPiko Chatbot Pro
  * Plugin URI: https://wpiko.com/chatbot
  * Description: Premium add-on for WPiko Chatbot with advanced features.
- * Version: 1.0.8
+ * Version: 1.1.0
  * Requires at least: 5.0
  * Tested up to: 6.8.1
  * Requires PHP: 7.0
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('WPIKO_CHATBOT_PRO_VERSION', '1.0.8');
+define('WPIKO_CHATBOT_PRO_VERSION', '1.1.0');
 define('WPIKO_CHATBOT_PRO_FILE', __FILE__);
 define('WPIKO_CHATBOT_PRO_PATH', plugin_dir_path(__FILE__));
 define('WPIKO_CHATBOT_PRO_URL', plugin_dir_url(__FILE__));

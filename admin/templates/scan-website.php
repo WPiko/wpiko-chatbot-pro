@@ -50,7 +50,7 @@ if (!defined('ABSPATH')) {
                         <span class="dashicons dashicons-plus-alt2"></span>
                         Generate Q&A
                     </button>
-                    <p class="description">Enter at least 3 letters to search for a page, then select it to generate Q&A content. Ensure the page is live and not labeled as 'under maintenance' or 'coming soon.'</p>
+                    <p class="description">Enter at least 3 letters to search for a page, then select it to generate Q&A content.</p>
                </td>
             </tr>
             

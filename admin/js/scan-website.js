@@ -4,7 +4,8 @@ jQuery(document).ready(function($) {
         var $searchInput = $('#process_url_search');
         var $searchResults = $('#page-search-results');
         var $generateButton = $('#process_url_button');
-        var selectedPageUrl = null;
+        var selectedPageId = null;
+        var selectedPageTitle = null;
 
         if (!$searchInput.length) {
             return; // Exit if elements don't exist
@@ -100,10 +101,12 @@ jQuery(document).ready(function($) {
                     $ul.append(
                         $('<li>')
                             .text(page.title)
-                            .data('page-url', page.url)
+                            .data('page-id', page.ID)
+                            .data('page-title', page.title)
                             .addClass('page-search-result-item')
                             .click(function() {
-                                selectedPageUrl = $(this).data('page-url');
+                                selectedPageId = $(this).data('page-id');
+                                selectedPageTitle = $(this).data('page-title');
                                 $searchInput.val($(this).text());
                                 $searchResults.empty();
                                 $generateButton.prop('disabled', false);
@@ -118,21 +121,21 @@ jQuery(document).ready(function($) {
 
         // Generate button handler
         $generateButton.on('click', function() {
-            if (selectedPageUrl) {
-                generateQAContent(selectedPageUrl);
+            if (selectedPageId) {
+                generateQAContent(selectedPageId, selectedPageTitle);
             }
         });
 
-        function generateQAContent(url) {
+        function generateQAContent(pageId, pageTitle) {
             $('#url-processing-status').html('<span class="processing">Generating Q&A content... This may take a few minutes for large pages.</span>');
 
             $.ajax({
                 url: wpikoChatbotAdmin.ajax_url,
                 type: 'POST',
                 data: {
-                    action: 'wpiko_chatbot_process_url',
+                    action: 'wpiko_chatbot_process_page',
                     security: wpikoChatbotAdmin.nonce,
-                    url: url
+                    page_id: pageId
                 },
                 timeout: 180000, // Increase timeout to 3 minutes for large pages
                 success: function(response) {

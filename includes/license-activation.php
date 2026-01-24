@@ -3,6 +3,170 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
+// Connection diagnostic test for license server
+function wpiko_chatbot_pro_test_connection() {
+    check_ajax_referer('wpiko_chatbot_test_connection', 'nonce');
+
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('Unauthorized');
+    }
+
+    $diagnostics = array(
+        'success' => true,
+        'tests' => array(),
+        'server_info' => array(
+            'php_version' => PHP_VERSION,
+            'wp_version' => get_bloginfo('version'),
+            'server_software' => isset($_SERVER['SERVER_SOFTWARE']) ? sanitize_text_field(wp_unslash($_SERVER['SERVER_SOFTWARE'])) : 'Unknown',
+            'curl_available' => function_exists('curl_version'),
+            'openssl_available' => extension_loaded('openssl'),
+        )
+    );
+
+    // Test 1: DNS Resolution
+    $host = 'wpiko.com';
+    $dns_start = microtime(true);
+    $dns_result = gethostbyname($host);
+    $dns_time = round((microtime(true) - $dns_start) * 1000, 2);
+    
+    $diagnostics['tests']['dns'] = array(
+        'name' => 'DNS Resolution',
+        'success' => $dns_result !== $host,
+        'message' => $dns_result !== $host ? 'Resolved to ' . $dns_result : 'Failed to resolve wpiko.com',
+        'time_ms' => $dns_time
+    );
+    if ($dns_result === $host) {
+        $diagnostics['success'] = false;
+    }
+
+    // Test 2: HTTP Connection (without SSL first to test basic connectivity)
+    $http_start = microtime(true);
+    $http_response = wp_remote_get('https://wpiko.com', array(
+        'timeout' => 15,
+        'sslverify' => true
+    ));
+    $http_time = round((microtime(true) - $http_start) * 1000, 2);
+
+    if (is_wp_error($http_response)) {
+        $error_code = $http_response->get_error_code();
+        $error_msg = $http_response->get_error_message();
+        $diagnostics['tests']['http'] = array(
+            'name' => 'HTTPS Connection',
+            'success' => false,
+            'message' => 'Error [' . $error_code . ']: ' . $error_msg,
+            'time_ms' => $http_time
+        );
+        $diagnostics['success'] = false;
+    } else {
+        $http_code = wp_remote_retrieve_response_code($http_response);
+        $diagnostics['tests']['http'] = array(
+            'name' => 'HTTPS Connection',
+            'success' => $http_code >= 200 && $http_code < 400,
+            'message' => 'HTTP Status: ' . $http_code,
+            'time_ms' => $http_time
+        );
+        if ($http_code >= 400) {
+            $diagnostics['success'] = false;
+        }
+    }
+
+    // Test 3: REST API Endpoint
+    $api_start = microtime(true);
+    $api_response = wp_remote_post('https://wpiko.com/wp-json/wpiko-keymaster/v1/verify-license', array(
+        'body' => array(
+            'license_key' => 'CONNECTION_TEST',
+            'domain' => home_url(),
+            'verify_only' => true
+        ),
+        'timeout' => 15,
+        'sslverify' => true
+    ));
+    $api_time = round((microtime(true) - $api_start) * 1000, 2);
+
+    if (is_wp_error($api_response)) {
+        $error_code = $api_response->get_error_code();
+        $error_msg = $api_response->get_error_message();
+        $diagnostics['tests']['api'] = array(
+            'name' => 'License API Endpoint',
+            'success' => false,
+            'message' => 'Error [' . $error_code . ']: ' . $error_msg,
+            'time_ms' => $api_time
+        );
+        $diagnostics['success'] = false;
+    } else {
+        $api_code = wp_remote_retrieve_response_code($api_response);
+        $api_body = wp_remote_retrieve_body($api_response);
+        $api_data = json_decode($api_body, true);
+        
+        // Check if we got a valid JSON response (even if license is invalid, API is working)
+        $is_valid_response = $api_data !== null && json_last_error() === JSON_ERROR_NONE;
+        
+        // Check for HTML response (WAF/firewall block)
+        $is_html = preg_match('/<html|<!DOCTYPE/i', $api_body);
+        
+        if ($is_html) {
+            $diagnostics['tests']['api'] = array(
+                'name' => 'License API Endpoint',
+                'success' => false,
+                'message' => 'Received HTML instead of JSON - likely blocked by firewall/WAF',
+                'time_ms' => $api_time,
+                'blocked' => true
+            );
+            $diagnostics['success'] = false;
+        } elseif (empty($api_body)) {
+            $diagnostics['tests']['api'] = array(
+                'name' => 'License API Endpoint',
+                'success' => false,
+                'message' => 'Empty response received - likely blocked by firewall/WAF',
+                'time_ms' => $api_time,
+                'blocked' => true
+            );
+            $diagnostics['success'] = false;
+        } elseif ($is_valid_response) {
+            $diagnostics['tests']['api'] = array(
+                'name' => 'License API Endpoint',
+                'success' => true,
+                'message' => 'API responding correctly (HTTP ' . $api_code . ')',
+                'time_ms' => $api_time
+            );
+        } else {
+            $diagnostics['tests']['api'] = array(
+                'name' => 'License API Endpoint',
+                'success' => false,
+                'message' => 'Invalid JSON response (HTTP ' . $api_code . ')',
+                'time_ms' => $api_time
+            );
+            $diagnostics['success'] = false;
+        }
+    }
+
+    // Generate summary
+    if ($diagnostics['success']) {
+        $diagnostics['summary'] = 'All connection tests passed. Your server can communicate with our licensing server.';
+    } else {
+        $blocked_test = null;
+        foreach ($diagnostics['tests'] as $test) {
+            if (isset($test['blocked']) && $test['blocked']) {
+                $blocked_test = $test['name'];
+                break;
+            }
+        }
+        
+        if ($blocked_test) {
+            $diagnostics['summary'] = 'Connection is being blocked, likely by your server\'s firewall (ModSecurity, WAF, or similar). Please contact your hosting provider and ask them to whitelist requests to wpiko.com.';
+        } elseif (!$diagnostics['tests']['dns']['success']) {
+            $diagnostics['summary'] = 'DNS resolution failed. Your server cannot resolve wpiko.com. Please check your server\'s DNS configuration.';
+        } elseif (!$diagnostics['tests']['http']['success']) {
+            $diagnostics['summary'] = 'HTTPS connection failed. Your server cannot establish a secure connection to wpiko.com. This may be due to SSL/certificate issues or firewall blocking.';
+        } else {
+            $diagnostics['summary'] = 'Some connection tests failed. Please review the details above and contact your hosting provider if needed.';
+        }
+    }
+
+    wp_send_json_success($diagnostics);
+}
+add_action('wp_ajax_wpiko_chatbot_test_connection', 'wpiko_chatbot_pro_test_connection');
+
 // Function to encrypt sensitive data (license key, expiration date, status, or lifetime flag)
 function wpiko_chatbot_pro_encrypt_data($data) {
     if (empty($data)) return '';
@@ -48,7 +212,7 @@ function wpiko_chatbot_pro_is_license_active() {
     return $status === 'active';
 }
 
-// Function to activate license
+// Function to activate license via AJAX
 function wpiko_chatbot_pro_activate_license() {
     // Verify nonce
     if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'wpiko_chatbot_activate_license')) {
@@ -67,49 +231,116 @@ function wpiko_chatbot_pro_activate_license() {
         wp_send_json_error('License key is required');
     }
 
-    $activation_url = 'https://wpiko.com/wp-json/wpiko-keymaster/v1/activate-license';
+    // Use verify-license endpoint (same as form-based activation)
+    $activation_url = 'https://wpiko.com/wp-json/wpiko-keymaster/v1/verify-license';
     $response = wp_remote_post($activation_url, array(
         'body' => array(
             'license_key' => $license_key,
-            'domain' => $current_domain
+            'domain' => $current_domain,
+            'product_type' => 'chatbot'
         ),
-        'timeout' => 30
+        'timeout' => 30,
+        'sslverify' => true
     ));
 
+    // Handle connection errors with detailed messages
     if (is_wp_error($response)) {
-        wpiko_chatbot_log('License activation failed: ' . $response->get_error_message(), 'error');
-        wp_send_json_error('Network error: ' . $response->get_error_message());
+        $error_code = $response->get_error_code();
+        $error_message = $response->get_error_message();
+        wpiko_chatbot_log('License activation network error [' . $error_code . ']: ' . $error_message, 'error');
+        
+        // Provide user-friendly error messages based on error type
+        if (strpos($error_code, 'ssl') !== false || strpos($error_code, 'certificate') !== false) {
+            wp_send_json_error('SSL/Certificate error: Your server cannot establish a secure connection to our licensing server. Please contact your hosting provider.');
+        } elseif (strpos($error_code, 'timeout') !== false || strpos($error_message, 'timed out') !== false) {
+            wp_send_json_error('Connection timeout: Your server took too long to reach our licensing server. This may be a temporary issue or a firewall blocking the connection.');
+        } elseif (strpos($error_code, 'resolve') !== false || strpos($error_message, 'resolve') !== false) {
+            wp_send_json_error('DNS resolution failed: Your server cannot find our licensing server. Please check your server\'s DNS configuration.');
+        } else {
+            wp_send_json_error('Connection error: ' . $error_message . '. Your server may be blocking outbound connections to wpiko.com.');
+        }
+        return;
     }
 
     $response_code = wp_remote_retrieve_response_code($response);
     $body = wp_remote_retrieve_body($response);
+    
+    // Log the raw response for debugging
+    wpiko_chatbot_log('License activation response code: ' . $response_code, 'info');
+    
+    // Check for empty response (often indicates WAF/firewall blocking)
+    if (empty($body)) {
+        wpiko_chatbot_log('License activation failed: Empty response received', 'error');
+        wp_send_json_error('Empty response received from licensing server. This usually means your server\'s firewall (ModSecurity, WAF) is blocking the connection. Please contact your hosting provider.');
+        return;
+    }
+    
+    // Attempt to decode JSON
     $data = json_decode($body, true);
+    
+    // Check for HTML response (indicates server error page or WAF block)
+    if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
+        wpiko_chatbot_log('License activation failed: Invalid JSON response. Body: ' . substr($body, 0, 500), 'error');
+        
+        // Check if response looks like HTML (firewall block page)
+        if (preg_match('/<html|<!DOCTYPE/i', $body)) {
+            wp_send_json_error('Server returned an error page instead of valid response. Your hosting\'s security rules may be blocking the connection. Please contact your hosting provider.');
+        } else {
+            wp_send_json_error('Invalid response from licensing server. Please try again or contact support.');
+        }
+        return;
+    }
 
-    if ($response_code === 200 && $data && $data['success']) {
-        // Encrypt and store license information
-        update_option('wpiko_chatbot_license_key', wpiko_chatbot_pro_encrypt_data($license_key));
-        update_option('wpiko_chatbot_license_status', wpiko_chatbot_pro_encrypt_data('active'));
-        update_option('wpiko_chatbot_license_domain', $current_domain);
-        update_option('wpiko_chatbot_license_source_domain', $data['data']['source_domain']);
-        
-        if (isset($data['data']['expiration_date'])) {
-            update_option('wpiko_chatbot_license_expiration', wpiko_chatbot_pro_encrypt_data($data['data']['expiration_date']));
-        }
-        
-        if (isset($data['data']['is_lifetime'])) {
-            update_option('wpiko_chatbot_license_is_lifetime', wpiko_chatbot_pro_encrypt_data($data['data']['is_lifetime'] ? '1' : '0'));
-        }
-        
-        if (isset($data['data']['product_type'])) {
-            update_option('wpiko_chatbot_license_product_type', $data['data']['product_type']);
-        }
+    // Handle HTTP error codes
+    if ($response_code !== 200) {
+        wpiko_chatbot_log('License activation failed with HTTP code ' . $response_code . ': ' . wp_json_encode($data), 'error');
+        $error_msg = isset($data['message']) ? $data['message'] : 'Server returned error code ' . $response_code;
+        wp_send_json_error($error_msg);
+        return;
+    }
 
-        wpiko_chatbot_log('License activated successfully for domain: ' . $current_domain, 'info');
-        wp_send_json_success($data['data']);
+    // Process successful response
+    if (isset($data['valid']) && $data['valid']) {
+        // Check product type
+        if (isset($data['product_type']) && $data['product_type'] !== 'chatbot') {
+            wp_send_json_error('This license key is not valid for the WPiko Chatbot plugin.');
+            return;
+        }
+        
+        if (isset($data['activated']) && $data['activated']) {
+            // Encrypt and store license information
+            update_option('wpiko_chatbot_license_key', wpiko_chatbot_pro_encrypt_data($license_key));
+            update_option('wpiko_chatbot_license_status', wpiko_chatbot_pro_encrypt_data('active'));
+            update_option('wpiko_chatbot_license_domain', $current_domain);
+            
+            if (isset($data['source_domain'])) {
+                update_option('wpiko_chatbot_license_source_domain', $data['source_domain']);
+            }
+            
+            if (isset($data['expiration_date'])) {
+                update_option('wpiko_chatbot_license_expiration', wpiko_chatbot_pro_encrypt_data($data['expiration_date']));
+            }
+            
+            if (isset($data['is_lifetime'])) {
+                update_option('wpiko_chatbot_license_is_lifetime', wpiko_chatbot_pro_encrypt_data($data['is_lifetime'] ? '1' : '0'));
+            }
+            
+            if (isset($data['product_type'])) {
+                update_option('wpiko_chatbot_license_product_type', $data['product_type']);
+            }
+
+            wpiko_chatbot_log('License activated successfully for domain: ' . $current_domain, 'info');
+            wp_send_json_success($data);
+        } else {
+            // License valid but cannot activate (max URLs reached)
+            $message = isset($data['message']) ? $data['message'] : 'License is valid but has reached the maximum number of allowed activations.';
+            wpiko_chatbot_log('License activation failed: ' . $message, 'warning');
+            wp_send_json_error($message);
+        }
     } else {
-        $error_message = isset($data['data']) ? $data['data'] : 'Unknown error occurred';
-        wpiko_chatbot_log('License activation failed: ' . $error_message, 'error');
-        wp_send_json_error($error_message);
+        // License not valid
+        wpiko_chatbot_log('License validation failed. Response: ' . wp_json_encode($data), 'error');
+        wp_send_json_error('Invalid, expired, or already activated license key.');
     }
 }
 add_action('wp_ajax_wpiko_chatbot_activate_license', 'wpiko_chatbot_pro_activate_license');

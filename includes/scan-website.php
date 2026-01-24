@@ -19,7 +19,7 @@ if (!function_exists('wpiko_chatbot_pro_search_pages')) {
         $query = isset($_POST['query']) ? sanitize_text_field(wp_unslash($_POST['query'])) : '';
         $args = array(
             'post_type' => 'page',
-            'post_status' => 'publish',
+            'post_status' => array('publish', 'private', 'draft', 'pending'),
             's' => $query,
             'posts_per_page' => 10,
         );
@@ -28,10 +28,18 @@ if (!function_exists('wpiko_chatbot_pro_search_pages')) {
         $results = array();
 
         foreach ($pages as $page) {
+            // Add status indicator for non-published pages
+            $status_label = '';
+            if ($page->post_status !== 'publish') {
+                $status_label = ' [' . ucfirst($page->post_status) . ']';
+            } elseif (!empty($page->post_password)) {
+                $status_label = ' [Password Protected]';
+            }
+            
             $results[] = array(
                 'ID' => $page->ID,
-                'title' => $page->post_title,
-                'url' => get_permalink($page->ID),
+                'title' => $page->post_title . $status_label,
+                'status' => $page->post_status,
             );
         }
 
@@ -39,83 +47,111 @@ if (!function_exists('wpiko_chatbot_pro_search_pages')) {
     }
 }
 
-// Function to fetch content from a given URL
-function wpiko_chatbot_pro_fetch_url_content($url) {
-    $response = wp_remote_get($url);
-    if (is_wp_error($response)) {
+/**
+ * Fetch content directly from WordPress database by post ID
+ * This bypasses any access restrictions (password protection, membership, etc.)
+ * 
+ * @param int $post_id The WordPress post/page ID
+ * @return array|false Array with title, content, and url or false on failure
+ */
+function wpiko_chatbot_pro_fetch_page_content($post_id) {
+    $post = get_post($post_id);
+    
+    if (!$post || $post->post_type !== 'page') {
         return false;
     }
-    return wp_remote_retrieve_body($response);
+    
+    // Get the raw content
+    $content = $post->post_content;
+    
+    // Render Gutenberg blocks if present
+    if (has_blocks($content)) {
+        $content = do_blocks($content);
+    }
+    
+    // Process shortcodes
+    $content = do_shortcode($content);
+    
+    // Convert to plain text while preserving structure
+    $content = wpiko_chatbot_pro_html_to_text($content);
+    
+    return array(
+        'title' => $post->post_title,
+        'content' => $content,
+        'url' => get_permalink($post_id),
+        'id' => $post_id
+    );
 }
 
-// Function to convert HTML content to JSON
-function wpiko_chatbot_pro_html_to_json($html) {
-    $dom = new DOMDocument();
-    @$dom->loadHTML(mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8'));
-    $xpath = new DOMXPath($dom);
-
-    // Function to extract text and links from a node
-    function extractContent($node) {
-        $content = '';
-        if ($node->nodeType === XML_TEXT_NODE) {
-            $content .= trim($node->textContent);
-        } elseif ($node->nodeName === 'a') {
-            $href = $node->getAttribute('href');
-            if ($href && !str_starts_with($href, '#')) {
-                $content .= $node->textContent . ' [' . $href . ']';
-            } else {
-                $content .= $node->textContent;
+/**
+ * Convert HTML content to clean text while preserving links
+ * 
+ * @param string $html The HTML content
+ * @return string Clean text with preserved link references
+ */
+function wpiko_chatbot_pro_html_to_text($html) {
+    // First, handle links - convert <a href="url">text</a> to text [url]
+    $html = preg_replace_callback(
+        '/<a[^>]+href=["\']([^"\']+)["\'][^>]*>([^<]+)<\/a>/i',
+        function($matches) {
+            $url = $matches[1];
+            $text = $matches[2];
+            // Skip anchor links
+            if (strpos($url, '#') === 0) {
+                return $text;
             }
-        } elseif ($node->hasChildNodes()) {
-            foreach ($node->childNodes as $child) {
-                $content .= extractContent($child);
-            }
-        }
-        return $content;
-    }
-
-    // Try to find main content area, excluding specific elements
-    $contentNodes = $xpath->query("
-        //main[not(ancestor-or-self::header) and not(ancestor-or-self::footer) and not(ancestor-or-self::nav)] | 
-        //article[not(ancestor-or-self::header) and not(ancestor-or-self::footer) and not(ancestor-or-self::nav)] | 
-        //div[contains(@class, 'content') and not(ancestor-or-self::header) and not(ancestor-or-self::footer) and not(ancestor-or-self::nav)] | 
-        //div[contains(@class, 'main') and not(ancestor-or-self::header) and not(ancestor-or-self::footer) and not(ancestor-or-self::nav)]
-    ");
+            return $text . ' [' . $url . ']';
+        },
+        $html
+    );
     
-    $textContent = [];
-    if ($contentNodes->length > 0) {
-        foreach ($contentNodes as $contentNode) {
-            $content = trim(extractContent($contentNode));
-            if (!empty($content)) {
-                $textContent[] = $content;
-            }
-        }
-    } else {
-        // Fallback: if no specific content area is found, extract from body but exclude common non-content areas
-        $bodyContent = $xpath->query("
-            //body//*[
-                not(self::script) and 
-                not(self::style) and 
-                not(self::noscript) and 
-                not(ancestor-or-self::header) and 
-                not(ancestor-or-self::footer) and 
-                not(ancestor-or-self::nav) and
-                not(contains(@class, 'header')) and
-                not(contains(@class, 'footer')) and
-                not(contains(@class, 'menu')) and
-                not(contains(@class, 'nav'))
-            ]
-        ");
-        foreach ($bodyContent as $node) {
-            $content = trim(extractContent($node));
-            if (!empty($content)) {
-                $textContent[] = $content;
-            }
-        }
-    }
+    // Convert headers to text with newlines
+    $html = preg_replace('/<h[1-6][^>]*>(.*?)<\/h[1-6]>/is', "\n\n$1\n\n", $html);
+    
+    // Convert paragraphs and divs to have proper spacing
+    $html = preg_replace('/<\/(p|div)>/i', "\n\n", $html);
+    
+    // Convert line breaks
+    $html = preg_replace('/<br[^>]*>/i', "\n", $html);
+    
+    // Convert list items
+    $html = preg_replace('/<li[^>]*>/i', "\n• ", $html);
+    
+    // Remove all remaining HTML tags
+    $text = wp_strip_all_tags($html);
+    
+    // Decode HTML entities
+    $text = html_entity_decode($text, ENT_QUOTES, 'UTF-8');
+    
+    // Clean up whitespace - multiple spaces to single space
+    $text = preg_replace('/[ \t]+/', ' ', $text);
+    
+    // Clean up multiple newlines to max 2
+    $text = preg_replace('/\n{3,}/', "\n\n", $text);
+    
+    // Trim each line
+    $lines = explode("\n", $text);
+    $lines = array_map('trim', $lines);
+    $text = implode("\n", $lines);
+    
+    // Remove empty lines at start and end
+    $text = trim($text);
+    
+    return $text;
+}
 
-    // Convert to JSON
-    return json_encode(['content' => implode("\n", $textContent)]);
+/**
+ * Convert page data to JSON format for OpenAI processing
+ * 
+ * @param array $page_data Array containing title and content
+ * @return string JSON encoded content
+ */
+function wpiko_chatbot_pro_page_to_json($page_data) {
+    $structured_content = "Page Title: " . $page_data['title'] . "\n\n";
+    $structured_content .= "Page URL: " . $page_data['url'] . "\n\n";
+    $structured_content .= "Content:\n" . $page_data['content'];
+    
+    return json_encode(['content' => $structured_content]);
 }
 
 // Function to send JSON to OpenAI for processing
@@ -335,32 +371,44 @@ $chunk_json";
     return $output;
 }
 
-// Get file name from URL
-function wpiko_chatbot_pro_get_filename_from_url($url) {   
-    $parsed_url = wp_parse_url($url);    
-    $path = trim($parsed_url['path'], '/');
-    $segments = explode('/', $path);
-    $last_segment = end($segments);
-    
-    if (empty($last_segment)) {
-        return 'page_Homepage';
+/**
+ * Generate filename from page title
+ * 
+ * @param string $title The page title
+ * @return string Sanitized filename
+ */
+function wpiko_chatbot_pro_get_filename_from_title($title) {
+    if (empty($title)) {
+        return 'page_Untitled';
     }
     
-    $filename = preg_replace('/[^a-zA-Z0-9]+/', '-', $last_segment);
+    // Sanitize the title for use as filename
+    $filename = preg_replace('/[^a-zA-Z0-9]+/', '-', $title);
     $filename = trim($filename, '-');
     $filename = ucfirst($filename);
+    
+    // Limit length to avoid overly long filenames
+    if (strlen($filename) > 50) {
+        $filename = substr($filename, 0, 50);
+        $filename = rtrim($filename, '-');
+    }
     
     return 'page_' . $filename;
 }
 
-// Main function to process URL and return downloadable content
-function wpiko_chatbot_pro_process_url_for_download($url) {
-    $html = wpiko_chatbot_pro_fetch_url_content($url);
-    if (!$html) {
+/**
+ * Process a page by ID and return Q&A content
+ * 
+ * @param int $page_id The WordPress page ID
+ * @return string|false The processed Q&A content or false on failure
+ */
+function wpiko_chatbot_pro_process_page_for_download($page_id) {
+    $page_data = wpiko_chatbot_pro_fetch_page_content($page_id);
+    if (!$page_data) {
         return false;
     }
 
-    $json = wpiko_chatbot_pro_html_to_json($html);
+    $json = wpiko_chatbot_pro_page_to_json($page_data);
     $processed_content = wpiko_chatbot_process_with_wpiko($json);
     if (!$processed_content) {
         return false;
@@ -392,8 +440,8 @@ function wpiko_chatbot_pro_save_qa_download_setting() {
 }
 add_action('wp_ajax_wpiko_chatbot_save_qa_download_setting', 'wpiko_chatbot_pro_save_qa_download_setting');
 
-// AJAX handler for processing URL
-function wpiko_chatbot_pro_ajax_process_url() {
+// AJAX handler for processing page by ID
+function wpiko_chatbot_pro_ajax_process_page() {
     check_ajax_referer('wpiko_chatbot_nonce', 'security');
     
     if (!current_user_can('manage_options')) {
@@ -405,18 +453,22 @@ function wpiko_chatbot_pro_ajax_process_url() {
         wp_send_json_error(['message' => 'This feature requires a premium license']);
     }
 
-    $url = isset($_POST['url']) ? esc_url_raw(wp_unslash($_POST['url'])) : '';
-
-    // Step 1: Fetch URL content
-    $html = wpiko_chatbot_pro_fetch_url_content($url);
-    if (!$html) {
-        wp_send_json_error(['message' => 'Failed to fetch URL content']);
+    $page_id = isset($_POST['page_id']) ? absint($_POST['page_id']) : 0;
+    
+    if (!$page_id) {
+        wp_send_json_error(['message' => 'Invalid page ID']);
     }
 
-    // Step 2: Convert HTML to JSON
-    $json = wpiko_chatbot_pro_html_to_json($html);
+    // Step 1: Fetch page content directly from database
+    $page_data = wpiko_chatbot_pro_fetch_page_content($page_id);
+    if (!$page_data) {
+        wp_send_json_error(['message' => 'Failed to fetch page content. Please ensure the page exists.']);
+    }
+
+    // Step 2: Convert page data to JSON
+    $json = wpiko_chatbot_pro_page_to_json($page_data);
     if (!$json) {
-        wp_send_json_error(['message' => 'Failed to convert HTML to JSON']);
+        wp_send_json_error(['message' => 'Failed to prepare content for processing']);
     }
 
     // Step 3: Process with OpenAI
@@ -425,8 +477,8 @@ function wpiko_chatbot_pro_ajax_process_url() {
         wp_send_json_error(['message' => 'Failed to process content with OpenAI']);
     }
 
-    // Generate filename from URL
-    $filename = wpiko_chatbot_pro_get_filename_from_url($url);
+    // Generate filename from page title
+    $filename = wpiko_chatbot_pro_get_filename_from_title($page_data['title']);
 
     // Enable or disable the download function
     $enable_qa_download = get_option('wpiko_chatbot_enable_qa_download', '0');
@@ -437,7 +489,7 @@ function wpiko_chatbot_pro_ajax_process_url() {
         'enable_download' => $enable_qa_download === '1'
     ]);
 }
-add_action('wp_ajax_wpiko_chatbot_process_url', 'wpiko_chatbot_pro_ajax_process_url');
+add_action('wp_ajax_wpiko_chatbot_process_page', 'wpiko_chatbot_pro_ajax_process_page');
 
 // Function to handle the file upload to Responses API
 function wpiko_chatbot_pro_upload_qa_to_assistant() {
