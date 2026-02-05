@@ -75,7 +75,7 @@ function wpiko_chatbot_pro_contact_form_handler()
     $rate_limit_window = HOUR_IN_SECONDS; // 1 hour
 
     if ($submission_count !== false && $submission_count >= $max_submissions) {
-        $error_message = 'You have submitted too many contact forms. Please try again later.';
+        $error_message = get_option('wpiko_chatbot_contact_rate_limit_error', 'You have submitted too many contact forms. Please try again later.');
         if ($save_to_conversation) {
             wpiko_chatbot_save_message($user_id, $thread_id, 'error', $error_message, $email);
         }
@@ -362,7 +362,7 @@ function wpiko_chatbot_pro_contact_form_handler()
         set_transient($rate_limit_key, $new_count, $rate_limit_window);
 
         // Success message
-        $success_message = 'Contact Form - Your message has been sent successfully. We will get back to you as soon as possible.';
+        $success_message = get_option('wpiko_chatbot_contact_success_message', 'Contact Form - Your message has been sent successfully. We will get back to you as soon as possible.');
         // Save success message to conversation history as an assistant response if thread exists
         if ($save_to_conversation) {
             wpiko_chatbot_save_message($user_id, $thread_id, 'assistant', $success_message, $email);
@@ -370,7 +370,7 @@ function wpiko_chatbot_pro_contact_form_handler()
         wp_send_json_success(array('message' => $success_message));
     } else {
         // Error message
-        $error_message = 'Contact Form - Failed to send your message. Please try again later or contact us through another method.';
+        $error_message = get_option('wpiko_chatbot_contact_email_failed_error', 'Contact Form - Failed to send your message. Please try again later or contact us through another method.');
         // Save error message to conversation history if thread exists
         if ($save_to_conversation) {
             wpiko_chatbot_save_message($user_id, $thread_id, 'error', $error_message, $email);

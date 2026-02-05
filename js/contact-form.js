@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (chatbotContactFormOption) {
         // Check if license is active and contact form feature is enabled
         if (typeof wpikoChatbot !== 'undefined' && wpikoChatbot.is_license_active && wpikoChatbot.enable_contact_form === '1') {
-            chatbotContactFormOption.style.display = 'block';
+            chatbotContactFormOption.style.display = 'flex';
 
             // Add click event listener to the contact form option
             chatbotContactFormOption.addEventListener('click', function (e) {
@@ -104,7 +104,30 @@ document.addEventListener('DOMContentLoaded', function () {
                 window.wpikoOpenChatbotWithContactForm();
             } else {
                 // Display premium feature notice in chat
-                showPremiumFeatureNotice();
+                const chatbotMessages = document.getElementById('chatbot-messages');
+                if (chatbotMessages) {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'message-container';
+                    messageDiv.innerHTML = `
+                        <div class="message-wrapper bot-message-wrapper">
+                            <img src="${wpikoChatbot.botAvatarUrl}" alt="Bot" class="message-avatar bot-avatar">
+                            <div class="bot-message">
+                                <p>${wpikoChatbot.errors.feature_restricted}</p>
+                            </div>
+                        </div>`;
+                    chatbotMessages.appendChild(messageDiv);
+                    chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+
+                    // Ensure chat is open
+                    const floatingContainer = document.getElementById('wpiko-chatbot-floating-container');
+                    if (floatingContainer && floatingContainer.style.display === 'none') {
+                        floatingContainer.style.display = 'block';
+                        const floatingWrapper = document.getElementById('wpiko-chatbot-floating-wrapper');
+                        if (floatingWrapper) floatingWrapper.classList.add('open');
+                    }
+                } else {
+                    alert(wpikoChatbot.errors.feature_restricted);
+                }
             }
         });
     });
@@ -139,20 +162,34 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // Create the contact form HTML
+        // Get text defaults if not available
+        const text = wpikoChatbot.contact_form_text || {
+            title: 'Contact Form',
+            intro: "Please fill out the form below and we'll get back to you as soon as possible.",
+            name_label: 'Name',
+            email_label: 'Email',
+            category_label: 'Category',
+            message_label: 'Message',
+            cancel_btn: 'Cancel',
+            send_btn: 'Send',
+            attachment_label: 'Attachments <span style="font-size:12px; font-weight:400; opacity:0.7;">(Max 3MB each)</span>',
+            recaptcha_html: 'This site is protected by reCAPTCHA and the Google <a href="https://policies.google.com/privacy" target="_blank">Privacy Policy</a> and <a href="https://policies.google.com/terms" target="_blank">Terms of Service</a> apply.'
+        };
+
         let formHTML = `
             <div class="message-wrapper bot-message-wrapper">
                 <img src="${wpikoChatbot.botAvatarUrl}" alt="Bot" class="message-avatar bot-avatar">
                 <div class="bot-message contact-form-message">
-                    <h3>Contact Form</h3>
-                    <p>Please fill out the form below and we'll get back to you as soon as possible.</p>
+                    <h3>${text.title}</h3>
+                    <p>${text.intro}</p>
                     <form id="wpiko-contact-form" enctype="multipart/form-data">
                         <div class="form-group">
-                            <label for="contact-name">Name</label>
-                            <input type="text" id="contact-name" name="name" value="${userName}" required>
+                            <label for="contact-name" style="display:none;">${text.name_label}</label>
+                            <input type="text" id="contact-name" name="name" value="${userName}" placeholder="${text.name_label}" required>
                         </div>
                         <div class="form-group">
-                            <label for="contact-email">Email</label>
-                            <input type="email" id="contact-email" name="email" value="${userEmail}" required>
+                            <label for="contact-email" style="display:none;">${text.email_label}</label>
+                            <input type="email" id="contact-email" name="email" value="${userEmail}" placeholder="${text.email_label}" required>
                         </div>`;
 
         // Add dropdown if enabled and options exist
@@ -161,9 +198,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if (options.length > 0) {
                 formHTML += `
                         <div class="form-group">
-                            <label for="contact-category">Category</label>
+                            <label for="contact-category" style="display:none;">${text.category_label}</label>
                             <select id="contact-category" name="category" required>
-                                <option value="">Select a category</option>
+                                <option value="">${text.category_label}</option>
                                 ${options.map(option => `<option value="${option.trim()}">${option.trim()}</option>`).join('')}
                             </select>
                         </div>`;
@@ -172,8 +209,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         formHTML += `
                         <div class="form-group">
-                            <label for="contact-message">Message</label>
-                            <textarea id="contact-message" name="message" rows="4" required></textarea>
+                            <label for="contact-message" style="display:none;">${text.message_label}</label>
+                            <textarea id="contact-message" name="message" rows="4" placeholder="${text.message_label}" required></textarea>
                         </div>`;
 
         // Add honeypot field (hidden from users, bots will fill it)
@@ -190,19 +227,49 @@ document.addEventListener('DOMContentLoaded', function () {
         // Add file uploads if enabled
         if (wpikoChatbot.enable_attachments === '1') {
             formHTML += `
-                        <div class="form-group">
-                            <label>Attach Images (up to 3)</label>
-                            <div class="attachment-inputs">
-                                <div>
-                                    <input type="file" id="contact-attachment-1" name="attachment-1" accept="image/*">
+                        <div class="form-group attachment-group">
+                            <!-- Hidden inputs -->
+                            <input type="file" id="contact-attachment-1" name="attachment-1" accept="image/*" class="wpiko-file-input" style="display:none">
+                            <input type="file" id="contact-attachment-2" name="attachment-2" accept="image/*" class="wpiko-file-input" style="display:none">
+                            <input type="file" id="contact-attachment-3" name="attachment-3" accept="image/*" class="wpiko-file-input" style="display:none">
+                            
+                            <label style="display:block; margin-bottom:5px; font-size:12px; font-weight:500; color:var(--bot-text-color);">${text.attachment_label}</label>
+                            
+                            <div class="attachment-slots">
+                                <div class="attachment-slot" data-target="contact-attachment-1">
+                                    <div class="slot-placeholder">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 5V19" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M5 12H19" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </div>
+                                    <div class="slot-preview" style="display:none;"></div>
+                                    <button type="button" class="remove-attachment" style="display:none;">&times;</button>
                                 </div>
-                                <div>
-                                    <input type="file" id="contact-attachment-2" name="attachment-2" accept="image/*">
+                                
+                                <div class="attachment-slot" data-target="contact-attachment-2">
+                                    <div class="slot-placeholder">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 5V19" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M5 12H19" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </div>
+                                    <div class="slot-preview" style="display:none;"></div>
+                                    <button type="button" class="remove-attachment" style="display:none;">&times;</button>
                                 </div>
-                                <div>
-                                    <input type="file" id="contact-attachment-3" name="attachment-3" accept="image/*">
+                                
+                                <div class="attachment-slot" data-target="contact-attachment-3">
+                                    <div class="slot-placeholder">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 5V19" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M5 12H19" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </div>
+                                    <div class="slot-preview" style="display:none;"></div>
+                                    <button type="button" class="remove-attachment" style="display:none;">&times;</button>
                                 </div>
                             </div>
+                            <!-- <div class="attachment-label">Optional, max 3MB each</div> -->
                         </div>`;
         }
 
@@ -211,14 +278,14 @@ document.addEventListener('DOMContentLoaded', function () {
             formHTML += `
                         <div class="form-group recaptcha-container">
                             <div id="recaptcha-wrapper" class="g-recaptcha" data-sitekey="${wpikoChatbot.recaptcha_site_key}"></div>
-                            <div class="recaptcha-note">This site is protected by reCAPTCHA and the Google <a href="https://policies.google.com/privacy" target="_blank">Privacy Policy</a> and <a href="https://policies.google.com/terms" target="_blank">Terms of Service</a> apply.</div>
+                            <div class="recaptcha-note">${text.recaptcha_html}</div>
                         </div>`;
         }
 
         formHTML += `
                         <div class="form-actions">
-                            <button type="button" id="contact-form-cancel">Cancel</button>
-                            <button type="submit" id="contact-form-submit">Send</button>
+                            <button type="button" id="contact-form-cancel">${text.cancel_btn}</button>
+                            <button type="submit" id="contact-form-submit">${text.send_btn}</button>
                         </div>
                     </form>
                 </div>
@@ -252,7 +319,58 @@ document.addEventListener('DOMContentLoaded', function () {
                     submitContactForm();
                 });
             }
+
+            // Initialize attachment handlers
+            initAttachmentHandlers(contactFormContainer);
         }
+    }
+
+    function initAttachmentHandlers(container) {
+        if (typeof wpikoChatbot === 'undefined' || wpikoChatbot.enable_attachments !== '1') return;
+
+        const slots = container.querySelectorAll('.attachment-slot');
+        slots.forEach(slot => {
+            const inputId = slot.dataset.target;
+            const input = document.getElementById(inputId);
+            const removeBtn = slot.querySelector('.remove-attachment');
+            const preview = slot.querySelector('.slot-preview');
+            const placeholder = slot.querySelector('.slot-placeholder');
+
+            if (!input) return;
+
+            // Click on slot triggers input (if not clicking remove)
+            slot.addEventListener('click', (e) => {
+                if (e.target !== removeBtn && !slot.classList.contains('has-file')) {
+                    input.click();
+                }
+            });
+
+            // Input change
+            input.addEventListener('change', (e) => {
+                if (input.files && input.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        preview.style.backgroundImage = `url(${e.target.result})`;
+                        preview.style.display = 'block';
+                        placeholder.style.display = 'none';
+                        removeBtn.style.display = 'flex';
+                        slot.classList.add('has-file');
+                    }
+                    reader.readAsDataURL(input.files[0]);
+                }
+            });
+
+            // Remove button
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // prevent triggering click on slot
+                input.value = ''; // clear input
+                preview.style.backgroundImage = '';
+                preview.style.display = 'none';
+                placeholder.style.display = 'block';
+                removeBtn.style.display = 'none';
+                slot.classList.remove('has-file');
+            });
+        });
     }
 
     // Function to submit the contact form
@@ -285,7 +403,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const message = messageInput.value.trim();
 
         if (!name || !email || !message) {
-            alert('Please fill out all required fields.');
+            alert(wpikoChatbot.errors.validation_error);
             return;
         }
 
@@ -324,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     })
                     .catch(function (error) {
                         console.error('reCAPTCHA error:', error);
-                        showContactFormError('Failed to verify reCAPTCHA. Please try again.');
+                        showContactFormError(wpikoChatbot.errors.general_error);
                     });
             });
         } else {
@@ -378,9 +496,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!response.ok) {
                     // Handle HTTP errors
                     if (response.status === 429) {
-                        throw new Error('Too many requests. Please wait a moment before trying again.');
+                        throw new Error(wpikoChatbot.errors.server_busy);
                     } else if (response.status >= 500) {
-                        throw new Error('Server error. Please try again in a few moments.');
+                        throw new Error(wpikoChatbot.errors.server_busy);
                     } else if (response.status === 403) {
                         // Check if this is first attempt - we can retry with fresh nonce
                         if (!isRetry) {
@@ -389,9 +507,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             error.isNonceError = true;
                             throw error;
                         }
-                        throw new Error('Access denied. Please refresh the page and try again.');
+                        throw new Error(wpikoChatbot.errors.auth_failed);
                     }
-                    throw new Error('Request failed with status: ' + response.status);
+                    throw new Error(wpikoChatbot.errors.general_error + ' (Status: ' + response.status + ')');
                 }
                 return response.json();
             })
@@ -408,7 +526,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 `;
                 } else {
                     // Show error message
-                    showContactFormError(response.data ? response.data.message : 'Failed to send your message. Please try again later.');
+                    let errorMsg = response.data ? response.data.message : wpikoChatbot.errors.general_error;
+
+                    // Start of File Upload Error Mapping
+                    if (errorMsg && (
+                        errorMsg.includes('Invalid file type') ||
+                        errorMsg.includes('too large') ||
+                        errorMsg.includes('Failed to upload file')
+                    )) {
+                        errorMsg = wpikoChatbot.errors.upload_error;
+                    }
+                    // End of File Upload Error Mapping
+
+                    showContactFormError(errorMsg);
                 }
 
                 // Scroll to see the response
@@ -439,7 +569,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             submitFormWithAjax(form, container, true);
                         })
                         .catch(function () {
-                            showContactFormError('Session expired. Please refresh the page and try again.');
+                            showContactFormError(wpikoChatbot.errors.auth_failed);
                         });
                     return;
                 }
@@ -447,12 +577,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.error('Error submitting form:', error);
 
                 // Provide specific error messages based on error type
-                let errorMessage = 'Failed to send your message. Please try again later.';
+                let errorMessage = wpikoChatbot.errors.general_error;
 
                 if (error.name === 'AbortError') {
-                    errorMessage = 'The request timed out. Please check your connection and try again.';
+                    errorMessage = wpikoChatbot.errors.connection_issue;
                 } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                    errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+                    errorMessage = wpikoChatbot.errors.connection_issue;
                 } else if (error.message && error.message !== 'nonce_expired') {
                     errorMessage = error.message;
                 }
@@ -500,12 +630,16 @@ document.addEventListener('DOMContentLoaded', function () {
     function showContactFormError(errorMessage) {
         const contactFormContainer = document.getElementById('contact-form-container');
         if (contactFormContainer) {
+            // Get customizable text or use default
+            const text = wpikoChatbot.contact_form_text || {};
+            const tryAgainText = text.try_again_btn || 'Try Again';
+
             contactFormContainer.innerHTML = `
                 <div class="message-wrapper bot-message-wrapper">
                     <img src="${wpikoChatbot.botAvatarUrl}" alt="Bot" class="message-avatar bot-avatar">
                     <div class="bot-message">
                         <p>Error: ${errorMessage}</p>
-                        <button id="retry-contact-form" class="button">Try Again</button>
+                        <button id="retry-contact-form" class="button">${tryAgainText}</button>
                     </div>
                 </div>
             `;

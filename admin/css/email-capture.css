@@ -3,29 +3,52 @@
     background: #ffffff;
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(58, 79, 102, 0.08);
-}
-
-.email-capture-section h2 {
-    margin-bottom: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    border: none;
 }
 
 .email-capture-section .description {
-    margin-bottom: 10px;
+    margin-bottom: 15px;
+    color: #64748b;
 }
 
-.email-capture-section form > .form-table {
-    background: #fbfbfb;
-    border: 1px solid #EFF2F6;
+.email-capture-section form>.form-table {
+    border: none;
+    background: transparent;
+    margin-bottom: 20px;
 }
 
-/* Email Capture Collapsible Settings */
+.email-capture-section form>.form-table th,
+.email-capture-section form>.form-table td {
+    padding-top: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.email-capture-section form>.form-table tr:last-child th,
+.email-capture-section form>.form-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Email Capture Collapsible Settings (Master Toggle Wrapper) */
 .email-capture-settings-collapsible {
     overflow: hidden;
     transition: max-height 0.3s ease-out;
     max-height: 0;
+    opacity: 0;
 }
 
 .email-capture-settings-collapsible.active {
-    max-height: 1000px;
+    max-height: 5000px;
+    opacity: 1;
+    transition: max-height 0.5s ease-in, opacity 0.3s ease-in;
+}
+
+/* Ensure global accordion items inside have proper spacing */
+.email-capture-settings-collapsible .wpiko-accordion-item {
+    margin-top: 0;
+    /* Remove top margin for the first item inside the collapsible wrapper if needed, 
+       but global style has margin-top: 30px. 
+       In contact form it's fine. content expands.
+    */
 }

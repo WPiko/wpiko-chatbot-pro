@@ -3,106 +3,62 @@
     background: #ffffff;
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(58, 79, 102, 0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    border: none;
 }
 
 .chatbot-contact-form-section .description {
     margin-bottom: 10px;
+    color: #64748b;
 }
 
-.chatbot-contact-form-section form > .form-table  {
-    background: #fbfbfb;
-    border: 1px solid #EFF2F6;
+/* Clean up top table styles */
+.chatbot-contact-form-section form>.form-table {
+    border: none;
+    background: transparent;
+    margin-bottom: 20px;
 }
 
-/* Contact Form Collapsible Settings */
+.chatbot-contact-form-section form>.form-table th,
+.chatbot-contact-form-section form>.form-table td {
+    padding-top: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.chatbot-contact-form-section form>.form-table tr:last-child th,
+.chatbot-contact-form-section form>.form-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Contact Form Collapsible Settings (Master Toggle Wrapper) */
 .contact-form-settings-collapsible {
     overflow: hidden;
     transition: max-height 0.3s ease-out;
     max-height: 0;
+    opacity: 0;
 }
 
 .contact-form-settings-collapsible.active {
-    max-height: 3000px;
+    max-height: 5000px;
+    opacity: 1;
+    transition: max-height 0.5s ease-in, opacity 0.3s ease-in;
 }
 
-/* reCAPTCHA Options Collapsible */
-.recaptcha-options-collapsible {
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-    max-height: 0;
-}
 
-.recaptcha-options-collapsible.active {
-    max-height: 2000px;
-}
-
-/* remove border from */
-.enable-form-dropdown-row,
-.enable-google-recaptcha-row,
-.recaptcha-site-key-row,
-.recaptcha-secret-key-row  {
-    border-bottom: 2px solid #ffffff;
-}
-
-/* Instructions cCollapsible Link */
-.instructions-link-collapsible {
-    position: relative;
-}
-
-.collapsible-header {
-    background: #f0f0f0;
-    border: none;
-    padding: 10px;
-    width: 100%;
-    text-align: left;
-    cursor: pointer;
-    border-radius: 4px;
-}
-
-.collapsible-header:hover {
-    background: #e0e0e0;
-}
-
-.collapsible-header::after {
-    content: '▼';
-    float: right;
-    transition: transform 0.3s ease;
-}
-
-.collapsible-header.active::after {
-    transform: rotate(180deg);
-}
-
-.collapsible-content {
-    display: none;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-top: none;
-    border-radius: 0 0 4px 4px;
-}
-
-.collapsible-content.active {
-    display: block;
-}
-
-.instruction-content {
-    margin: 10px 0;
-}
 
 /* Score Guide Styling */
 .score-guide {
-    background: linear-gradient(135deg, #ffffff, #f8fbff);
-    border: 2px solid #e3ecf9;
-    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 10px;
     padding: 20px;
     margin-top: 15px;
     margin-bottom: 10px;
-    box-shadow: 0 2px 8px rgba(9, 104, 254, 0.05);
 }
 
 .score-guide strong {
-    color: #0B1C3B;
+    color: #1e293b;
     font-weight: 600;
     font-size: 14px;
 }
@@ -110,68 +66,96 @@
 .score-guide-item {
     display: flex;
     align-items: center;
-    margin: 8px 0;
-    padding: 12px 15px;
+    margin: 10px 0;
+    padding: 10px 15px;
     background: #ffffff;
-    border-radius: 8px;
-    color: #43516A;
+    border-radius: 6px;
+    color: #475569;
     font-size: 13px;
     line-height: 1.5;
-    border-left: 4px solid transparent;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    border: 1px solid #f1f5f9;
 }
 
 .score-guide-item:hover {
     transform: translateX(4px);
-    box-shadow: 0 2px 6px rgba(9, 104, 254, 0.12);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
 }
 
 .score-guide-item::before {
     content: '';
     width: 8px;
     height: 8px;
-    background: linear-gradient(135deg, #0968FE, #5b9fff);
+    background: #3b82f6;
     border-radius: 50%;
     margin-right: 15px;
     flex-shrink: 0;
-    box-shadow: 0 2px 4px rgba(9, 104, 254, 0.3);
 }
 
 .score-guide-range {
     display: inline-block;
-    min-width: 85px;
-    font-weight: 700;
-    color: #0968FE;
-    font-size: 14px;
-    background: linear-gradient(135deg, #e8f2ff, #f0f7ff);
-    padding: 4px 10px;
-    border-radius: 6px;
+    min-width: 70px;
+    font-weight: 600;
+    color: #3b82f6;
+    font-size: 13px;
+    background: #eff6ff;
+    padding: 3px 8px;
+    border-radius: 4px;
     margin-right: 12px;
     text-align: center;
-    border: 1px solid #d1e4ff;
 }
 
 .score-guide-description {
     flex-grow: 1;
-    color: #43516A;
+    color: #64748b;
     font-size: 13px;
 }
 
 .score-guide-note {
-    background: linear-gradient(135deg, #fff9e6, #fffdf5);
-    border-left: 4px solid #ffa500;
-    padding: 14px 16px;
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+    padding: 12px 16px;
     margin-top: 16px;
-    border-radius: 8px;
+    border-radius: 4px;
     font-size: 13px;
-    color: #2c3338;
+    color: #78350f;
     line-height: 1.6;
-    box-shadow: 0 2px 6px rgba(255, 165, 0, 0.1);
-    position: relative;
 }
 
 .score-guide-note strong {
-    color: #d97706;
+    color: #b45309;
     font-weight: 600;
+}
+
+/* Utility to ensure instruction content has good spacing */
+.instruction-content p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #475569;
+    margin-bottom: 15px;
+}
+
+.instruction-content h4 {
+    margin-top: 25px;
+    margin-bottom: 15px;
+    color: #1e293b;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.instruction-content h5 {
+    color: #334155;
+    font-size: 14px;
+    margin-bottom: 8px;
+    margin-top: 15px;
+}
+
+.instruction-content pre {
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc !important;
+    color: #334155;
+    font-family: 'Menlo', 'Monaco', monospace;
+    font-size: 13px;
+    padding: 12px;
 }

@@ -49,7 +49,7 @@
     #email-capture-overlay h3 {
         padding: 0 10px;
     }
-    
+
     #email-capture-overlay p {
         padding: 0 10px;
     }
@@ -141,10 +141,13 @@
 }
 
 #wpiko-contact-form button {
-    padding: 8px 15px;
+    padding: 8px 16px;
     border-radius: 5px;
     cursor: pointer;
     font-size: 14px;
+    line-height: 1.2;
+    min-height: unset;
+    height: auto;
     border: none;
     transition: all 0.2s ease;
 }
@@ -195,11 +198,11 @@
     margin: 8px 0;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
     background: var(--chatbot-background-color);
     max-width: 300px;
     padding: 0;
-    font-size: 0; 
+    font-size: 0;
     line-height: 0;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -221,7 +224,7 @@
     margin: 0;
     padding: 0;
     border-radius: 8px 8px 0 0;
-    position: relative; 
+    position: relative;
     top: 0;
 }
 
@@ -258,3 +261,80 @@
     padding-top: 10px;
 }
 
+/* Attachment Styles */
+.attachment-group {
+    margin-bottom: 15px;
+}
+
+.attachment-slots {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.attachment-slot {
+    width: 70px;
+    height: 70px;
+    border: 1px dashed var(--chatbot-border-color);
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    background-color: #ffffff;
+    transition: background-color 0.2s ease;
+}
+
+.attachment-slot:hover {
+    background-color: #eee;
+    border-color: #aaa;
+}
+
+.attachment-slot.has-file {
+    border-style: solid;
+    padding: 0;
+    background-color: transparent;
+}
+
+.slot-placeholder {
+    color: #999;
+}
+
+.slot-preview {
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    border-radius: 7px;
+}
+
+.remove-attachment {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    background-color: #ff5c5c;
+    color: white;
+    border-radius: 50% !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 2;
+}
+
+.remove-attachment:hover {
+    background-color: #ee4a4a !important;
+}
+
+.attachment-label {
+    font-size: 12px;
+    color: #888;
+    margin-top: 4px;
+    text-align: left;
+}

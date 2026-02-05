@@ -68,6 +68,7 @@ if (!defined('ABSPATH')) {
             <th scope="row">
                 <div class="collapsible-header" id="product-fields-toggle">
                     Product Data Fields 
+                    <span class="dashicons dashicons-arrow-down-alt2"></span>
                 </div>
             </th>
             <td>
@@ -150,6 +151,7 @@ if (!defined('ABSPATH')) {
             <th scope="row">
                 <div class="collapsible-header" id="order-fields-toggle">
                     Order Data Fields 
+                    <span class="dashicons dashicons-arrow-down-alt2"></span>
                 </div>
             </th>
             <td>

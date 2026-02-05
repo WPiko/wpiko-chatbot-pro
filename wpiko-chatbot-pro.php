@@ -3,7 +3,7 @@
  * Plugin Name: WPiko Chatbot Pro
  * Plugin URI: https://wpiko.com/chatbot
  * Description: Premium add-on for WPiko Chatbot with advanced features.
- * Version: 1.1.0
+ * Version: 1.1.1
  * Requires at least: 5.0
  * Tested up to: 6.8.1
  * Requires PHP: 7.0
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('WPIKO_CHATBOT_PRO_VERSION', '1.1.0');
+define('WPIKO_CHATBOT_PRO_VERSION', '1.1.1');
 define('WPIKO_CHATBOT_PRO_FILE', __FILE__);
 define('WPIKO_CHATBOT_PRO_PATH', plugin_dir_path(__FILE__));
 define('WPIKO_CHATBOT_PRO_URL', plugin_dir_url(__FILE__));
@@ -263,11 +263,41 @@ function wpiko_chatbot_pro_enqueue_scripts()
             'is_license_active' => '1'
         );
 
+        // Get customizable text settings
+        $contact_recaptcha_text = get_option('wpiko_chatbot_contact_recaptcha_text', 'This site is protected by reCAPTCHA and the Google {privacy_policy} and {terms_of_service} apply.');
+        $contact_recaptcha_privacy = get_option('wpiko_chatbot_contact_recaptcha_privacy', 'Privacy Policy');
+        $contact_recaptcha_terms = get_option('wpiko_chatbot_contact_recaptcha_terms', 'Terms of Service');
+
+        // Process placeholders
+        $privacy_link = '<a href="https://policies.google.com/privacy" target="_blank">' . esc_html($contact_recaptcha_privacy) . '</a>';
+        $terms_link = '<a href="https://policies.google.com/terms" target="_blank">' . esc_html($contact_recaptcha_terms) . '</a>';
+
+        $contact_recaptcha_text_processed = str_replace(
+            array('{privacy_policy}', '{terms_of_service}'),
+            array($privacy_link, $terms_link),
+            $contact_recaptcha_text
+        );
+
+        $contact_form_text = array(
+            'title' => get_option('wpiko_chatbot_contact_form_title', 'Contact Form'),
+            'intro' => get_option('wpiko_chatbot_contact_form_intro', "Please fill out the form below and we'll get back to you as soon as possible."),
+            'name_label' => get_option('wpiko_chatbot_contact_name_label', 'Name'),
+            'email_label' => get_option('wpiko_chatbot_contact_email_label', 'Email'),
+            'category_label' => get_option('wpiko_chatbot_contact_category_label', 'Category'),
+            'message_label' => get_option('wpiko_chatbot_contact_message_label', 'Message'),
+            'cancel_btn' => get_option('wpiko_chatbot_contact_cancel_btn', 'Cancel'),
+            'send_btn' => get_option('wpiko_chatbot_contact_send_btn', 'Send'),
+            'try_again_btn' => get_option('wpiko_chatbot_contact_try_again_btn', 'Try Again'),
+            'attachment_label' => get_option('wpiko_chatbot_contact_attachment_label', 'Attachments (Max 3MB each)'),
+            'recaptcha_html' => $contact_recaptcha_text_processed
+        );
+
         // Convert to JavaScript format - extend the existing wpikoChatbot object
         $license_js = 'if (typeof wpikoChatbot !== "undefined") { ';
         foreach ($license_data as $key => $value) {
             $license_js .= "wpikoChatbot.{$key} = " . json_encode($value) . "; ";
         }
+        $license_js .= "wpikoChatbot.contact_form_text = " . json_encode($contact_form_text) . "; ";
         $license_js .= '}';
 
         // Add to existing script data

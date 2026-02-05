@@ -28,6 +28,26 @@ function wpiko_chatbot_email_capture_section() {
             if (isset($_POST['email_capture_button_text'])) {
                 update_option('wpiko_chatbot_email_capture_button_text', sanitize_text_field(wp_unslash($_POST['email_capture_button_text'])));
             }
+
+            // Save email capture name placeholder if provided
+            if (isset($_POST['email_capture_name_placeholder'])) {
+                update_option('wpiko_chatbot_email_capture_name_placeholder', sanitize_text_field(wp_unslash($_POST['email_capture_name_placeholder'])));
+            }
+            
+            // Save email capture email placeholder if provided
+            if (isset($_POST['email_capture_email_placeholder'])) {
+                update_option('wpiko_chatbot_email_capture_email_placeholder', sanitize_text_field(wp_unslash($_POST['email_capture_email_placeholder'])));
+            }
+
+            // Save validation error message if provided
+            if (isset($_POST['email_capture_validation_error'])) {
+                update_option('wpiko_chatbot_email_capture_validation_error', sanitize_text_field(wp_unslash($_POST['email_capture_validation_error'])));
+            }
+
+            // Save change email menu text if provided
+            if (isset($_POST['email_capture_change_email_text'])) {
+                update_option('wpiko_chatbot_email_capture_change_email_text', sanitize_text_field(wp_unslash($_POST['email_capture_change_email_text'])));
+            }
             
             echo '<div class="updated"><p>Email Capture settings updated successfully.</p></div>';
         } else {
@@ -40,6 +60,10 @@ function wpiko_chatbot_email_capture_section() {
     $email_capture_title = get_option('wpiko_chatbot_email_capture_title', 'Enter your details to get started');
     $email_capture_description = get_option('wpiko_chatbot_email_capture_description', 'Please provide your name and email to start chatting with our AI assistant.');
     $email_capture_button_text = get_option('wpiko_chatbot_email_capture_button_text', 'Continue');
+    $email_capture_name_placeholder = get_option('wpiko_chatbot_email_capture_name_placeholder', 'Enter your name');
+    $email_capture_email_placeholder = get_option('wpiko_chatbot_email_capture_email_placeholder', 'Enter your email');
+    $email_capture_validation_error = get_option('wpiko_chatbot_email_capture_validation_error', 'Please check your input and try again.');
+    $email_capture_change_email_text = get_option('wpiko_chatbot_email_capture_change_email_text', 'Change Email');
     
     // Check if license is active
     $is_license_active = wpiko_chatbot_pro_is_license_active();
@@ -75,31 +99,71 @@ function wpiko_chatbot_email_capture_section() {
                 </table>
 
                 <div class="email-capture-settings-collapsible <?php echo $enable_email_capture ? 'active' : ''; ?>">
-                    <table class="form-table">
-                        <tr valign="top">
-                            <th scope="row"><label for="email_capture_title">Email Capture Title</label></th>
-                            <td>
-                                <input type="text" name="email_capture_title" id="email_capture_title" value="<?php echo esc_attr($email_capture_title); ?>" class="regular-text">
-                                <p class="description">The title text displayed in the email capture popup.</p>
-                            </td>
-                        </tr>
-                        
-                        <tr valign="top">
-                            <th scope="row"><label for="email_capture_description">Email Capture Description</label></th>
-                            <td>
-                                <textarea name="email_capture_description" id="email_capture_description" rows="3" class="large-text"><?php echo esc_textarea($email_capture_description); ?></textarea>
-                                <p class="description">The description text displayed in the email capture popup.</p>
-                            </td>
-                        </tr>
-                        
-                        <tr valign="top">
-                            <th scope="row"><label for="email_capture_button_text">Button Text</label></th>
-                            <td>
-                                <input type="text" name="email_capture_button_text" id="email_capture_button_text" value="<?php echo esc_attr($email_capture_button_text); ?>" class="regular-text">
-                                <p class="description">The text displayed on the submit button in the email capture popup.</p>
-                            </td>
-                        </tr>
-                    </table>
+                    <div class="wpiko-accordion-item">
+                        <h3 class="collapsible-header">
+                            <span><span class="dashicons dashicons-edit"></span> Customizable Text</span>
+                            <span class="dashicons dashicons-arrow-down-alt2"></span>
+                        </h3>
+                        <div class="collapsible-content">
+                            <table class="form-table">
+                                <tr valign="top">
+                                    <th scope="row"><label for="email_capture_title">Email Capture Title</label></th>
+                                    <td>
+                                        <input type="text" name="email_capture_title" id="email_capture_title" value="<?php echo esc_attr($email_capture_title); ?>" class="regular-text">
+                                        <p class="description">The title text displayed in the email capture popup.</p>
+                                    </td>
+                                </tr>
+                                
+                                <tr valign="top">
+                                    <th scope="row"><label for="email_capture_description">Email Capture Description</label></th>
+                                    <td>
+                                        <textarea name="email_capture_description" id="email_capture_description" rows="3" class="large-text"><?php echo esc_textarea($email_capture_description); ?></textarea>
+                                        <p class="description">The description text displayed in the email capture popup.</p>
+                                    </td>
+                                </tr>
+
+                                <tr valign="top">
+                                    <th scope="row"><label for="email_capture_name_placeholder">Name Field Placeholder</label></th>
+                                    <td>
+                                        <input type="text" name="email_capture_name_placeholder" id="email_capture_name_placeholder" value="<?php echo esc_attr($email_capture_name_placeholder); ?>" class="regular-text">
+                                        <p class="description">The placeholder text for the name input field.</p>
+                                    </td>
+                                </tr>
+
+                                <tr valign="top">
+                                    <th scope="row"><label for="email_capture_email_placeholder">Email Field Placeholder</label></th>
+                                    <td>
+                                        <input type="text" name="email_capture_email_placeholder" id="email_capture_email_placeholder" value="<?php echo esc_attr($email_capture_email_placeholder); ?>" class="regular-text">
+                                        <p class="description">The placeholder text for the email input field.</p>
+                                    </td>
+                                </tr>
+                                
+                                <tr valign="top">
+                                    <th scope="row"><label for="email_capture_button_text">Button Text</label></th>
+                                    <td>
+                                        <input type="text" name="email_capture_button_text" id="email_capture_button_text" value="<?php echo esc_attr($email_capture_button_text); ?>" class="regular-text">
+                                        <p class="description">The text displayed on the submit button in the email capture popup.</p>
+                                    </td>
+                                </tr>
+
+                                <tr valign="top">
+                                    <th scope="row"><label for="email_capture_validation_error">Validation Error Message</label></th>
+                                    <td>
+                                        <input type="text" name="email_capture_validation_error" id="email_capture_validation_error" value="<?php echo esc_attr($email_capture_validation_error); ?>" class="regular-text">
+                                        <p class="description">Error message shown when the user submits invalid or incomplete information.</p>
+                                    </td>
+                                </tr>
+
+                                <tr valign="top">
+                                    <th scope="row"><label for="email_capture_change_email_text">Change Email Menu Text</label></th>
+                                    <td>
+                                        <input type="text" name="email_capture_change_email_text" id="email_capture_change_email_text" value="<?php echo esc_attr($email_capture_change_email_text); ?>" class="regular-text">
+                                        <p class="description">Text shown in the chatbot menu for changing email. Default: <em>Change Email</em></p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
                 </div>
                 
                 <input type="hidden" name="action" value="save_email_capture_settings">
@@ -115,6 +179,14 @@ function wpiko_chatbot_email_capture_section() {
                         } else {
                             $('.email-capture-settings-collapsible').removeClass('active');
                         }
+                    });
+
+                    // Accordion toggle
+                    $('.collapsible-header').click(function () {
+                        // Toggle active class on header for arrow rotation
+                        $(this).toggleClass('active');
+                        // Toggle active class on next sibling content
+                        $(this).next('.collapsible-content').toggleClass('active');
                     });
                 });
             </script>

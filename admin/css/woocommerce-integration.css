@@ -245,7 +245,7 @@
 }
 
 /* PRODUCT DATA FIELDS */
-.collapsible-header {
+.woocommerce-integration-content .collapsible-header {
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -258,7 +258,7 @@
     width: 90%!important;
 }
 
-.collapsible-header:hover {
+.woocommerce-integration-content .collapsible-header:hover {
     background: #f0f2f5!important;
 }
 

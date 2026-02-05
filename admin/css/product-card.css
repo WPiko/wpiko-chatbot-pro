@@ -4,16 +4,37 @@
     background: white;
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(58, 79, 102, 0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    border: none;
 }
 
-.enable-product-cards-row  {
-    background: #fbfbfb;
-    border: 1px solid #EFF2F6;
+.enable-product-cards-row {
+    background: transparent;
+    border: none;
 }
 
 .product-card-section .description {
     margin-bottom: 10px;
+    color: #64748b;
+}
+
+/* Clean up table styles to match other sections */
+.product-card-section form .form-table {
+    border: none;
+    background: transparent;
+}
+
+.product-card-section form .form-table th,
+.product-card-section form .form-table td {
+    padding-top: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.product-card-section form .form-table tr:last-child th,
+.product-card-section form .form-table tr:last-child td {
+    border-bottom: 1px solid #f1f5f9;
+    /* Keep separation if needed, or none if it's the absolute last */
 }
 
 /* Product Card Collapsible Settings */
@@ -21,8 +42,11 @@
     overflow: hidden;
     transition: max-height 0.3s ease-out;
     max-height: 0;
+    opacity: 0;
 }
 
 .product-card-settings-collapsible.active {
     max-height: 1500px;
+    opacity: 1;
+    transition: max-height 0.5s ease-in, opacity 0.3s ease-in;
 }

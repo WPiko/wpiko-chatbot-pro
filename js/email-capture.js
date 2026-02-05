@@ -7,7 +7,7 @@
 
 document.addEventListener('DOMContentLoaded', function () {
     // Ensure this runs after the main plugin has loaded
-    setTimeout(function() {
+    setTimeout(function () {
         initEmailCapture();
     }, 10);
 });
@@ -17,7 +17,7 @@ function initEmailCapture() {
     const emailCaptureOverlay = document.getElementById('email-capture-overlay-container');
     const userEmailInput = document.getElementById('user-email');
     const submitEmailButton = document.getElementById('submit-email');
-    
+
     const emailSection = document.getElementById('email-section');
     const emailPreview = document.getElementById('email-preview');
     const emailDetails = document.getElementById('email-details');
@@ -27,10 +27,10 @@ function initEmailCapture() {
     function updateChangeEmailVisibility() {
         const emailCaptureEnabled = wpikoChatbot.enable_email_capture;
         const storedEmail = localStorage.getItem('wpiko_chatbot_user_email');
-        
+
         if (changeEmailOption) {
             if (emailCaptureEnabled && storedEmail) {
-                changeEmailOption.style.display = 'block';
+                changeEmailOption.style.display = 'flex';
             } else {
                 changeEmailOption.style.display = 'none';
             }
@@ -63,9 +63,9 @@ function initEmailCapture() {
 
     // Initialize email display
     updateEmailDisplay();
-    
+
     if (emailSection) {
-        emailSection.addEventListener('click', function(e) {
+        emailSection.addEventListener('click', function (e) {
             e.stopPropagation(); // Prevent closing the dropdown
             if (emailDetails) {
                 emailDetails.style.display = emailDetails.style.display === 'none' ? 'block' : 'none';
@@ -77,15 +77,15 @@ function initEmailCapture() {
     }
 
     if (submitEmailButton) {
-        submitEmailButton.addEventListener('click', function() {
+        submitEmailButton.addEventListener('click', function () {
             const name = document.getElementById('user-name').value.trim();
             const email = userEmailInput.value.trim();
-        
+
             if (!name) {
-                alert('Please enter your name.');
+                alert(wpikoChatbot.errors.validation_error);
                 return;
             }
-        
+
             if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                 localStorage.setItem('wpiko_chatbot_user_name', name);
                 localStorage.setItem('wpiko_chatbot_user_email', email);
@@ -93,13 +93,13 @@ function initEmailCapture() {
                 if (emailCaptureOverlay) {
                     emailCaptureOverlay.style.display = 'none';
                 }
-                
+
                 // Reload the chatbot interface to refresh with the new user data
                 setTimeout(() => {
                     location.reload();
                 }, 100);
             } else {
-                alert('Please enter a valid email address.');
+                alert(wpikoChatbot.errors.validation_error);
             }
         });
     }
@@ -127,7 +127,7 @@ function initEmailCapture() {
         // Return stored name if email capture is enabled
         return (wpikoChatbot.enable_email_capture === '1') ? localStorage.getItem('wpiko_chatbot_user_name') || '' : '';
     }
-    
+
     // Make getUserEmail and getUserName available globally for the contact form
     // These will override any fallback functions from the main plugin
     window.getUserEmail = getUserEmail;
@@ -142,7 +142,7 @@ function initEmailCapture() {
 
     // Change email option handler
     if (changeEmailOption) {
-        changeEmailOption.addEventListener('click', function(e) {
+        changeEmailOption.addEventListener('click', function (e) {
             e.stopPropagation(); // Prevent the dropdown from closing immediately
             changeEmail();
         });
@@ -153,7 +153,7 @@ function initEmailCapture() {
         const currentName = localStorage.getItem('wpiko_chatbot_user_name');
         const menuDropdown = document.getElementById('chatbot-menu-dropdown');
         const emailDetails = document.getElementById('email-details');
-        
+
         if (currentEmail) {
             if (confirm(`Your current details are:\nName: ${currentName}\nEmail: ${currentEmail}\n\nDo you want to change them?`)) {
                 localStorage.removeItem('wpiko_chatbot_user_email');
@@ -177,7 +177,7 @@ function initEmailCapture() {
             }
             setTimeout(() => {
                 location.reload();
-           }, 100);
+            }, 100);
         }
         if (menuDropdown) {
             menuDropdown.style.display = 'none';
@@ -187,7 +187,7 @@ function initEmailCapture() {
         }
         updateEmailDisplay();
     }
-    
+
     function showEmailCaptureOverlay() {
         if (emailCaptureOverlay) {
             emailCaptureOverlay.style.display = 'block';
@@ -206,17 +206,17 @@ function initEmailCapture() {
     };
 
     // Global validation function that the main plugin can call
-    window.wpikoProValidateEmailBeforeSend = function() {
+    window.wpikoProValidateEmailBeforeSend = function () {
         // Check if email capture is enabled
         const emailCaptureEnabled = wpikoChatbot.enable_email_capture === '1';
         const userEmail = getUserEmail();
-        
+
         // Only require email if email capture is enabled and user is not logged in
         if (emailCaptureEnabled && !wpikoChatbot.is_user_logged_in && !userEmail) {
             alert('Please provide your email before sending a message.');
             return false;
         }
-        
+
         return true;
     };
 
