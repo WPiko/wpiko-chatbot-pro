@@ -755,7 +755,7 @@ function wpiko_chatbot_pro_add_woocommerce_system_instructions() {
             <textarea name="products_system_instructions" id="products_system_instructions" class="large-text" rows="5"><?php
                 echo esc_textarea($instructions['products']);
             ?></textarea>
-            <p class="description">Edit product-related system instructions for your assistant only if necessary.</p>
+            <p class="description">Edit product-related system instructions for your assistant.</p>
         </td>
     </tr>
     <?php 
@@ -768,7 +768,7 @@ function wpiko_chatbot_pro_add_woocommerce_system_instructions() {
             <textarea name="orders_system_instructions" id="orders_system_instructions" class="large-text" rows="5"><?php 
                 echo esc_textarea($instructions['orders']); 
             ?></textarea>
-            <p class="description">Edit order-related system instructions for your assistant only if necessary.</p>
+            <p class="description">Edit order-related system instructions for your assistant.</p>
         </td>
     </tr>
     <?php endif;
@@ -793,7 +793,7 @@ function wpiko_chatbot_pro_add_responses_woocommerce_system_instructions() {
             <textarea name="responses_products_system_instructions" id="responses_products_system_instructions" class="large-text" rows="5"><?php
                 echo esc_textarea($instructions['products']);
             ?></textarea>
-            <p class="description">Edit product-related system instructions for your responses assistant only if necessary.</p>
+            <p class="description">Edit product-related system instructions for your responses assistant.</p>
         </td>
     </tr>
     <?php 
@@ -806,7 +806,7 @@ function wpiko_chatbot_pro_add_responses_woocommerce_system_instructions() {
             <textarea name="responses_orders_system_instructions" id="responses_orders_system_instructions" class="large-text" rows="5"><?php 
                 echo esc_textarea($instructions['orders']); 
             ?></textarea>
-            <p class="description">Edit order-related system instructions for your responses assistant only if necessary.</p>
+            <p class="description">Edit order-related system instructions for your responses assistant.</p>
         </td>
     </tr>
     <?php endif;

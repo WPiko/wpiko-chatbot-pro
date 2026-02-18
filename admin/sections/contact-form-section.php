@@ -46,9 +46,7 @@ function wpiko_chatbot_contact_form_section()
         update_option('wpiko_chatbot_contact_cancel_btn', sanitize_text_field(wp_unslash($_POST['wpiko_chatbot_contact_cancel_btn'] ?? 'Cancel')));
         update_option('wpiko_chatbot_contact_send_btn', sanitize_text_field(wp_unslash($_POST['wpiko_chatbot_contact_send_btn'] ?? 'Send')));
         update_option('wpiko_chatbot_contact_try_again_btn', sanitize_text_field(wp_unslash($_POST['wpiko_chatbot_contact_try_again_btn'] ?? 'Try Again')));
-        update_option('wpiko_chatbot_contact_recaptcha_text', wp_kses_post(wp_unslash($_POST['wpiko_chatbot_contact_recaptcha_text'] ?? 'This site is protected by reCAPTCHA and the Google {privacy_policy} and {terms_of_service} apply.')));
-        update_option('wpiko_chatbot_contact_recaptcha_privacy', sanitize_text_field(wp_unslash($_POST['wpiko_chatbot_contact_recaptcha_privacy'] ?? 'Privacy Policy')));
-        update_option('wpiko_chatbot_contact_recaptcha_terms', sanitize_text_field(wp_unslash($_POST['wpiko_chatbot_contact_recaptcha_terms'] ?? 'Terms of Service')));
+        update_option('wpiko_chatbot_contact_recaptcha_text', wp_kses_post(wp_unslash($_POST['wpiko_chatbot_contact_recaptcha_text'] ?? 'This site is protected by reCAPTCHA.')));
         update_option('wpiko_chatbot_contact_attachment_label', sanitize_text_field(wp_unslash($_POST['wpiko_chatbot_contact_attachment_label'] ?? 'Attachments (Max 3MB each)')));
         update_option('wpiko_chatbot_contact_success_message', sanitize_textarea_field(wp_unslash($_POST['wpiko_chatbot_contact_success_message'] ?? 'Contact Form - Your message has been sent successfully. We will get back to you as soon as possible.')));
         update_option('wpiko_chatbot_contact_upload_error', sanitize_textarea_field(wp_unslash($_POST['wpiko_chatbot_contact_upload_error'] ?? 'There was a problem with your file upload. Please ensure it is a valid image (JPG, PNG, GIF) under 3MB.')));
@@ -81,9 +79,7 @@ function wpiko_chatbot_contact_form_section()
     $contact_cancel_btn = get_option('wpiko_chatbot_contact_cancel_btn', 'Cancel');
     $contact_send_btn = get_option('wpiko_chatbot_contact_send_btn', 'Send');
     $contact_try_again_btn = get_option('wpiko_chatbot_contact_try_again_btn', 'Try Again');
-    $contact_recaptcha_text = get_option('wpiko_chatbot_contact_recaptcha_text', 'This site is protected by reCAPTCHA and the Google {privacy_policy} and {terms_of_service} apply.');
-    $contact_recaptcha_privacy = get_option('wpiko_chatbot_contact_recaptcha_privacy', 'Privacy Policy');
-    $contact_recaptcha_terms = get_option('wpiko_chatbot_contact_recaptcha_terms', 'Terms of Service');
+    $contact_recaptcha_text = get_option('wpiko_chatbot_contact_recaptcha_text', 'This site is protected by reCAPTCHA.');
     $contact_attachment_label = get_option('wpiko_chatbot_contact_attachment_label', 'Attachments (Max 3MB each)');
     $contact_success_message = get_option('wpiko_chatbot_contact_success_message', 'Contact Form - Your message has been sent successfully. We will get back to you as soon as possible.');
     $contact_upload_error = get_option('wpiko_chatbot_contact_upload_error', 'There was a problem with your file upload. Please ensure it is a valid image (JPG, PNG, GIF) under 3MB.');
@@ -284,9 +280,8 @@ function wpiko_chatbot_contact_form_section()
                                             </label>
                                             <label for="wpiko_chatbot_hide_recaptcha_badge">Hide the reCAPTCHA badge</label>
                                             <p class="description">When enabled, the reCAPTCHA badge will be hidden.</p>
-                                            <p class="description"><strong>Note:</strong> According to Google's terms, you must
-                                                inform users that you're using reCAPTCHA. A note is added to the form when this
-                                                option is enabled.</p>
+                                            <p class="description"><strong>Note:</strong> When the badge is hidden, a reCAPTCHA
+                                                notice text is displayed on the contact form instead.</p>
                                         </td>
                                     </tr>
                                 </table>
@@ -384,26 +379,9 @@ function wpiko_chatbot_contact_form_section()
                                     <tr>
                                         <th scope="row">reCAPTCHA Text</th>
                                         <td>
-                                            <textarea name="wpiko_chatbot_contact_recaptcha_text" rows="3"
+                                            <textarea name="wpiko_chatbot_contact_recaptcha_text" rows="2"
                                                 style="width: 100%;"><?php echo esc_textarea($contact_recaptcha_text); ?></textarea>
-                                            <p class="description">Default: <em>This site is protected by reCAPTCHA and the Google {privacy_policy} and {terms_of_service} apply.</em></p>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th scope="row">Privacy Policy Link Text</th>
-                                        <td>
-                                            <input type="text" name="wpiko_chatbot_contact_recaptcha_privacy"
-                                                value="<?php echo esc_attr($contact_recaptcha_privacy); ?>"
-                                                style="width: 100%;">
-                                            <p class="description">Link text for Google's Privacy Policy in the reCAPTCHA disclosure.</p>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th scope="row">Terms of Service Link Text</th>
-                                        <td>
-                                            <input type="text" name="wpiko_chatbot_contact_recaptcha_terms"
-                                                value="<?php echo esc_attr($contact_recaptcha_terms); ?>" style="width: 100%;">
-                                            <p class="description">Link text for Google's Terms of Service in the reCAPTCHA disclosure.</p>
+                                            <p class="description">This text is displayed on the contact form only when the reCAPTCHA badge is hidden. Default: <em>This site is protected by reCAPTCHA.</em></p>
                                         </td>
                                     </tr>
                                     <tr>

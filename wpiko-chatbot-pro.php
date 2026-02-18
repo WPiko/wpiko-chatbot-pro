@@ -3,7 +3,7 @@
  * Plugin Name: WPiko Chatbot Pro
  * Plugin URI: https://wpiko.com/chatbot
  * Description: Premium add-on for WPiko Chatbot with advanced features.
- * Version: 1.1.1
+ * Version: 1.1.2
  * Requires at least: 5.0
  * Tested up to: 6.8.1
  * Requires PHP: 7.0
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('WPIKO_CHATBOT_PRO_VERSION', '1.1.1');
+define('WPIKO_CHATBOT_PRO_VERSION', '1.1.2');
 define('WPIKO_CHATBOT_PRO_FILE', __FILE__);
 define('WPIKO_CHATBOT_PRO_PATH', plugin_dir_path(__FILE__));
 define('WPIKO_CHATBOT_PRO_URL', plugin_dir_url(__FILE__));
@@ -45,6 +45,11 @@ require_once WPIKO_CHATBOT_PRO_PATH . 'includes/markdown-handler-integration.php
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/contact-handler.php';
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/conversation-handler.php';
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/cache-integration.php';
+
+// Load WP-CLI commands when running in CLI context
+if (defined('WP_CLI') && WP_CLI) {
+    require_once WPIKO_CHATBOT_PRO_PATH . 'includes/cli-commands.php';
+}
 
 // Global variable to store updater instance
 global $wpiko_chatbot_pro_github_updater;
@@ -264,19 +269,7 @@ function wpiko_chatbot_pro_enqueue_scripts()
         );
 
         // Get customizable text settings
-        $contact_recaptcha_text = get_option('wpiko_chatbot_contact_recaptcha_text', 'This site is protected by reCAPTCHA and the Google {privacy_policy} and {terms_of_service} apply.');
-        $contact_recaptcha_privacy = get_option('wpiko_chatbot_contact_recaptcha_privacy', 'Privacy Policy');
-        $contact_recaptcha_terms = get_option('wpiko_chatbot_contact_recaptcha_terms', 'Terms of Service');
-
-        // Process placeholders
-        $privacy_link = '<a href="https://policies.google.com/privacy" target="_blank">' . esc_html($contact_recaptcha_privacy) . '</a>';
-        $terms_link = '<a href="https://policies.google.com/terms" target="_blank">' . esc_html($contact_recaptcha_terms) . '</a>';
-
-        $contact_recaptcha_text_processed = str_replace(
-            array('{privacy_policy}', '{terms_of_service}'),
-            array($privacy_link, $terms_link),
-            $contact_recaptcha_text
-        );
+        $contact_recaptcha_text = get_option('wpiko_chatbot_contact_recaptcha_text', 'This site is protected by reCAPTCHA.');
 
         $contact_form_text = array(
             'title' => get_option('wpiko_chatbot_contact_form_title', 'Contact Form'),
@@ -289,7 +282,7 @@ function wpiko_chatbot_pro_enqueue_scripts()
             'send_btn' => get_option('wpiko_chatbot_contact_send_btn', 'Send'),
             'try_again_btn' => get_option('wpiko_chatbot_contact_try_again_btn', 'Try Again'),
             'attachment_label' => get_option('wpiko_chatbot_contact_attachment_label', 'Attachments (Max 3MB each)'),
-            'recaptcha_html' => $contact_recaptcha_text_processed
+            'recaptcha_html' => wp_kses_post($contact_recaptcha_text)
         );
 
         // Convert to JavaScript format - extend the existing wpikoChatbot object

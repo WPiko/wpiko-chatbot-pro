@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function () {
             cancel_btn: 'Cancel',
             send_btn: 'Send',
             attachment_label: 'Attachments <span style="font-size:12px; font-weight:400; opacity:0.7;">(Max 3MB each)</span>',
-            recaptcha_html: 'This site is protected by reCAPTCHA and the Google <a href="https://policies.google.com/privacy" target="_blank">Privacy Policy</a> and <a href="https://policies.google.com/terms" target="_blank">Terms of Service</a> apply.'
+            recaptcha_html: 'This site is protected by reCAPTCHA.'
         };
 
         let formHTML = `
@@ -275,10 +275,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Add reCAPTCHA if enabled
         if (wpikoChatbot.enable_recaptcha === '1' && wpikoChatbot.recaptcha_site_key) {
+            // Only show the reCAPTCHA notice text when the badge is hidden
+            const recaptchaNote = wpikoChatbot.hide_recaptcha_badge === '1' ? `<div class="recaptcha-note">${text.recaptcha_html}</div>` : '';
             formHTML += `
                         <div class="form-group recaptcha-container">
                             <div id="recaptcha-wrapper" class="g-recaptcha" data-sitekey="${wpikoChatbot.recaptcha_site_key}"></div>
-                            <div class="recaptcha-note">${text.recaptcha_html}</div>
+                            ${recaptchaNote}
                         </div>`;
         }
 

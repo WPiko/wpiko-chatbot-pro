@@ -420,11 +420,62 @@ jQuery(document).ready(function($) {
             });
         });
 
+        // Function to poll orders sync status
+        function pollOrdersSyncStatus($statusEl) {
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'check_orders_sync_status',
+                    security: wpikoChatbotAdmin.nonce
+                },
+                success: function(response) {
+                    if (response.success) {
+                        var syncStatus = response.data.status;
+                        
+                        if (syncStatus === 'scheduled' || syncStatus === 'running') {
+                            $statusEl.text(syncStatus === 'scheduled' ? 'Sync scheduled...' : 'Syncing orders...')
+                                .removeClass('status-success status-error')
+                                .addClass('status-loading');
+                            setTimeout(function() { pollOrdersSyncStatus($statusEl); }, 3000);
+                        } else if (syncStatus === 'completed') {
+                            $statusEl.text('Orders synced successfully!')
+                                .removeClass('status-loading status-error')
+                                .addClass('status-success');
+                            
+                            // Refresh UI
+                            updateAssistantDetails();
+                            if (typeof wpikoChatbotFileManagement !== 'undefined') {
+                                wpikoChatbotFileManagement.refreshWooCommerceFileList();
+                            }
+                            
+                            setTimeout(function() { $statusEl.fadeOut(400, function() { $(this).remove(); }); }, 5000);
+                        } else if (syncStatus === 'failed') {
+                            var errorMsg = response.data.error ? response.data.error : 'Check debug log for details.';
+                            $statusEl.text('Orders sync failed: ' + errorMsg)
+                                .removeClass('status-loading status-success')
+                                .addClass('status-error');
+                            setTimeout(function() { $statusEl.fadeOut(400, function() { $(this).remove(); }); }, 12000);
+                        } else {
+                            // Unknown or disabled status
+                            $statusEl.fadeOut(400, function() { $(this).remove(); });
+                        }
+                    }
+                },
+                error: function() {
+                    $statusEl.text('Could not check sync status.')
+                        .removeClass('status-loading status-success')
+                        .addClass('status-error');
+                    setTimeout(function() { $statusEl.fadeOut(400, function() { $(this).remove(); }); }, 5000);
+                }
+            });
+        }
+
         // Orders Auto-Sync Handler
         $ordersSync.on('change', function() {
             var syncOption = $(this).val();
             var $status = $('<span>').insertAfter($(this))
-                .text('Loading...')
+                .text('Updating...')
                 .addClass('status-loading');
 
             $.ajax({
@@ -436,34 +487,44 @@ jQuery(document).ready(function($) {
                     sync_option: syncOption
                 },
                 success: function(response) {
-                    $status.remove();
-        if (response.success) {
-            alert(response.data.message);
-            
-            // Update system instructions and UI
-            updateAssistantDetails();
-            
-            // Update WooCommerce file list if needed
-            if (typeof wpikoChatbotFileManagement !== 'undefined') {
-                wpikoChatbotFileManagement.refreshWooCommerceFileList();
-            }
-            
-            // Update Orders System Instructions visibility
-            var ordersAutoSync = $('#orders_auto_sync').val();
-            var $ordersInstructions = $('#responses_orders_system_instructions').closest('tr');
-            
-            if (ordersAutoSync === 'disabled') {
-                $ordersInstructions.hide();
-            } else {
-                $ordersInstructions.show();
-            }
-        } else {
-            alert('Error: ' + response.data.message);
-        }
+                    if (response.success) {
+                        // Update Orders System Instructions visibility
+                        var ordersAutoSync = $('#orders_auto_sync').val();
+                        var $ordersInstructions = $('#responses_orders_system_instructions').closest('tr');
+                        
+                        if (ordersAutoSync === 'disabled') {
+                            $ordersInstructions.hide();
+                            $status.text(response.data.message)
+                                .removeClass('status-loading')
+                                .addClass('status-success');
+                            
+                            updateAssistantDetails();
+                            if (typeof wpikoChatbotFileManagement !== 'undefined') {
+                                wpikoChatbotFileManagement.refreshWooCommerceFileList();
+                            }
+                            setTimeout(function() { $status.fadeOut(400, function() { $(this).remove(); }); }, 5000);
+                        } else {
+                            $ordersInstructions.show();
+                            // Sync is running in background — start polling
+                            $status.text('Sync running in the background...')
+                                .removeClass('status-success status-error')
+                                .addClass('status-loading');
+                            
+                            updateAssistantDetails();
+                            setTimeout(function() { pollOrdersSyncStatus($status); }, 3000);
+                        }
+                    } else {
+                        $status.text('Error: ' + response.data.message)
+                            .removeClass('status-loading')
+                            .addClass('status-error');
+                        setTimeout(function() { $status.fadeOut(400, function() { $(this).remove(); }); }, 8000);
+                    }
                 },
                 error: function() {
-                    $status.remove();
-                    alert('An error occurred while updating orders sync setting.');
+                    $status.text('An error occurred while updating orders sync setting.')
+                        .removeClass('status-loading')
+                        .addClass('status-error');
+                    setTimeout(function() { $status.fadeOut(400, function() { $(this).remove(); }); }, 8000);
                 }
             });
         });

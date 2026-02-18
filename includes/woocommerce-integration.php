@@ -54,23 +54,75 @@ function wpiko_chatbot_is_woocommerce_integration_enabled() {
 }
 
 // Function to locking mechanism to prevent simultaneous syncs - Woo files
+// Uses transients instead of options for reliable expiration on live/shared hosting
 function wpiko_chatbot_get_lock($lock_name, $timeout = 60, $check_only = false) {
-    $lock_key = 'wpiko_chatbot_' . $lock_name . '_lock';
-    $lock_expiration = get_option($lock_key);
+    $lock_key = 'wpiko_lock_' . $lock_name;
+    $existing = get_transient($lock_key);
     
-    if ($lock_expiration && $lock_expiration > time()) {
+    if ($existing !== false) {
         return false;
     }
     
     if (!$check_only) {
-        update_option($lock_key, time() + $timeout);
+        set_transient($lock_key, time(), $timeout);
     }
     return true;
 }
 
 function wpiko_chatbot_release_lock($lock_name) {
-    $lock_key = 'wpiko_chatbot_' . $lock_name . '_lock';
-    delete_option($lock_key);
+    $lock_key = 'wpiko_lock_' . $lock_name;
+    delete_transient($lock_key);
+}
+
+/**
+ * Helper: Write data to a temp file with WP_Filesystem fallback to native PHP.
+ * Returns the temp file path on success, or false on failure.
+ */
+function wpiko_chatbot_write_temp_file($prefix, $data) {
+    // Try WP_Filesystem first
+    global $wp_filesystem;
+    if (!function_exists('WP_Filesystem')) {
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+    }
+    
+    $temp_file_path = wp_tempnam($prefix);
+    if (!$temp_file_path) {
+        wpiko_chatbot_log_error('Failed to create temp file for: ' . $prefix);
+        return false;
+    }
+    
+    // Try WP_Filesystem
+    $fs_init = WP_Filesystem();
+    if ($fs_init && $wp_filesystem && $wp_filesystem->put_contents($temp_file_path, $data)) {
+        return $temp_file_path;
+    }
+    
+    // Fallback to native PHP file_put_contents
+    wpiko_chatbot_log_error('WP_Filesystem unavailable for ' . $prefix . ', using native fallback');
+    $written = @file_put_contents($temp_file_path, $data);
+    if ($written !== false) {
+        return $temp_file_path;
+    }
+    
+    // Clean up on failure
+    @unlink($temp_file_path);
+    wpiko_chatbot_log_error('Failed to write temp file for: ' . $prefix);
+    return false;
+}
+
+/**
+ * Helper: Delete a temp file with WP_Filesystem fallback to native PHP.
+ */
+function wpiko_chatbot_delete_temp_file($file_path) {
+    if (empty($file_path) || !file_exists($file_path)) {
+        return;
+    }
+    global $wp_filesystem;
+    if ($wp_filesystem && $wp_filesystem->exists($file_path)) {
+        $wp_filesystem->delete($file_path);
+    } else {
+        @unlink($file_path);
+    }
 }
 
 
@@ -395,11 +447,139 @@ function wpiko_chatbot_get_formatted_products_data($offset = 0, $limit = 100) {
     return $formatted_data;
 }
 
-// Improved function to sync existing products
+/**
+ * Stream product batches directly to a temp JSON file instead of accumulating in memory.
+ * Returns the temp file path on success, or false on failure.
+ * Accepts an optional callback for progress output (used by WP-CLI).
+ */
+function wpiko_chatbot_build_products_file($progress_callback = null) {
+    $batch_size = 100;
+    $offset = 0;
+    $total_products = wp_count_posts('product')->publish;
+    $processed_products = 0;
+
+    if ($total_products === 0) {
+        return false;
+    }
+
+    // Create temp file and open a file handle for streaming
+    $temp_file_path = wp_tempnam('woocommerce_products');
+    if (!$temp_file_path) {
+        wpiko_chatbot_log_error('Failed to create temp file for products.');
+        return false;
+    }
+
+    $fh = @fopen($temp_file_path, 'w');
+    if (!$fh) {
+        wpiko_chatbot_log_error('Failed to open temp file for writing.');
+        @unlink($temp_file_path);
+        return false;
+    }
+
+    // Write JSON array opening bracket
+    fwrite($fh, '[');
+    $first = true;
+
+    do {
+        $formatted_data = wpiko_chatbot_get_formatted_products_data($offset, $batch_size);
+        
+        foreach ($formatted_data as $product_data) {
+            if (!$first) {
+                fwrite($fh, ',');
+            }
+            $json_item = json_encode($product_data);
+            if ($json_item === false) {
+                continue; // Skip items that can't be encoded
+            }
+            fwrite($fh, $json_item);
+            $first = false;
+        }
+        
+        $processed_products += count($formatted_data);
+        $offset += $batch_size;
+
+        // Update progress
+        $progress = min(99, round(($processed_products / max(1, $total_products)) * 100));
+        update_option('wpiko_chatbot_sync_progress', $progress);
+
+        // Call progress callback if provided (WP-CLI)
+        if (is_callable($progress_callback)) {
+            call_user_func($progress_callback, $processed_products, $total_products, $progress);
+        }
+
+        // Free memory between batches
+        unset($formatted_data);
+        if (function_exists('wp_cache_flush')) {
+            wp_cache_flush();
+        }
+
+    } while ($processed_products < $total_products && $offset < 50000); // Safety limit
+
+    // Write JSON array closing bracket
+    fwrite($fh, ']');
+    fclose($fh);
+
+    wpiko_chatbot_log_error("Built products file with {$processed_products} products.");
+    return $temp_file_path;
+}
+
+/**
+ * Upload a temp product JSON file to OpenAI and handle old file cleanup.
+ * Returns true on success, false on failure.
+ */
+function wpiko_chatbot_upload_products_file($temp_file_path) {
+    $file_data = [
+        'tmp_name' => $temp_file_path,
+        'name' => 'woocommerce_products.json',
+        'type' => 'application/json',
+    ];
+
+    // Upload to Responses API
+    $result = wpiko_chatbot_upload_file_to_responses($file_data);
+
+    // Update Responses API instructions if needed
+    if (!get_option('wpiko_chatbot_responses_woo_file_id', '')) {
+        wpiko_chatbot_update_responses_woo_instructions(true);
+    }
+
+    if ($result['success']) {
+        $new_file_id = $result['file_id'];
+
+        // Delete the old file if it exists
+        $old_file_id = get_option('wpiko_chatbot_responses_woo_file_id', '');
+        if ($old_file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
+            $delete_result = wpiko_chatbot_delete_responses_file($old_file_id);
+            wpiko_chatbot_log_error("Attempted to delete old Responses file. Result: " . ($delete_result['success'] ? 'Success' : 'Failed'));
+        }
+        update_option('wpiko_chatbot_responses_woo_file_id', $new_file_id);
+
+        // Clean up the temporary file
+        wpiko_chatbot_delete_temp_file($temp_file_path);
+
+        // Clear file cache to ensure fresh data is loaded
+        if (function_exists('wpiko_chatbot_clear_file_cache')) {
+            wpiko_chatbot_clear_file_cache();
+        }
+
+        wpiko_chatbot_log_error("Upload completed successfully. New file ID: " . $new_file_id);
+        return true;
+    } else {
+        wpiko_chatbot_delete_temp_file($temp_file_path);
+        wpiko_chatbot_log_error('Failed to upload products file to OpenAI: ' . $result['message']);
+        return false;
+    }
+}
+
+// Improved function to sync existing products (memory-efficient streaming)
 function wpiko_chatbot_sync_existing_products() {
     if (!wpiko_chatbot_get_lock('product_sync', 300)) { // 5 minutes timeout
         wpiko_chatbot_log_error("Product sync is already in progress.");
         return false;
+    }
+
+    // Extend PHP execution time for large catalogs on shared hosting
+    if (function_exists('set_time_limit')) {
+        @set_time_limit(300);
     }
 
     try {
@@ -409,12 +589,7 @@ function wpiko_chatbot_sync_existing_products() {
         update_option('wpiko_chatbot_sync_progress', 0);
         update_option('wpiko_chatbot_sync_status', 'running');
         
-        $batch_size = 100;
-        $offset = 0;
-        $all_formatted_data = array();
         $total_products = wp_count_posts('product')->publish;
-        $processed_products = 0;
-        
         if ($total_products === 0) {
             wpiko_chatbot_log_error("No products found to sync");
             update_option('wpiko_chatbot_sync_status', 'completed');
@@ -423,98 +598,31 @@ function wpiko_chatbot_sync_existing_products() {
             return true;
         }
 
-        do {
-            $formatted_data = wpiko_chatbot_get_formatted_products_data($offset, $batch_size);
-            $all_formatted_data = array_merge($all_formatted_data, $formatted_data);
-            $processed_products += count($formatted_data);
-            $offset += $batch_size;
-
-            // Update progress
-            $progress = min(100, round(($processed_products / max(1, $total_products)) * 100));
-            update_option('wpiko_chatbot_sync_progress', $progress);
-
-            wpiko_chatbot_log_error("Processed $processed_products out of $total_products products");
-        } while (count($formatted_data) == $batch_size && $offset < 10000); // Safety limit of 10,000 products
-
-        wpiko_chatbot_log_error("Formatted " . count($all_formatted_data) . " products for sync");
-
-        // Initialize WordPress Filesystem
-        global $wp_filesystem;
-        if (!function_exists('WP_Filesystem')) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-        }
-        WP_Filesystem();
-        
-        // Create a temporary file using wp_tempnam()
-        $temp_file_path = wp_tempnam('woocommerce_products');
-        
-        // Write data to the temporary file using WordPress Filesystem
-        if (!$wp_filesystem->put_contents($temp_file_path, json_encode($all_formatted_data))) {
-            throw new Exception("Failed to write data to temporary file");
+        // Build products file using memory-efficient streaming
+        $temp_file_path = wpiko_chatbot_build_products_file();
+        if (!$temp_file_path) {
+            throw new Exception('Failed to build products file');
         }
 
-        // Prepare file data for upload
-        $file_data = [
-            'tmp_name' => $temp_file_path,
-            'name' => 'woocommerce_products.json',
-            'type' => 'application/json',
-        ];
-
-        // Upload to Responses API
-        $result = wpiko_chatbot_upload_file_to_responses($file_data);
-        
-        // Update Responses API instructions if needed
-        if (!get_option('wpiko_chatbot_responses_woo_file_id', '')) {
-            wpiko_chatbot_update_responses_woo_instructions(true);
+        // Upload to OpenAI
+        $upload_result = wpiko_chatbot_upload_products_file($temp_file_path);
+        if (!$upload_result) {
+            throw new Exception('Failed to upload products file to OpenAI');
         }
 
-        if ($result['success']) {
-            // File uploaded successfully
-            $new_file_id = $result['file_id'];
-            
-            // Delete the old file if it exists
-            $old_file_id = get_option('wpiko_chatbot_responses_woo_file_id', '');
-            if ($old_file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
-                $delete_result = wpiko_chatbot_delete_responses_file($old_file_id);
-                wpiko_chatbot_log_error("Attempted to delete old Responses file. Result: " . ($delete_result['success'] ? "Success" : "Failed"));
-            }
-            update_option('wpiko_chatbot_responses_woo_file_id', $new_file_id);
+        // Reset progress
+        update_option('wpiko_chatbot_sync_progress', 100);
+        update_option('wpiko_chatbot_sync_status', 'completed');
+        update_option('wpiko_chatbot_last_sync_time', current_time('mysql'));
 
-            // Delete the temporary file
-            $wp_filesystem->delete($temp_file_path);
-            
-            // Clear file cache to ensure fresh data is loaded
-            if (function_exists('wpiko_chatbot_clear_file_cache')) {
-                wpiko_chatbot_clear_file_cache();
-            }
-
-            // Reset progress
-            update_option('wpiko_chatbot_sync_progress', 100);
-            update_option('wpiko_chatbot_sync_status', 'completed');
-            update_option('wpiko_chatbot_last_sync_time', current_time('mysql'));
-
-            wpiko_chatbot_log_error("Sync completed successfully. New file ID: " . $new_file_id);
-            wpiko_chatbot_release_lock('product_sync');
-            return true;
-        } else {
-            // Handle upload failure
-            throw new Exception('Failed to upload file to OpenAI: ' . $result['message']);
-        }
+        wpiko_chatbot_log_error("Sync completed successfully.");
+        wpiko_chatbot_release_lock('product_sync');
+        return true;
         
     } catch (Exception $e) {
         wpiko_chatbot_log_error('Error in sync products: ' . $e->getMessage());
         update_option('wpiko_chatbot_sync_error', $e->getMessage());
         update_option('wpiko_chatbot_sync_status', 'failed');
-        
-        // Try fallback method if initial sync failed
-        $fallback_result = wpiko_chatbot_fallback_sync_products();
-        
-        if ($fallback_result) {
-            update_option('wpiko_chatbot_sync_status', 'completed_fallback');
-            update_option('wpiko_chatbot_sync_progress', 100);
-            wpiko_chatbot_release_lock('product_sync');
-            return true;
-        }
         
         // Reset progress
         update_option('wpiko_chatbot_sync_progress', 0);
@@ -523,105 +631,12 @@ function wpiko_chatbot_sync_existing_products() {
     }
 }
 
-// Fallback sync method using a different approach
+// Fallback sync is no longer needed — the main sync now uses memory-efficient streaming.
+// Kept as a thin wrapper for backward compatibility.
 function wpiko_chatbot_fallback_sync_products() {
-    try {
-        wpiko_chatbot_log_error("Starting fallback sync method");
-        
-        // Get all products in a single query to avoid pagination issues
-        $products_query = new WP_Query(array(
-            'post_type' => 'product',
-            'post_status' => 'publish',
-            'posts_per_page' => -1,
-            'fields' => 'ids',
-        ));
-        
-        if (empty($products_query->posts)) {
-            wpiko_chatbot_log_error("No products found in fallback sync");
-            return false;
-        }
-        
-        $all_formatted_data = array();
-        $total_products = count($products_query->posts);
-        $processed = 0;
-        
-        foreach ($products_query->posts as $product_id) {
-            $product = wc_get_product($product_id);
-            if ($product) {
-                $all_formatted_data[] = wpiko_chatbot_format_product_data($product);
-                $processed++;
-                
-                // Update progress every 20 products
-                if ($processed % 20 === 0) {
-                    $progress = min(100, round(($processed / max(1, $total_products)) * 100));
-                    update_option('wpiko_chatbot_sync_progress', $progress);
-                }
-            }
-        }
-        
-        // Initialize WordPress Filesystem
-        global $wp_filesystem;
-        if (!function_exists('WP_Filesystem')) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-        }
-        WP_Filesystem();
-        
-        // Create a temporary file using wp_tempnam()
-        $temp_file_path = wp_tempnam('woocommerce_products_fallback');
-        
-        // Write data to the temporary file using WordPress Filesystem
-        if (!$wp_filesystem->put_contents($temp_file_path, json_encode($all_formatted_data))) {
-            wpiko_chatbot_log_error("Failed to write data to temporary file");
-            return false;
-        }
-        
-        $file_data = [
-            'tmp_name' => $temp_file_path,
-            'name' => 'woocommerce_products_fallback.json',
-            'type' => 'application/json',
-        ];
-        
-        // Upload to Responses API
-        $result = wpiko_chatbot_upload_file_to_responses($file_data);
-        
-        // Update Responses API instructions if needed
-        if (!get_option('wpiko_chatbot_responses_woo_file_id', '')) {
-            wpiko_chatbot_update_responses_woo_instructions(true);
-        }
-        
-        if ($result['success']) {
-            $new_file_id = $result['file_id'];
-            
-            // Handle API-specific file management for Responses API
-            $old_file_id = get_option('wpiko_chatbot_responses_woo_file_id', '');
-            if ($old_file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
-                wpiko_chatbot_delete_responses_file($old_file_id);
-            }
-            update_option('wpiko_chatbot_responses_woo_file_id', $new_file_id);
-            
-            // Clean up the temporary file
-            $wp_filesystem->delete($temp_file_path);
-            
-            // Clear file cache to ensure fresh data is loaded
-            if (function_exists('wpiko_chatbot_clear_file_cache')) {
-                wpiko_chatbot_clear_file_cache();
-            }
-            
-            wpiko_chatbot_log_error("Fallback sync completed successfully");
-            return true;
-        } else {
-            wpiko_chatbot_log_error("Fallback sync upload failed: " . $result['message']);
-            
-            // Clean up the temporary file
-            $wp_filesystem->delete($temp_file_path);
-            
-            return false;
-        }
-        
-    } catch (Exception $e) {
-        wpiko_chatbot_log_error("Fallback sync failed with error: " . $e->getMessage());
-        return false;
-    }
+    wpiko_chatbot_log_error("Fallback sync called — delegating to main streaming sync.");
+    // The main sync already uses streaming; just return false to let the caller handle it.
+    return false;
 }
 
 // Function to get the sync progress
@@ -763,6 +778,12 @@ function wpiko_chatbot_sync_existing_products_ajax() {
         update_option('wpiko_chatbot_sync_progress', 0);
         
         wp_schedule_single_event(time(), 'wpiko_chatbot_background_sync');
+        
+        // Trigger cron immediately — prevents stalling when WP-Cron is deferred
+        if (function_exists('spawn_cron')) {
+            spawn_cron();
+        }
+        
         wp_send_json_success(array(
             'message' => 'Sync process scheduled in background.',
             'status' => wpiko_chatbot_get_sync_status()
@@ -904,6 +925,7 @@ function wpiko_chatbot_get_formatted_orders_data($limit = 100) {
         'limit' => $limit,
         'orderby' => 'date',
         'order' => 'DESC',
+        'type' => 'shop_order', // Exclude refunds (OrderRefund objects lack standard order methods)
     ));
 
     // Get field preferences
@@ -911,6 +933,10 @@ function wpiko_chatbot_get_formatted_orders_data($limit = 100) {
 
     $formatted_data = array();
     foreach ($orders as $order) {
+        // Safety check: skip any non-standard order objects (e.g. refunds)
+        if (!($order instanceof \WC_Order) || ($order instanceof \WC_Order_Refund)) {
+            continue;
+        }
         $tracking_number = wpiko_chatbot_get_tracking_number($order);
         $tracking_link = wpiko_chatbot_generate_aftership_link($tracking_number);
         
@@ -1073,91 +1099,131 @@ function wpiko_chatbot_generate_aftership_link($tracking_number) {
     return 'https://track.aftership.com/' . urlencode($tracking_number);
 }
 
-// Function to sync orders
+// Function to sync orders with retry and backoff
 function wpiko_chatbot_sync_orders($retry_count = 0) {
-    if (!wpiko_chatbot_get_lock('order_sync', 90)) { // 90 seconds timeout
-        wpiko_chatbot_log_error("Order sync is already in progress.");
+    wpiko_chatbot_log_error('[Orders Sync] Starting orders sync process...');
+
+    if (!wpiko_chatbot_get_lock('order_sync', 120)) { // 2 minutes timeout
+        wpiko_chatbot_log_error('[Orders Sync] FAILED: Lock could not be acquired — another sync is already in progress or a stale lock exists.');
         return false;
+    }
+
+    // Extend PHP execution time for shared hosting
+    if (function_exists('set_time_limit')) {
+        @set_time_limit(120);
     }
 
     $max_retries = 3;
     $sync_option = get_option('wpiko_chatbot_orders_auto_sync', 'disabled');
+    wpiko_chatbot_log_error('[Orders Sync] Current sync option value: ' . $sync_option);
     if ($sync_option === 'disabled') {
+        wpiko_chatbot_log_error('[Orders Sync] FAILED: Sync option is disabled. This can happen if the license was deactivated or the option was reset between scheduling and execution.');
         wpiko_chatbot_release_lock('order_sync');
         return false;
     }
 
     $limit = intval($sync_option);
-    $orders_data = wpiko_chatbot_get_formatted_orders_data($limit);
     
-    if (empty($orders_data)) {
-        wpiko_chatbot_release_lock('order_sync');
-        return false;
-    }
-
-    // Initialize WordPress Filesystem
-    global $wp_filesystem;
-    if (!function_exists('WP_Filesystem')) {
-        require_once ABSPATH . 'wp-admin/includes/file.php';
-    }
-    WP_Filesystem();
-    
-    // Create a temporary file
-    $temp_file_path = wp_tempnam('woocommerce_orders');
-    
-    // Write the orders data to the file using WordPress filesystem
-    $json_data = json_encode($orders_data);
-    if ($json_data === false || !$wp_filesystem->put_contents($temp_file_path, $json_data)) {
-        $wp_filesystem->delete($temp_file_path);
-        wpiko_chatbot_release_lock('order_sync');
-        return false;
-    }
-
-    $file_data = [
-        'tmp_name' => $temp_file_path,
-        'name' => 'woocommerce_orders.json',
-        'type' => 'application/json',
-    ];
-
-    // Upload to Responses API
-    $result = wpiko_chatbot_upload_file_to_responses($file_data);
-    
-    // Update Responses API instructions if needed
-    if (!get_option('wpiko_chatbot_responses_orders_file_id', '')) {
-        wpiko_chatbot_update_responses_woo_instructions(true);
-    }
-
-    if ($result['success']) {
-        $new_file_id = $result['file_id'];
+    try {
+        wpiko_chatbot_log_error('[Orders Sync] Fetching formatted orders data (limit: ' . $limit . ')...');
+        $orders_data = wpiko_chatbot_get_formatted_orders_data($limit);
         
-        // Handle API-specific file management for Responses API
-        $old_file_id = get_option('wpiko_chatbot_responses_orders_file_id', '');
-        if ($old_file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
-            wpiko_chatbot_delete_responses_file($old_file_id);
-        }
-        update_option('wpiko_chatbot_responses_orders_file_id', $new_file_id);
-        
-        // Clean up the temporary file
-        $wp_filesystem->delete($temp_file_path);
-        
-        // Clear file cache to ensure fresh data is loaded
-        if (function_exists('wpiko_chatbot_clear_file_cache')) {
-            wpiko_chatbot_clear_file_cache();
-        }
-        
-        wpiko_chatbot_release_lock('order_sync');
-        return true;
-    } else {
-        // Clean up the temporary file
-        $wp_filesystem->delete($temp_file_path);
-        
-        if ($retry_count < $max_retries - 1) {
-            wpiko_chatbot_release_lock('order_sync');
-            return wpiko_chatbot_sync_orders($retry_count + 1);
-        } else {
+        if (empty($orders_data)) {
+            wpiko_chatbot_log_error('[Orders Sync] FAILED: No orders found to sync (0 orders returned from WooCommerce).');
             wpiko_chatbot_release_lock('order_sync');
             return false;
         }
+        wpiko_chatbot_log_error('[Orders Sync] Retrieved ' . count($orders_data) . ' orders.');
+
+        // Write data to temp file using helper (handles WP_Filesystem fallback)
+        $json_data = json_encode($orders_data);
+        if ($json_data === false) {
+            wpiko_chatbot_log_error('[Orders Sync] FAILED: json_encode failed. JSON error: ' . json_last_error_msg());
+            wpiko_chatbot_release_lock('order_sync');
+            return false;
+        }
+        wpiko_chatbot_log_error('[Orders Sync] JSON encoded successfully (' . strlen($json_data) . ' bytes).');
+        
+        $temp_file_path = wpiko_chatbot_write_temp_file('woocommerce_orders', $json_data);
+        if (!$temp_file_path) {
+            wpiko_chatbot_log_error('[Orders Sync] FAILED: Could not write temp file. Check PHP temp directory permissions.');
+            wpiko_chatbot_release_lock('order_sync');
+            return false;
+        }
+        wpiko_chatbot_log_error('[Orders Sync] Temp file written: ' . $temp_file_path);
+
+        $file_data = [
+            'tmp_name' => $temp_file_path,
+            'name' => 'woocommerce_orders.json',
+            'type' => 'application/json',
+        ];
+
+        // Retry upload loop with exponential backoff (no recursion)
+        $upload_success = false;
+        $last_error = '';
+        
+        wpiko_chatbot_log_error('[Orders Sync] Starting upload to OpenAI (max retries: ' . $max_retries . ')...');
+        for ($attempt = 0; $attempt <= $max_retries; $attempt++) {
+            if ($attempt > 0) {
+                $backoff = min(30, pow(2, $attempt)); // 2s, 4s, 8s... max 30s
+                wpiko_chatbot_log_error("[Orders Sync] Upload retry #{$attempt}, waiting {$backoff}s...");
+                sleep($backoff);
+            }
+            
+            wpiko_chatbot_log_error('[Orders Sync] Upload attempt #' . $attempt . '...');
+            $result = wpiko_chatbot_upload_file_to_responses($file_data);
+            
+            if ($result['success']) {
+                $upload_success = true;
+                wpiko_chatbot_log_error('[Orders Sync] Upload succeeded on attempt #' . $attempt . '.');
+                break;
+            }
+            
+            $last_error = isset($result['message']) ? $result['message'] : 'Unknown upload error';
+            wpiko_chatbot_log_error("[Orders Sync] Upload attempt #{$attempt} failed: " . $last_error);
+        }
+        
+        // Clean up the temporary file regardless of result
+        wpiko_chatbot_delete_temp_file($temp_file_path);
+
+        if ($upload_success) {
+            $new_file_id = $result['file_id'];
+            
+            // Delete the old file if it exists
+            $old_file_id = get_option('wpiko_chatbot_responses_orders_file_id', '');
+            if ($old_file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
+                wpiko_chatbot_log_error('[Orders Sync] Deleting old file: ' . $old_file_id);
+                wpiko_chatbot_delete_responses_file($old_file_id);
+            }
+            
+            // Update Responses API instructions if this is the first sync (no previous file)
+            $had_previous_file = !empty($old_file_id);
+            
+            update_option('wpiko_chatbot_responses_orders_file_id', $new_file_id);
+            
+            if (!$had_previous_file) {
+                wpiko_chatbot_log_error('[Orders Sync] First sync — updating Responses API instructions.');
+                wpiko_chatbot_update_responses_woo_instructions(true);
+            }
+            
+            // Clear file cache to ensure fresh data is loaded
+            if (function_exists('wpiko_chatbot_clear_file_cache')) {
+                wpiko_chatbot_clear_file_cache();
+            }
+            
+            wpiko_chatbot_log_error('[Orders Sync] SUCCESS. New File ID: ' . $new_file_id);
+            wpiko_chatbot_release_lock('order_sync');
+            return true;
+        } else {
+            wpiko_chatbot_log_error('[Orders Sync] FAILED: Upload failed after ' . ($max_retries + 1) . ' attempts. Last error: ' . $last_error);
+            wpiko_chatbot_release_lock('order_sync');
+            return false;
+        }
+        
+    } catch (Exception $e) {
+        wpiko_chatbot_log_error('[Orders Sync] EXCEPTION: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+        wpiko_chatbot_release_lock('order_sync');
+        return false;
     }
 }
 
@@ -1174,20 +1240,23 @@ function wpiko_chatbot_update_orders_auto_sync() {
     $instructions_updated = wpiko_chatbot_update_responses_woo_instructions($sync_option !== 'disabled');
 
     if ($sync_option !== 'disabled') {
-        $result = wpiko_chatbot_sync_orders();
-        if ($result) {
-            wp_send_json_success(array(
-                'message' => 'Orders sync setting updated and synced successfully. ' . ($instructions_updated ? 'Instructions updated.' : 'Failed to update instructions.'),
-                'sync_option' => $sync_option
-            ));
-        } else {
-            wp_send_json_error(array(
-                'message' => 'Orders sync setting updated, but sync failed. ' . ($instructions_updated ? 'Instructions updated.' : 'Failed to update instructions.'),
-                'sync_option' => $sync_option
-            ));
+        // Schedule orders sync in background to avoid AJAX timeout on live/shared hosting
+        update_option('wpiko_chatbot_orders_sync_status', 'scheduled');
+        wp_schedule_single_event(time(), 'wpiko_chatbot_background_orders_sync');
+        
+        // Attempt to trigger cron immediately via spawn_cron
+        if (function_exists('spawn_cron')) {
+            spawn_cron();
         }
+        
+        wp_send_json_success(array(
+            'message' => 'Orders sync setting updated. Sync is running in the background. ' . ($instructions_updated ? 'Instructions updated.' : 'Failed to update instructions.'),
+            'sync_option' => $sync_option,
+            'sync_status' => 'scheduled'
+        ));
     } else {
         // Delete the woocommerce_orders.json file
+        update_option('wpiko_chatbot_orders_sync_status', 'disabled');
         $file_id = get_option('wpiko_chatbot_responses_orders_file_id', '');
         if ($file_id && function_exists('wpiko_chatbot_delete_responses_file')) {
             $delete_result = wpiko_chatbot_delete_responses_file($file_id);
@@ -1212,6 +1281,70 @@ function wpiko_chatbot_update_orders_auto_sync() {
         }
     }
 }
+
+// Background orders sync handler
+function wpiko_chatbot_run_background_orders_sync() {
+    wpiko_chatbot_log_error('[Background Sync] Orders background sync event fired.');
+    
+    // Extend execution time for background processing
+    if (function_exists('set_time_limit')) {
+        @set_time_limit(300);
+    }
+    
+    update_option('wpiko_chatbot_orders_sync_status', 'running');
+    
+    // Register shutdown function to catch fatal errors
+    register_shutdown_function(function() {
+        $error = error_get_last();
+        if ($error !== null && in_array($error['type'], array(E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_PARSE))) {
+            $status = get_option('wpiko_chatbot_orders_sync_status', '');
+            if ($status === 'running') {
+                update_option('wpiko_chatbot_orders_sync_status', 'failed');
+                update_option('wpiko_chatbot_orders_sync_error', 'PHP Fatal Error: ' . $error['message'] . ' in ' . $error['file'] . ':' . $error['line']);
+                if (function_exists('wpiko_chatbot_log_error')) {
+                    wpiko_chatbot_log_error('[Background Sync] FATAL ERROR: ' . $error['message'] . ' in ' . $error['file'] . ':' . $error['line']);
+                }
+            }
+        }
+    });
+    
+    $result = wpiko_chatbot_sync_orders();
+    
+    if ($result) {
+        update_option('wpiko_chatbot_orders_sync_status', 'completed');
+        update_option('wpiko_chatbot_orders_last_sync_time', current_time('mysql'));
+        delete_option('wpiko_chatbot_orders_sync_error');
+        wpiko_chatbot_log_error('[Background Sync] Orders sync completed successfully.');
+    } else {
+        update_option('wpiko_chatbot_orders_sync_status', 'failed');
+        // Capture the last logged error for the UI
+        $sync_option = get_option('wpiko_chatbot_orders_auto_sync', 'disabled');
+        $error_detail = 'Sync returned false. Check the debug log for [Orders Sync] entries. Current sync option: ' . $sync_option;
+        update_option('wpiko_chatbot_orders_sync_error', $error_detail);
+        wpiko_chatbot_log_error('[Background Sync] Orders sync failed. Sync option at time of failure: ' . $sync_option);
+    }
+}
+add_action('wpiko_chatbot_background_orders_sync', 'wpiko_chatbot_run_background_orders_sync');
+
+// AJAX handler to check orders sync status (used by JS polling)
+function wpiko_chatbot_check_orders_sync_status_ajax() {
+    check_ajax_referer('wpiko_chatbot_nonce', 'security');
+    
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(array('message' => 'Unauthorized'));
+    }
+
+    $status = get_option('wpiko_chatbot_orders_sync_status', '');
+    $last_sync = get_option('wpiko_chatbot_orders_last_sync_time', '');
+    $error = get_option('wpiko_chatbot_orders_sync_error', '');
+    
+    wp_send_json_success(array(
+        'status' => $status,
+        'last_sync' => $last_sync,
+        'error' => $error
+    ));
+}
+add_action('wp_ajax_check_orders_sync_status', 'wpiko_chatbot_check_orders_sync_status_ajax');
 
 // Function debounced sync orders
 function wpiko_chatbot_debounced_sync_orders() {
