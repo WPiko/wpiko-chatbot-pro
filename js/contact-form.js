@@ -15,7 +15,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Global function to open the chatbot and show contact form
-    window.wpikoOpenChatbotWithContactForm = function () {
+    // @param {Object} prefillData - Optional data to pre-fill the form (message, category, custom_field_1, custom_field_2)
+    window.wpikoOpenChatbotWithContactForm = function (prefillData) {
         const floatingContainer = document.getElementById('wpiko-chatbot-floating-container');
         const floatingWrapper = document.getElementById('wpiko-chatbot-floating-wrapper');
 
@@ -37,8 +38,8 @@ document.addEventListener('DOMContentLoaded', function () {
             menuDropdown.style.display = 'none';
         }
 
-        // Now show the contact form (for both floating and shortcode chatbots)
-        showContactForm();
+        // Now show the contact form with optional pre-fill data
+        showContactForm(prefillData || {});
 
         // Scroll to see the form (works for both floating and shortcode chatbots)
         const chatbotMessages = document.getElementById('chatbot-messages');
@@ -133,7 +134,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Function to show contact form
-    function showContactForm() {
+    // @param {Object} prefillData - Optional data to pre-fill the form fields
+    function showContactForm(prefillData) {
+        prefillData = prefillData || {};
+
         // Check if contact form already exists
         const existingForm = document.getElementById('contact-form-container');
         if (existingForm) {
@@ -191,6 +195,22 @@ document.addEventListener('DOMContentLoaded', function () {
                             <label for="contact-email" style="display:none;">${text.email_label}</label>
                             <input type="email" id="contact-email" name="email" value="${userEmail}" placeholder="${text.email_label}" required>
                         </div>`;
+
+        // Add custom fields if enabled
+        for (let i = 1; i <= 2; i++) {
+            const fieldEnabled = wpikoChatbot['custom_field_' + i + '_enabled'];
+            const fieldLabel = wpikoChatbot['custom_field_' + i + '_label'];
+            const fieldRequired = wpikoChatbot['custom_field_' + i + '_required'];
+
+            if (fieldEnabled === '1' && fieldLabel) {
+                const requiredAttr = fieldRequired === '1' ? 'required' : '';
+                formHTML += `
+                        <div class="form-group">
+                            <label for="contact-custom-field-${i}" style="display:none;">${fieldLabel}</label>
+                            <input type="text" id="contact-custom-field-${i}" name="custom_field_${i}" placeholder="${fieldLabel}" ${requiredAttr}>
+                        </div>`;
+            }
+        }
 
         // Add dropdown if enabled and options exist
         if (wpikoChatbot.enable_dropdown === '1' && wpikoChatbot.dropdown_options) {
@@ -320,6 +340,41 @@ document.addEventListener('DOMContentLoaded', function () {
                     e.preventDefault();
                     submitContactForm();
                 });
+            }
+
+            // Pre-fill form fields from AI-provided data
+            if (prefillData && typeof prefillData === 'object') {
+                // Pre-fill message
+                if (prefillData.message) {
+                    const messageField = document.getElementById('contact-message');
+                    if (messageField) {
+                        messageField.value = prefillData.message;
+                    }
+                }
+                // Pre-fill category dropdown
+                if (prefillData.category) {
+                    const categoryField = document.getElementById('contact-category');
+                    if (categoryField) {
+                        // Find matching option (case-insensitive)
+                        const options = categoryField.options;
+                        for (let i = 0; i < options.length; i++) {
+                            if (options[i].value.toLowerCase() === prefillData.category.toLowerCase()) {
+                                categoryField.value = options[i].value;
+                                break;
+                            }
+                        }
+                    }
+                }
+                // Pre-fill custom fields
+                for (let i = 1; i <= 2; i++) {
+                    const fieldKey = 'custom_field_' + i;
+                    if (prefillData[fieldKey]) {
+                        const customField = document.getElementById('contact-custom-field-' + i);
+                        if (customField) {
+                            customField.value = prefillData[fieldKey];
+                        }
+                    }
+                }
             }
 
             // Initialize attachment handlers
@@ -518,14 +573,19 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(response => {
                 if (response.success) {
                     // Show success message
+                    const successMsg = response.data.message;
                     container.innerHTML = `
                     <div class="message-wrapper bot-message-wrapper">
                         <img src="${wpikoChatbot.botAvatarUrl}" alt="Bot" class="message-avatar bot-avatar">
                         <div class="bot-message">
-                            <p>${response.data.message}</p>
+                            <p>${successMsg}</p>
                         </div>
                     </div>
                 `;
+                    // Remove the form container ID so a new form can be opened later
+                    container.removeAttribute('id');
+                    // Persist the success message in sessionStorage so it survives page navigation
+                    storeContactFormMessage(successMsg);
                 } else {
                     // Show error message
                     let errorMsg = response.data ? response.data.message : wpikoChatbot.errors.general_error;
@@ -628,6 +688,21 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    /**
+     * Store a contact form result message in sessionStorage
+     * so it persists across page navigations.
+     * Uses the same format as the base chatbot's appendMessage().
+     */
+    function storeContactFormMessage(messageText) {
+        try {
+            const storedMessages = JSON.parse(sessionStorage.getItem('wpiko_chatbot_messages') || '[]');
+            storedMessages.push({ type: 'bot', content: messageText, errorType: 'general_error' });
+            sessionStorage.setItem('wpiko_chatbot_messages', JSON.stringify(storedMessages));
+        } catch (e) {
+            console.error('WPiko Chatbot: Failed to store contact form message', e);
+        }
+    }
+
     // Function to display error message for the contact form
     function showContactFormError(errorMessage) {
         const contactFormContainer = document.getElementById('contact-form-container');
@@ -636,15 +711,20 @@ document.addEventListener('DOMContentLoaded', function () {
             const text = wpikoChatbot.contact_form_text || {};
             const tryAgainText = text.try_again_btn || 'Try Again';
 
+            const errorMsg = 'Error: ' + errorMessage;
             contactFormContainer.innerHTML = `
                 <div class="message-wrapper bot-message-wrapper">
                     <img src="${wpikoChatbot.botAvatarUrl}" alt="Bot" class="message-avatar bot-avatar">
                     <div class="bot-message">
-                        <p>Error: ${errorMessage}</p>
+                        <p>${errorMsg}</p>
                         <button id="retry-contact-form" class="button">${tryAgainText}</button>
                     </div>
                 </div>
             `;
+            // Remove the form container ID so a new form can be opened later
+            contactFormContainer.removeAttribute('id');
+            // Persist the error message in sessionStorage so it survives page navigation
+            storeContactFormMessage(errorMsg);
 
             // Add event listener to retry button
             const retryButton = document.getElementById('retry-contact-form');

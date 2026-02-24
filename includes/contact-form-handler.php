@@ -28,6 +28,21 @@ function wpiko_chatbot_pro_contact_form_handler()
     $category = isset($_POST['category']) ? sanitize_text_field(wp_unslash($_POST['category'])) : '';
     $thread_id = isset($_POST['thread_id']) ? sanitize_text_field(wp_unslash($_POST['thread_id'])) : '';
 
+    // Process custom fields
+    $custom_fields = array();
+    for ($i = 1; $i <= 2; $i++) {
+        $field_key = "custom_field_{$i}";
+        $field_value = isset($_POST[$field_key]) ? sanitize_text_field(wp_unslash($_POST[$field_key])) : '';
+        $field_label = get_option("wpiko_chatbot_contact_form_custom_field_{$i}_label", '');
+        $field_enabled = get_option("wpiko_chatbot_contact_form_custom_field_{$i}", '0');
+        if ($field_enabled === '1' && !empty($field_label)) {
+            $custom_fields[$i] = array(
+                'label' => $field_label,
+                'value' => $field_value,
+            );
+        }
+    }
+
     // Get current user ID (0 if not logged in)
     $user_id = get_current_user_id();
 
@@ -202,7 +217,13 @@ function wpiko_chatbot_pro_contact_form_handler()
 
     // First save the user's contact form submission to the conversation history if thread exists
     if ($save_to_conversation) {
-        $user_submission = "Contact Form Submission:\nName: $name\nEmail: $email" . (!empty($category) ? "\nCategory: $category" : "") . "\nMessage: $message";
+        $user_submission = "Contact Form Submission:\nName: $name\nEmail: $email" . (!empty($category) ? "\nCategory: $category" : "");
+        foreach ($custom_fields as $cf) {
+            if (!empty($cf['value'])) {
+                $user_submission .= "\n" . $cf['label'] . ": " . $cf['value'];
+            }
+        }
+        $user_submission .= "\nMessage: $message";
         wpiko_chatbot_save_message($user_id, $thread_id, 'user', $user_submission, $email);
     }
 
@@ -338,6 +359,11 @@ function wpiko_chatbot_pro_contact_form_handler()
     $body .= '<p><strong>Email:</strong> ' . esc_html($email) . '</p>';
     if (!empty($category)) {
         $body .= '<p><strong>Category:</strong> ' . esc_html($category) . '</p>';
+    }
+    foreach ($custom_fields as $cf) {
+        if (!empty($cf['value'])) {
+            $body .= '<p><strong>' . esc_html($cf['label']) . ':</strong> ' . esc_html($cf['value']) . '</p>';
+        }
     }
     $body .= '<p><strong>Message:</strong><br>' . nl2br(esc_html($message)) . '</p>';
     $body .= '<hr>';

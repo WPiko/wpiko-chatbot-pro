@@ -18,6 +18,16 @@ function wpiko_chatbot_contact_form_section()
         $enable_attachments = isset($_POST['wpiko_chatbot_contact_form_attachments']) ? '1' : '0';
         $dropdown_options = isset($_POST['wpiko_chatbot_contact_form_dropdown_options']) ? sanitize_textarea_field(wp_unslash($_POST['wpiko_chatbot_contact_form_dropdown_options'])) : '';
 
+        // Save custom fields settings
+        for ($i = 1; $i <= 2; $i++) {
+            $enable_field = isset($_POST["wpiko_chatbot_contact_form_custom_field_{$i}"]) ? '1' : '0';
+            $field_label = isset($_POST["wpiko_chatbot_contact_form_custom_field_{$i}_label"]) ? sanitize_text_field(wp_unslash($_POST["wpiko_chatbot_contact_form_custom_field_{$i}_label"])) : '';
+            $field_required = isset($_POST["wpiko_chatbot_contact_form_custom_field_{$i}_required"]) ? '1' : '0';
+            update_option("wpiko_chatbot_contact_form_custom_field_{$i}", $enable_field);
+            update_option("wpiko_chatbot_contact_form_custom_field_{$i}_label", $field_label);
+            update_option("wpiko_chatbot_contact_form_custom_field_{$i}_required", $field_required);
+        }
+
         // Save reCAPTCHA settings
         $enable_recaptcha = isset($_POST['wpiko_chatbot_enable_recaptcha']) ? '1' : '0';
         $recaptcha_site_key = isset($_POST['wpiko_chatbot_recaptcha_site_key']) ? sanitize_text_field(wp_unslash($_POST['wpiko_chatbot_recaptcha_site_key'])) : '';
@@ -53,6 +63,14 @@ function wpiko_chatbot_contact_form_section()
         update_option('wpiko_chatbot_contact_rate_limit_error', sanitize_textarea_field(wp_unslash($_POST['wpiko_chatbot_contact_rate_limit_error'] ?? 'You have submitted too many contact forms. Please try again later.')));
         update_option('wpiko_chatbot_contact_email_failed_error', sanitize_textarea_field(wp_unslash($_POST['wpiko_chatbot_contact_email_failed_error'] ?? 'Contact Form - Failed to send your message. Please try again later or contact us through another method.')));
 
+        // Save AI Integration settings
+        $enable_ai_response = isset($_POST['wpiko_chatbot_contact_form_ai_response']) ? '1' : '0';
+        update_option('wpiko_chatbot_contact_form_ai_response', $enable_ai_response);
+        update_option('wpiko_chatbot_contact_form_ai_trigger', sanitize_text_field(wp_unslash($_POST['wpiko_chatbot_contact_form_ai_trigger'] ?? 'support')));
+        update_option('wpiko_chatbot_contact_form_ai_custom_trigger', sanitize_textarea_field(wp_unslash($_POST['wpiko_chatbot_contact_form_ai_custom_trigger'] ?? '')));
+        $enable_ai_prefill = isset($_POST['wpiko_chatbot_contact_form_ai_prefill']) ? '1' : '0';
+        update_option('wpiko_chatbot_contact_form_ai_prefill', $enable_ai_prefill);
+
         // Show success message
         echo '<div class="notice notice-success is-dismissible"><p>Contact form settings saved successfully!</p></div>';
     }
@@ -62,11 +80,27 @@ function wpiko_chatbot_contact_form_section()
     $enable_dropdown = get_option('wpiko_chatbot_contact_form_dropdown', '0');
     $enable_attachments = get_option('wpiko_chatbot_contact_form_attachments', '0');
     $dropdown_options = get_option('wpiko_chatbot_contact_form_dropdown_options', '');
+
+    // Get custom fields settings
+    $custom_fields = array();
+    for ($i = 1; $i <= 2; $i++) {
+        $custom_fields[$i] = array(
+            'enabled' => get_option("wpiko_chatbot_contact_form_custom_field_{$i}", '0'),
+            'label' => get_option("wpiko_chatbot_contact_form_custom_field_{$i}_label", ''),
+            'required' => get_option("wpiko_chatbot_contact_form_custom_field_{$i}_required", '0'),
+        );
+    }
     $enable_recaptcha = get_option('wpiko_chatbot_enable_recaptcha', '0');
     $recaptcha_site_key = get_option('wpiko_chatbot_recaptcha_site_key', '');
     $recaptcha_secret_key = get_option('wpiko_chatbot_recaptcha_secret_key', '');
     $recaptcha_threshold = get_option('wpiko_chatbot_recaptcha_threshold', '0.5');
     $hide_recaptcha_badge = get_option('wpiko_chatbot_hide_recaptcha_badge', '0');
+
+    // Get AI Integration settings
+    $enable_ai_response = get_option('wpiko_chatbot_contact_form_ai_response', '0');
+    $ai_trigger = get_option('wpiko_chatbot_contact_form_ai_trigger', 'support');
+    $ai_custom_trigger = get_option('wpiko_chatbot_contact_form_ai_custom_trigger', '');
+    $enable_ai_prefill = get_option('wpiko_chatbot_contact_form_ai_prefill', '1');
 
     // Get customizable text settings
     $contact_menu_text = get_option('wpiko_chatbot_contact_menu_text', 'Contact Form');
@@ -135,8 +169,55 @@ function wpiko_chatbot_contact_form_section()
                             </h3>
                             <div class="collapsible-content">
                                 <table class="form-table">
+                                    <!-- Custom Fields -->
+                                    <?php for ($i = 1; $i <= 2; $i++): ?>
+                                        <tr>
+                                            <th scope="row">Custom Field
+                                                <?php echo esc_html($i); ?>
+                                            </th>
+                                            <td>
+                                                <label class="wpiko-switch">
+                                                    <input type="checkbox"
+                                                        id="wpiko_chatbot_contact_form_custom_field_<?php echo esc_attr($i); ?>"
+                                                        name="wpiko_chatbot_contact_form_custom_field_<?php echo esc_attr($i); ?>"
+                                                        value="1" <?php checked('1', $custom_fields[$i]['enabled']); ?>>
+                                                    <span class="wpiko-slider round"></span>
+                                                </label>
+                                                <label
+                                                    for="wpiko_chatbot_contact_form_custom_field_<?php echo esc_attr($i); ?>">Enable
+                                                    Custom
+                                                    Field
+                                                    <?php echo esc_html($i); ?>
+                                                </label>
+                                                <p class="description">When enabled, a custom text field will appear in the contact
+                                                    form.</p>
+                                                <div style="margin-top: 10px;">
+                                                    <input type="text"
+                                                        id="wpiko_chatbot_contact_form_custom_field_<?php echo esc_attr($i); ?>_label"
+                                                        name="wpiko_chatbot_contact_form_custom_field_<?php echo esc_attr($i); ?>_label"
+                                                        value="<?php echo esc_attr($custom_fields[$i]['label']); ?>"
+                                                        style="width: 100%;"
+                                                        placeholder="Enter field label (e.g. Phone Number, Company Name)">
+                                                    <p class="description">This label will be used as the placeholder text for the
+                                                        field.</p>
+                                                </div>
+                                                <div style="margin-top: 8px;">
+                                                    <label class="wpiko-switch">
+                                                        <input type="checkbox"
+                                                            id="wpiko_chatbot_contact_form_custom_field_<?php echo esc_attr($i); ?>_required"
+                                                            name="wpiko_chatbot_contact_form_custom_field_<?php echo esc_attr($i); ?>_required"
+                                                            value="1" <?php checked('1', $custom_fields[$i]['required']); ?>>
+                                                        <span class="wpiko-slider round"></span>
+                                                    </label>
+                                                    <label
+                                                        for="wpiko_chatbot_contact_form_custom_field_<?php echo esc_attr($i); ?>_required">Required
+                                                        field</label>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endfor; ?>
                                     <tr class="enable-form-dropdown-row">
-                                        <th scope="row">Enable Form Dropdown</th>
+                                        <th scope="row">Dropdown</th>
                                         <td>
                                             <label class="wpiko-switch">
                                                 <input type="checkbox" id="wpiko_chatbot_contact_form_dropdown"
@@ -147,20 +228,19 @@ function wpiko_chatbot_contact_form_section()
                                                 form</label>
                                             <p class="description">When enabled, a dropdown menu will appear in the contact
                                                 form.</p>
+                                            <div style="margin-top: 10px;">
+                                                <textarea id="wpiko_chatbot_contact_form_dropdown_options"
+                                                    name="wpiko_chatbot_contact_form_dropdown_options" rows="5"
+                                                    style="width: 100%;"
+                                                    placeholder="Enter each option on a new line"><?php echo esc_textarea($dropdown_options); ?></textarea>
+                                                <p class="description">Enter each dropdown option on a new line. These will
+                                                    appear
+                                                    in the contact form dropdown menu when enabled.</p>
+                                            </div>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th scope="row">Dropdown Options</th>
-                                        <td>
-                                            <textarea id="wpiko_chatbot_contact_form_dropdown_options"
-                                                name="wpiko_chatbot_contact_form_dropdown_options" rows="5" style="width: 100%;"
-                                                placeholder="Enter each option on a new line"><?php echo esc_textarea($dropdown_options); ?></textarea>
-                                            <p class="description">Enter each dropdown option on a new line. These will appear
-                                                in the contact form dropdown menu when enabled.</p>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th scope="row">Enable File Attachments</th>
+                                        <th scope="row">File Attachments</th>
                                         <td>
                                             <label class="wpiko-switch">
                                                 <input type="checkbox" id="wpiko_chatbot_contact_form_attachments"
@@ -178,7 +258,85 @@ function wpiko_chatbot_contact_form_section()
                             </div>
                         </div>
 
-                        <!-- 2. Google reCAPTCHA Settings Accordion -->
+                        <!-- 2. AI Integration Accordion -->
+                        <div class="wpiko-accordion-item">
+                            <h3 class="collapsible-header">
+                                <span><span class="dashicons dashicons-format-chat"></span> AI Integration</span>
+                                <span class="dashicons dashicons-arrow-down-alt2"></span>
+                            </h3>
+                            <div class="collapsible-content">
+                                <table class="form-table">
+                                    <tr>
+                                        <th scope="row">Enable AI Contact Form Response</th>
+                                        <td>
+                                            <label class="wpiko-switch">
+                                                <input type="checkbox" id="wpiko_chatbot_contact_form_ai_response"
+                                                    name="wpiko_chatbot_contact_form_ai_response" value="1" <?php checked('1', $enable_ai_response); ?>>
+                                                <span class="wpiko-slider round"></span>
+                                            </label>
+                                            <label for="wpiko_chatbot_contact_form_ai_response">Allow the AI to automatically
+                                                offer the contact form</label>
+                                            <p class="description">When enabled, the AI will automatically suggest the contact
+                                                form when users need human assistance. No manual assistant instructions needed.
+                                            </p>
+                                        </td>
+                                    </tr>
+                                    <tr class="ai-trigger-row"
+                                        style="<?php echo $enable_ai_response === '1' ? '' : 'display:none;'; ?>">
+                                        <th scope="row">AI Trigger Behavior</th>
+                                        <td>
+                                            <select id="wpiko_chatbot_contact_form_ai_trigger"
+                                                name="wpiko_chatbot_contact_form_ai_trigger" style="width: 100%;">
+                                                <option value="support" <?php selected('support', $ai_trigger); ?>>When user
+                                                    needs human support (Recommended)</option>
+                                                <option value="explicit" <?php selected('explicit', $ai_trigger); ?>>Only when
+                                                    user explicitly asks to contact</option>
+                                                <option value="custom" <?php selected('custom', $ai_trigger); ?>>Custom trigger
+                                                    conditions</option>
+                                            </select>
+                                            <p class="description"><strong>When user needs human support:</strong> The AI offers
+                                                the form for problems, complaints, questions needing follow-up, or when it can't
+                                                help directly.</p>
+                                            <p class="description"><strong>Only when user explicitly asks:</strong> The AI only
+                                                shows the form when the user clearly asks to contact support or send a message.
+                                            </p>
+                                            <p class="description"><strong>Custom:</strong> Define your own conditions below.
+                                            </p>
+                                        </td>
+                                    </tr>
+                                    <tr class="ai-custom-trigger-row"
+                                        style="<?php echo ($enable_ai_response === '1' && $ai_trigger === 'custom') ? '' : 'display:none;'; ?>">
+                                        <th scope="row">Custom Trigger Instructions</th>
+                                        <td>
+                                            <textarea id="wpiko_chatbot_contact_form_ai_custom_trigger"
+                                                name="wpiko_chatbot_contact_form_ai_custom_trigger" rows="4"
+                                                style="width: 100%;"
+                                                placeholder="e.g. Offer the contact form when the user asks about pricing, has a billing issue, or requests a feature."><?php echo esc_textarea($ai_custom_trigger); ?></textarea>
+                                            <p class="description">Describe when the AI should offer the contact form. Be
+                                                specific about the types of queries that should trigger it.</p>
+                                        </td>
+                                    </tr>
+                                    <tr class="ai-prefill-row"
+                                        style="<?php echo $enable_ai_response === '1' ? '' : 'display:none;'; ?>">
+                                        <th scope="row">Enable Form Pre-fill</th>
+                                        <td>
+                                            <label class="wpiko-switch">
+                                                <input type="checkbox" id="wpiko_chatbot_contact_form_ai_prefill"
+                                                    name="wpiko_chatbot_contact_form_ai_prefill" value="1" <?php checked('1', $enable_ai_prefill); ?>>
+                                                <span class="wpiko-slider round"></span>
+                                            </label>
+                                            <label for="wpiko_chatbot_contact_form_ai_prefill">Allow AI to pre-fill form
+                                                fields</label>
+                                            <p class="description">When enabled, the AI will summarize the user's inquiry and
+                                                pre-fill the message field (and category if available). Users can review and
+                                                edit before sending.</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- 3. Google reCAPTCHA Settings Accordion -->
                         <div class="wpiko-accordion-item">
                             <h3 class="collapsible-header">
                                 <span><span class="dashicons dashicons-shield"></span> Google reCAPTCHA</span>
@@ -288,7 +446,7 @@ function wpiko_chatbot_contact_form_section()
                             </div>
                         </div>
 
-                        <!-- 3. Customizable Text Accordion -->
+                        <!-- 4. Customizable Text Accordion -->
                         <div class="wpiko-accordion-item">
                             <h3 class="collapsible-header">
                                 <span><span class="dashicons dashicons-edit"></span> Customizable Text</span>
@@ -301,7 +459,8 @@ function wpiko_chatbot_contact_form_section()
                                         <td>
                                             <input type="text" name="wpiko_chatbot_contact_menu_text"
                                                 value="<?php echo esc_attr($contact_menu_text); ?>" style="width: 100%;">
-                                            <p class="description">Text displayed in the chatbot menu. Default: <em>Contact Form</em></p>
+                                            <p class="description">Text displayed in the chatbot menu. Default: <em>Contact
+                                                    Form</em></p>
                                         </td>
                                     </tr>
                                     <tr>
@@ -381,7 +540,9 @@ function wpiko_chatbot_contact_form_section()
                                         <td>
                                             <textarea name="wpiko_chatbot_contact_recaptcha_text" rows="2"
                                                 style="width: 100%;"><?php echo esc_textarea($contact_recaptcha_text); ?></textarea>
-                                            <p class="description">This text is displayed on the contact form only when the reCAPTCHA badge is hidden. Default: <em>This site is protected by reCAPTCHA.</em></p>
+                                            <p class="description">This text is displayed on the contact form only when the
+                                                reCAPTCHA badge is hidden. Default: <em>This site is protected by
+                                                    reCAPTCHA.</em></p>
                                         </td>
                                     </tr>
                                     <tr>
@@ -397,7 +558,8 @@ function wpiko_chatbot_contact_form_section()
                                         <td>
                                             <textarea name="wpiko_chatbot_contact_success_message" rows="3"
                                                 style="width: 100%;"><?php echo esc_textarea($contact_success_message); ?></textarea>
-                                            <p class="description">Default: <em>Contact Form - Your message has been sent successfully. We will get back to you as soon as possible.</em></p>
+                                            <p class="description">Default: <em>Contact Form - Your message has been sent
+                                                    successfully. We will get back to you as soon as possible.</em></p>
                                         </td>
                                     </tr>
                                     <tr>
@@ -405,7 +567,8 @@ function wpiko_chatbot_contact_form_section()
                                         <td>
                                             <textarea name="wpiko_chatbot_contact_email_failed_error" rows="2"
                                                 style="width: 100%;"><?php echo esc_textarea($contact_email_failed_error); ?></textarea>
-                                            <p class="description">Default: <em>Contact Form - Failed to send your message. Please try again later or contact us through another method.</em></p>
+                                            <p class="description">Default: <em>Contact Form - Failed to send your message.
+                                                    Please try again later or contact us through another method.</em></p>
                                         </td>
                                     </tr>
                                     <tr>
@@ -413,7 +576,8 @@ function wpiko_chatbot_contact_form_section()
                                         <td>
                                             <input type="text" name="wpiko_chatbot_contact_rate_limit_error"
                                                 value="<?php echo esc_attr($contact_rate_limit_error); ?>" style="width: 100%;">
-                                            <p class="description">Default: <em>You have submitted too many contact forms. Please try again later.</em></p>
+                                            <p class="description">Default: <em>You have submitted too many contact forms.
+                                                    Please try again later.</em></p>
                                         </td>
                                     </tr>
                                     <tr>
@@ -421,14 +585,15 @@ function wpiko_chatbot_contact_form_section()
                                         <td>
                                             <textarea name="wpiko_chatbot_contact_upload_error" rows="3"
                                                 style="width: 100%;"><?php echo esc_textarea($contact_upload_error); ?></textarea>
-                                            <p class="description">Default: <em>There was a problem with your file upload. Please ensure it is a valid image (JPG, PNG, GIF) under 3MB.</em></p>
+                                            <p class="description">Default: <em>There was a problem with your file upload.
+                                                    Please ensure it is a valid image (JPG, PNG, GIF) under 3MB.</em></p>
                                         </td>
                                     </tr>
                                 </table>
                             </div>
                         </div>
 
-                        <!-- 4. Usage & Integration -->
+                        <!-- 5. Usage & Integration -->
                         <div class="wpiko-accordion-item">
                             <h3 class="collapsible-header">
                                 <span><span class="dashicons dashicons-editor-help"></span> Integration & Instructions</span>
@@ -436,14 +601,22 @@ function wpiko_chatbot_contact_form_section()
                             </h3>
                             <div class="collapsible-content">
                                 <div class="instruction-content">
-                                    <h4>Chatbot Contact Link (Assistant Instructions)</h4>
-                                    <p>You can add assistant instructions to provide a contact form link within the chatbot
-                                        conversation.</p>
-                                    <p><strong>Go to:</strong> WPiko Chatbot → AI Configuration → Edit Assistant → Specific
-                                        System Instructions:</p>
+                                    <h4>AI Automatic Integration</h4>
+                                    <p>When <strong>AI Contact Form Response</strong> is enabled (in the AI Integration section
+                                        above), the AI will automatically offer the contact form when appropriate. <strong>No
+                                            manual instructions are needed.</strong></p>
+                                    <p>The AI will also pre-fill the form with a summary of the user's inquiry (if Form Pre-fill
+                                        is enabled).</p>
+
+                                    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+                                    <h4>Manual Methods (Alternative)</h4>
+                                    <p>If you prefer manual control, you can still use the following methods:</p>
 
                                     <h5>Method 1: Chatbot provides a Contact Form link that instantly opens the Contact Form
                                     </h5>
+                                    <p><strong>Go to:</strong> WPiko Chatbot → AI Configuration → Edit Assistant → Specific
+                                        System Instructions:</p>
                                     <pre>For support inquiries, provide only:  Wpiko Form</pre>
 
                                     <h5>Method 2: Link redirects users to page and launches form</h5>
@@ -490,6 +663,28 @@ function wpiko_chatbot_contact_form_section()
                             $(this).toggleClass('active');
                             // Toggle active class on next sibling content
                             $(this).next('.collapsible-content').toggleClass('active');
+                        });
+
+                        // Toggle AI Integration sub-settings visibility
+                        $('#wpiko_chatbot_contact_form_ai_response').change(function () {
+                            if ($(this).is(':checked')) {
+                                $('.ai-trigger-row, .ai-prefill-row').show();
+                                // Show custom trigger row if custom is selected
+                                if ($('#wpiko_chatbot_contact_form_ai_trigger').val() === 'custom') {
+                                    $('.ai-custom-trigger-row').show();
+                                }
+                            } else {
+                                $('.ai-trigger-row, .ai-custom-trigger-row, .ai-prefill-row').hide();
+                            }
+                        });
+
+                        // Toggle custom trigger textarea based on dropdown selection
+                        $('#wpiko_chatbot_contact_form_ai_trigger').change(function () {
+                            if ($(this).val() === 'custom') {
+                                $('.ai-custom-trigger-row').show();
+                            } else {
+                                $('.ai-custom-trigger-row').hide();
+                            }
                         });
                     });
                 </script>

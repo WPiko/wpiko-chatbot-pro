@@ -218,15 +218,145 @@ function wpiko_chatbot_pro_process_product_links($text) {
 }
 
 /**
- * Process contact form links in markdown content
+ * Extract and protect contact form markers BEFORE markdown processing.
+ * 
+ * This prevents markdown italic/bold regexes (e.g. _..._) from mangling
+ * JSON content inside the markers. Uses the same placeholder approach as URLs.
+ * 
+ * Hooked into 'wpiko_chatbot_before_markdown' (runs before markdown processing).
+ */
+function wpiko_chatbot_pro_protect_contact_markers($text) {
+    // Check if license is active and contact form is enabled
+    if (!wpiko_chatbot_is_license_active() || get_option('wpiko_chatbot_enable_contact_form', '0') !== '1') {
+        return $text;
+    }
+
+    global $wpiko_contact_form_placeholders;
+    $wpiko_contact_form_placeholders = array();
+
+    // Protect [wpiko-contact-form:...] markers (new AI format)
+    // NOTE: Placeholder must NOT contain underscores — markdown italic regex (_..._) would mangle them
+    $text = preg_replace_callback(
+        '/\[wpiko-contact-form:(.*?)\]/is',
+        function($matches) {
+            global $wpiko_contact_form_placeholders;
+            $placeholder = '%%WPIKOCF' . count($wpiko_contact_form_placeholders) . '%%';
+            $wpiko_contact_form_placeholders[] = $matches[0];
+            return $placeholder;
+        },
+        $text
+    );
+
+    // Also protect <!--WPIKO_CONTACT_FORM:...--> markers (legacy format, kept for backward compatibility)
+    $text = preg_replace_callback(
+        '/<!--WPIKO_CONTACT_FORM:(.*?)-->/is',
+        function($matches) {
+            global $wpiko_contact_form_placeholders;
+            $placeholder = '%%WPIKOCF' . count($wpiko_contact_form_placeholders) . '%%';
+            $wpiko_contact_form_placeholders[] = $matches[0];
+            return $placeholder;
+        },
+        $text
+    );
+
+    return $text;
+}
+
+/**
+ * Build the contact form <a> tag from marker data
+ * 
+ * @param array $json_data Parsed JSON data from the marker
+ * @return string HTML <a> tag with prefill data
+ */
+function wpiko_chatbot_pro_build_contact_form_link($json_data) {
+    if (!is_array($json_data)) {
+        $json_data = array();
+    }
+
+    // Sanitize the data
+    $safe_data = array();
+    if (!empty($json_data['message'])) {
+        $safe_data['message'] = sanitize_textarea_field($json_data['message']);
+    }
+    if (!empty($json_data['category'])) {
+        $safe_data['category'] = sanitize_text_field($json_data['category']);
+    }
+    // Support custom fields pre-fill (both "field1"/"field2" and "custom_field_1"/"custom_field_2" formats)
+    for ($i = 1; $i <= 2; $i++) {
+        $value = '';
+        if (!empty($json_data["field{$i}"])) {
+            $value = $json_data["field{$i}"];
+        } elseif (!empty($json_data["custom_field_{$i}"])) {
+            $value = $json_data["custom_field_{$i}"];
+        }
+        if (!empty($value)) {
+            $safe_data["custom_field_{$i}"] = sanitize_text_field($value);
+        }
+    }
+
+    if (empty($safe_data)) {
+        // No prefill data — render simple button
+        return '<a href="javascript:void(0);" onclick="if(typeof window.wpikoOpenChatbotWithContactForm === \'function\') { window.wpikoOpenChatbotWithContactForm(); } return false;" class="wpiko-contact-button">Contact Form</a>';
+    }
+
+    $encoded_data = esc_attr(wp_json_encode($safe_data));
+    return '<a href="javascript:void(0);" data-wpiko-prefill="' . $encoded_data . '" onclick="if(typeof window.wpikoOpenChatbotWithContactForm === \'function\') { window.wpikoOpenChatbotWithContactForm(JSON.parse(this.getAttribute(\'data-wpiko-prefill\'))); } return false;" class="wpiko-contact-button">Contact Form</a>';
+}
+
+/**
+ * Process contact form links in markdown content (runs AFTER markdown processing).
+ * 
+ * Restores protected markers from placeholders, processes them into <a> tags,
+ * and also handles the legacy "Wpiko Form" text pattern.
  */
 function wpiko_chatbot_pro_process_contact_form_links($text) {
     // Check if license is active and contact form is enabled
     if (!wpiko_chatbot_is_license_active() || get_option('wpiko_chatbot_enable_contact_form', '0') !== '1') {
         return $text;
     }
+
+    // 1. Restore and process protected markers (from pre-markdown extraction)
+    global $wpiko_contact_form_placeholders;
+    if (!empty($wpiko_contact_form_placeholders)) {
+        foreach ($wpiko_contact_form_placeholders as $i => $original_marker) {
+            $placeholder = '%%WPIKOCF' . $i . '%%';
+            if (strpos($text, $placeholder) === false) {
+                continue;
+            }
+
+            // Extract JSON from the marker (handles both formats)
+            $json_data = array();
+            if (preg_match('/\[wpiko-contact-form:(.*?)\]/is', $original_marker, $m)) {
+                $json_data = json_decode($m[1], true) ?: array();
+            } elseif (preg_match('/<!--WPIKO_CONTACT_FORM:(.*?)-->/is', $original_marker, $m)) {
+                $json_data = json_decode($m[1], true) ?: array();
+            }
+
+            $replacement = wpiko_chatbot_pro_build_contact_form_link($json_data);
+            $text = str_replace($placeholder, $replacement, $text);
+        }
+        $wpiko_contact_form_placeholders = array();
+    }
+
+    // 2. Also process any markers that weren't pre-protected (e.g. from older pipeline paths)
+    $text = preg_replace_callback(
+        '/\[wpiko-contact-form:(.*?)\]/is',
+        function($matches) {
+            $json_data = json_decode($matches[1], true) ?: array();
+            return wpiko_chatbot_pro_build_contact_form_link($json_data);
+        },
+        $text
+    );
+    $text = preg_replace_callback(
+        '/<!--WPIKO_CONTACT_FORM:(.*?)-->/is',
+        function($matches) {
+            $json_data = json_decode($matches[1], true) ?: array();
+            return wpiko_chatbot_pro_build_contact_form_link($json_data);
+        },
+        $text
+    );
     
-    // Match only specific "Wpiko Form" patterns, not just any occurrence of "Form"
+    // 3. Legacy: Match "Wpiko Form" text patterns (no pre-fill data)
     $text = preg_replace_callback('/\[Wpiko Form\]|\[wpiko form\]|Wpiko Form:|Wpiko Form button|(?<!\w)Wpiko Form(?!\w)/i', 
         function($matches) {
             return '<a href="javascript:void(0);" onclick="if(typeof window.wpikoOpenChatbotWithContactForm === \'function\') { window.wpikoOpenChatbotWithContactForm(); } return false;" class="wpiko-contact-button">Contact Form</a>';
@@ -241,7 +371,10 @@ function wpiko_chatbot_pro_process_contact_form_links($text) {
  * Hook into the main plugin's markdown processing
  */
 function wpiko_chatbot_pro_add_markdown_filters() {
-    // Add filter to process contact form links after the main markdown processing
+    // Add pre-markdown filter to protect contact form markers from markdown mangling
+    add_filter('wpiko_chatbot_before_markdown', 'wpiko_chatbot_pro_protect_contact_markers', 10, 1);
+
+    // Add post-markdown filter to restore and process contact form markers
     add_filter('wpiko_chatbot_processed_markdown', 'wpiko_chatbot_pro_process_contact_form_links', 10, 1);
     
     // Add filter to process product links after the main markdown processing

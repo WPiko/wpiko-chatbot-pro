@@ -190,6 +190,7 @@ function initEmailCapture() {
 
     function showEmailCaptureOverlay() {
         if (emailCaptureOverlay) {
+            // Override the inline style="display:none" set in the HTML to prevent flash on page load
             emailCaptureOverlay.style.display = 'block';
             // Force a reflow to ensure the overlay is displayed immediately
             emailCaptureOverlay.offsetHeight;

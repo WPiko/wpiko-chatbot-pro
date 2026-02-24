@@ -58,6 +58,12 @@ function wpiko_chatbot_pro_enqueue_contact_form_scripts()
         'enable_dropdown' => get_option('wpiko_chatbot_contact_form_dropdown', '0'),
         'enable_attachments' => get_option('wpiko_chatbot_contact_form_attachments', '0'),
         'dropdown_options' => get_option('wpiko_chatbot_contact_form_dropdown_options', ''),
+        'custom_field_1_enabled' => get_option('wpiko_chatbot_contact_form_custom_field_1', '0'),
+        'custom_field_1_label' => get_option('wpiko_chatbot_contact_form_custom_field_1_label', ''),
+        'custom_field_1_required' => get_option('wpiko_chatbot_contact_form_custom_field_1_required', '0'),
+        'custom_field_2_enabled' => get_option('wpiko_chatbot_contact_form_custom_field_2', '0'),
+        'custom_field_2_label' => get_option('wpiko_chatbot_contact_form_custom_field_2_label', ''),
+        'custom_field_2_required' => get_option('wpiko_chatbot_contact_form_custom_field_2_required', '0'),
     );
 
     // Add these settings to the existing wpikoChatbot object
