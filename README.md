@@ -12,6 +12,9 @@ WPiko Chatbot Pro is a premium WordPress plugin that seamlessly integrates OpenA
 
 ### Core Features
 
+- **Mobile App (PWA)** - Monitor and reply to conversations from your phone without opening WordPress
+- **Admin Takeover** - Pause AI and chat with users live in real-time from the mobile app or WP admin
+- **Push Notifications** - Get notified instantly when a visitor sends a message
 - **AI Configuration Management** - Complete control over OpenAI Assistants with custom training and instructions
 - **Advanced Analytics** - Detailed conversation insights, user tracking, and performance metrics
 - **WooCommerce Integration** - Product cards, shopping assistance, and e-commerce optimization

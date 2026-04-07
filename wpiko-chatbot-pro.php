@@ -3,9 +3,9 @@
  * Plugin Name: WPiko Chatbot Pro
  * Plugin URI: https://wpiko.com/chatbot
  * Description: Premium add-on for WPiko Chatbot with advanced features.
- * Version: 1.1.3
+ * Version: 2.0.0
  * Requires at least: 5.0
- * Tested up to: 6.8.1
+ * Tested up to: 6.9
  * Requires PHP: 7.0
  * Author: WPiko
  * Author URI: https://wpiko.com
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('WPIKO_CHATBOT_PRO_VERSION', '1.1.3');
+define('WPIKO_CHATBOT_PRO_VERSION', '2.0.0');
 define('WPIKO_CHATBOT_PRO_FILE', __FILE__);
 define('WPIKO_CHATBOT_PRO_PATH', plugin_dir_path(__FILE__));
 define('WPIKO_CHATBOT_PRO_URL', plugin_dir_url(__FILE__));
@@ -46,6 +46,14 @@ require_once WPIKO_CHATBOT_PRO_PATH . 'includes/markdown-handler-integration.php
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/contact-handler.php';
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/conversation-handler.php';
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/cache-integration.php';
+
+// PWA / Admin Takeover / Push Notifications
+require_once WPIKO_CHATBOT_PRO_PATH . 'includes/encryption-helpers.php';
+require_once WPIKO_CHATBOT_PRO_PATH . 'includes/pwa-access.php';
+require_once WPIKO_CHATBOT_PRO_PATH . 'includes/admin-takeover.php';
+require_once WPIKO_CHATBOT_PRO_PATH . 'includes/rest-api.php';
+require_once WPIKO_CHATBOT_PRO_PATH . 'includes/push-notifications.php';
+require_once WPIKO_CHATBOT_PRO_PATH . 'includes/pwa-rewrite.php';
 
 // Load WP-CLI commands when running in CLI context
 if (defined('WP_CLI') && WP_CLI) {
@@ -318,16 +326,63 @@ function wpiko_chatbot_pro_deactivate_license_on_plugin_deactivation()
             wpiko_chatbot_log('WPiko Chatbot Pro plugin deactivated - license has been deactivated', 'info');
         }
     }
+
+    if (function_exists('wpiko_chatbot_pro_pwa_flush_rules')) {
+        wpiko_chatbot_pro_pwa_flush_rules();
+    } else {
+        flush_rewrite_rules();
+    }
 }
 register_deactivation_hook(__FILE__, 'wpiko_chatbot_pro_deactivate_license_on_plugin_deactivation');
+
+/**
+ * Run install and upgrade tasks for Pro features.
+ *
+ * @param bool $flush_rewrite_rules Whether rewrite rules should be flushed.
+ */
+function wpiko_chatbot_pro_run_install_tasks($flush_rewrite_rules = false)
+{
+    // Ensure the PWA access role and capabilities exist.
+    wpiko_chatbot_pro_sync_pwa_access_role();
+
+    // Ensure required Pro tables exist for both fresh installs and upgrades.
+    wpiko_chatbot_pro_create_qa_table();
+    wpiko_chatbot_pro_pwa_db_migration();
+
+    if ($flush_rewrite_rules) {
+        wpiko_chatbot_pro_schedule_pwa_rewrite_flush();
+    }
+}
+
+/**
+ * Ensure install and migration tasks run after plugin updates.
+ */
+function wpiko_chatbot_pro_maybe_upgrade()
+{
+    $installed_version = get_option('wpiko_chatbot_pro_version', '0');
+    $pwa_db_version = get_option('wpiko_chatbot_pro_pwa_db_version', '0');
+    $needs_plugin_upgrade = version_compare($installed_version, WPIKO_CHATBOT_PRO_VERSION, '<');
+    $needs_pwa_schema_upgrade = version_compare($pwa_db_version, '1.2', '<');
+
+    if (!$needs_plugin_upgrade && !$needs_pwa_schema_upgrade) {
+        return;
+    }
+
+    wpiko_chatbot_pro_run_install_tasks($needs_plugin_upgrade);
+
+    if ($needs_plugin_upgrade) {
+        update_option('wpiko_chatbot_pro_version', WPIKO_CHATBOT_PRO_VERSION);
+    }
+}
+add_action('plugins_loaded', 'wpiko_chatbot_pro_maybe_upgrade', 20);
 
 /**
  * Pro plugin activation handler
  */
 function wpiko_chatbot_pro_activation()
 {
-    // Create QA table for Q&A management functionality
-    wpiko_chatbot_pro_create_qa_table();
+    wpiko_chatbot_pro_run_install_tasks(true);
+    update_option('wpiko_chatbot_pro_version', WPIKO_CHATBOT_PRO_VERSION);
 
     // Clean license key and related options
     wpiko_chatbot_pro_clean_license_on_activation();

@@ -1,0 +1,367 @@
+/* Mobile App (PWA) Page Styles */
+.pwa-settings-section {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    border: none;
+}
+
+.pwa-settings-section .description {
+    margin-bottom: 10px;
+    color: #64748b;
+}
+
+.pwa-settings-section form>.form-table {
+    border: none;
+    background: transparent;
+    margin-bottom: 20px;
+}
+
+.pwa-settings-section form>.form-table th,
+.pwa-settings-section form>.form-table td {
+    padding-top: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.pwa-settings-section form>.form-table tr:last-child th,
+.pwa-settings-section form>.form-table tr:last-child td {
+    border-bottom: none;
+}
+
+.pwa-settings-collapsible {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    max-height: 0;
+    opacity: 0;
+}
+
+.pwa-settings-collapsible.active {
+    max-height: 4000px;
+    opacity: 1;
+    transition: max-height 0.5s ease-in, opacity 0.3s ease-in;
+}
+
+.pwa-settings-section .collapsible-content {
+    display: none;
+    padding: 0 20px 20px;
+}
+
+.pwa-settings-section .collapsible-content.active {
+    display: block;
+}
+
+.pwa-settings-section .collapsible-content .form-table {
+    margin-top: 0;
+}
+
+.pwa-settings-section .collapsible-content .form-table th,
+.pwa-settings-section .collapsible-content .form-table td {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.pwa-settings-section .collapsible-content .form-table tr:last-child th,
+.pwa-settings-section .collapsible-content .form-table tr:last-child td {
+    border-bottom: none;
+}
+
+.pwa-setup-guide {
+    padding-top: 18px;
+}
+
+.pwa-setup-guide p {
+    max-width: 920px;
+    color: #475569;
+}
+
+.pwa-setup-guide ol {
+    margin: 0;
+    padding-left: 20px;
+    color: #475569;
+    list-style: decimal;
+}
+
+.pwa-setup-guide li {
+    margin-bottom: 12px;
+    line-height: 1.6;
+}
+
+.wpiko-pwa-install-guide {
+    padding-top: 18px;
+}
+
+.wpiko-pwa-install-guide p {
+    max-width: 920px;
+    color: #475569;
+}
+
+.wpiko-pwa-guide-block {
+    padding: 18px 0;
+    border-top: 1px solid #e2e8f0;
+}
+
+.wpiko-pwa-guide-block:first-of-type {
+    margin-top: 18px;
+}
+
+.wpiko-pwa-install-guide h4 {
+    margin-top: 0;
+}
+
+.wpiko-pwa-install-guide ol,
+.wpiko-pwa-install-guide ul {
+    margin: 0 0 14px;
+    padding-left: 20px;
+    color: #475569;
+}
+
+.wpiko-pwa-install-guide ol {
+    list-style: decimal;
+}
+
+.wpiko-pwa-install-guide ul,
+.wpiko-pwa-requirements-list {
+    list-style: disc;
+    list-style-position: outside;
+}
+
+.wpiko-pwa-install-guide li {
+    margin-bottom: 10px;
+    line-height: 1.6;
+    color: #475569;
+}
+
+.wpiko-pwa-install-guide li:last-child {
+    margin-bottom: 0;
+}
+
+.wpiko-pwa-requirements-list {
+    margin-bottom: 0;
+    padding-left: 20px;
+}
+
+.pwa-settings-section .notice.inline {
+    margin: 20px 0 0;
+}
+
+.wpiko-test-push-cell {
+    max-width: 760px;
+}
+
+.wpiko-test-push-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+#wpiko-send-test-push {
+    min-height: 40px;
+    padding: 8px 16px;
+    border: 1px solid #0968fe;
+    border-radius: 6px;
+    background: #0968fe;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    transition: all 0.2s ease;
+}
+
+#wpiko-send-test-push:hover:not(:disabled),
+#wpiko-send-test-push:focus-visible:not(:disabled) {
+    background: #0756d6;
+    border-color: #0756d6;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(9, 104, 254, 0.18);
+}
+
+#wpiko-send-test-push:focus-visible {
+    outline: none;
+}
+
+#wpiko-send-test-push:disabled {
+    background: #e2e8f0;
+    border-color: #e2e8f0;
+    color: #64748b;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+.wpiko-test-push-description {
+    margin: 0;
+}
+
+#wpiko-test-push-status {
+    display: none;
+    width: min(100%, 760px);
+    font-weight: 500;
+    margin: 4px 0 0;
+    padding: 14px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.4;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+}
+
+#wpiko-test-push-status.success,
+#wpiko-test-push-status.error,
+#wpiko-test-push-status.info {
+    display: block;
+}
+
+#wpiko-test-push-status.success {
+    color: #03b5aa;
+    background-color: rgba(3, 181, 170, 0.1);
+    border-color: rgba(3, 181, 170, 0.18);
+}
+
+#wpiko-test-push-status.error {
+    color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+    border-color: rgba(220, 53, 69, 0.18);
+}
+
+#wpiko-test-push-status.info {
+    color: #0968fe;
+    background-color: rgba(9, 104, 254, 0.1);
+    border-color: rgba(9, 104, 254, 0.18);
+}
+
+/* ── Registered Devices Table ── */
+#wpiko-registered-device-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(3, 181, 170, 0.1);
+    color: #029990;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.wpiko-registered-devices-wrap .description {
+    text-align: center;
+}
+
+.wpiko-registered-devices-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(58, 79, 102, 0.06);
+    margin-top: 12px;
+    max-width: 980px;
+}
+
+#wpiko-registered-devices-table {
+    border: none;
+    border-radius: 10px;
+    border-spacing: 0;
+    width: 100%;
+    min-width: 680px;
+}
+
+#wpiko-registered-devices-table thead th {
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 14px 16px;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+    text-align: left;
+}
+
+#wpiko-registered-devices-table thead th:first-child {
+    border-radius: 10px 0 0 0;
+}
+
+#wpiko-registered-devices-table thead th:last-child {
+    border-radius: 0 10px 0 0;
+}
+
+#wpiko-registered-devices-table tbody td {
+    padding: 14px 16px;
+    color: #3A4F66;
+    font-size: 14px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+    line-height: 1.5;
+    background: #ffffff;
+    transition: background 0.15s ease;
+}
+
+#wpiko-registered-devices-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+#wpiko-registered-devices-table tbody tr:last-child td:first-child {
+    border-radius: 0 0 0 10px;
+}
+
+#wpiko-registered-devices-table tbody tr:last-child td:last-child {
+    border-radius: 0 0 10px 0;
+}
+
+#wpiko-registered-devices-table tbody tr:hover td {
+    background: #f9fbfc;
+}
+
+#wpiko-registered-devices-table tbody td .description {
+    color: #94a3b8;
+    font-size: 12px;
+    margin-top: 2px;
+    font-style: normal;
+}
+
+/* Remove Device Button */
+.wpiko-remove-device {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 14px !important;
+    border: 1px solid #dc3545 !important;
+    border-radius: 6px !important;
+    background: #fff !important;
+    color: #dc3545 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+    white-space: nowrap;
+    text-decoration: none !important;
+}
+
+.wpiko-remove-device:hover:not(:disabled) {
+    background: #dc3545 !important;
+    color: #fff !important;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.2) !important;
+    transform: translateY(-1px);
+}
+
+.wpiko-remove-device:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Responsive: horizontal scroll hint */
+@media screen and (max-width: 782px) {
+    .wpiko-registered-devices-wrap {
+        margin-right: -1px;
+        position: relative;
+    }
+}

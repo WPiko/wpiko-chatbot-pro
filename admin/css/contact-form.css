@@ -129,7 +129,6 @@
 
 /* Utility to ensure instruction content has good spacing */
 .instruction-content p {
-    font-size: 14px;
     line-height: 1.6;
     color: #475569;
     margin-bottom: 15px;

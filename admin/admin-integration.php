@@ -40,6 +40,12 @@ function wpiko_chatbot_pro_add_tab($tabs) {
         'icon' => 'dashicons-chart-bar',
     );
     
+    // Add Mobile App (PWA) tab
+    $tabs['pwa_settings'] = array(
+        'label' => 'Mobile App',
+        'icon' => 'dashicons-smartphone',
+    );
+
     // Add License Activation tabs
     $tabs['license_activation'] = array(
         'label' => 'License Activation',
@@ -99,6 +105,16 @@ function wpiko_chatbot_pro_admin_menu() {
         'Analytics', 
         'manage_options', 
         'ai-chatbot&tab=analytics', 
+        'wpiko_chatbot_admin_page'
+    );
+    
+    // Add Mobile App (PWA) submenu
+    add_submenu_page(
+        'ai-chatbot', 
+        'Mobile App', 
+        'Mobile App', 
+        'manage_options', 
+        'ai-chatbot&tab=pwa_settings', 
         'wpiko_chatbot_admin_page'
     );
     
@@ -188,6 +204,14 @@ function wpiko_chatbot_pro_enqueue_styles($hook) {
         $version
     );
     
+    // Add mobile app (PWA) CSS
+    wp_enqueue_style(
+        'wpiko-chatbot-mobile-app-css', 
+        WPIKO_CHATBOT_PRO_URL . 'admin/css/mobile-app.css', 
+        array(), 
+        $version
+    );
+    
     // Enqueue JS files for premium features
     wp_enqueue_script(
         'wpiko-chatbot-license-management',
@@ -253,6 +277,11 @@ function wpiko_chatbot_pro_add_tab_content($active_tab) {
     if ($active_tab === 'product_card' && class_exists('WooCommerce')) {
         require_once WPIKO_CHATBOT_PRO_PATH . 'admin/sections/product-card-section.php';
         wpiko_chatbot_product_card_section();
+        return true;
+    }
+    if ($active_tab === 'pwa_settings') {
+        require_once WPIKO_CHATBOT_PRO_PATH . 'admin/sections/pwa-settings-section.php';
+        wpiko_chatbot_pwa_settings_section();
         return true;
     }
     if ($active_tab === 'license_activation') {
@@ -913,4 +942,9 @@ function wpiko_chatbot_pro_add_dashboard_config_status() {
     }
 }
 add_action('wpiko_chatbot_dashboard_config_status', 'wpiko_chatbot_pro_add_dashboard_config_status');
+
+/**
+ * Takeover button removed from WP admin conversations page.
+ * Admins should use /wpiko-app/ for takeover functionality.
+ */
 

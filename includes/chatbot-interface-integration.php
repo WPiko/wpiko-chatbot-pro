@@ -174,6 +174,140 @@ function wpiko_chatbot_pro_enqueue_contact_form_assets()
 add_action('wp_enqueue_scripts', 'wpiko_chatbot_pro_enqueue_contact_form_assets', 25);
 
 /**
+ * Pass heartbeat_enabled flag to frontend JS when PWA is active and licensed
+ */
+function wpiko_chatbot_pro_enqueue_heartbeat_flag() {
+    if (!function_exists('wpiko_chatbot_pro_is_license_active') || !wpiko_chatbot_pro_is_license_active()) {
+        return;
+    }
+    if (get_option('wpiko_chatbot_enable_pwa', '0') !== '1') {
+        return;
+    }
+
+    wp_add_inline_script(
+        'wpiko-chatbot-js',
+        'if (typeof wpikoChatbot !== "undefined") { wpikoChatbot.heartbeat_enabled = true; }',
+        'before'
+    );
+}
+add_action('wp_enqueue_scripts', 'wpiko_chatbot_pro_enqueue_heartbeat_flag', 30);
+
+/**
+ * Check whether the Pro takeover frontend should be active.
+ */
+function wpiko_chatbot_pro_is_takeover_frontend_available() {
+    if (!function_exists('wpiko_chatbot_pro_is_license_active') || !wpiko_chatbot_pro_is_license_active()) {
+        return false;
+    }
+
+    return get_option('wpiko_chatbot_enable_pwa', '0') === '1';
+}
+
+/**
+ * Mark the frontend takeover experience as Pro-controlled.
+ */
+function wpiko_chatbot_pro_enable_takeover_frontend_flag() {
+    if (!wpiko_chatbot_pro_is_takeover_frontend_available()) {
+        return;
+    }
+
+    $takeover_header_prefix = get_option('wpiko_chatbot_takeover_header_prefix', 'Live chat with');
+
+    wp_add_inline_script(
+        'wpiko-chatbot-js',
+        'if (typeof wpikoChatbot !== "undefined") { wpikoChatbot.pro_takeover_frontend = true; wpikoChatbot.takeover_header_prefix = ' . wp_json_encode($takeover_header_prefix) . '; }',
+        'before'
+    );
+}
+add_action('wp_enqueue_scripts', 'wpiko_chatbot_pro_enable_takeover_frontend_flag', 31);
+
+/**
+ * Output takeover-specific frontend color variables.
+ */
+function wpiko_chatbot_pro_enqueue_takeover_style_variables() {
+    if (!wp_style_is('wpiko-chatbot-pro-frontend-styles', 'enqueued')) {
+        return;
+    }
+
+    $css_content = ':root {
+        --admin-message-label-color: ' . esc_attr(get_option('wpiko_chatbot_admin_message_label_color', '#0968fe')) . ';
+        --admin-message-background-color: ' . esc_attr(get_option('wpiko_chatbot_admin_message_background_color', '#f5f9ff')) . ';
+        --admin-message-border-color: ' . esc_attr(get_option('wpiko_chatbot_admin_message_border_color', '#e1edff')) . ';
+        --admin-message-text-color: ' . esc_attr(get_option('wpiko_chatbot_admin_message_text_color', '#002358')) . ';
+    }';
+
+    wp_add_inline_style('wpiko-chatbot-pro-frontend-styles', $css_content);
+}
+add_action('wp_enqueue_scripts', 'wpiko_chatbot_pro_enqueue_takeover_style_variables', 11);
+
+/**
+ * Enqueue the Pro takeover frontend controller.
+ */
+function wpiko_chatbot_pro_enqueue_takeover_frontend_assets() {
+    if (!wpiko_chatbot_pro_is_takeover_frontend_available()) {
+        return;
+    }
+
+    $version = apply_filters('wpiko_chatbot_pro_asset_version', defined('WPIKO_CHATBOT_PRO_VERSION') ? WPIKO_CHATBOT_PRO_VERSION : '1.0.0');
+
+    wp_enqueue_script(
+        'wpiko-chatbot-pro-takeover-frontend',
+        WPIKO_CHATBOT_PRO_URL . 'js/chatbot-takeover.js',
+        array('jquery', 'wpiko-chatbot-js'),
+        $version,
+        true
+    );
+}
+add_action('wp_enqueue_scripts', 'wpiko_chatbot_pro_enqueue_takeover_frontend_assets', 32);
+
+/**
+ * Enrich the send-message response with takeover metadata for the Pro frontend.
+ */
+function wpiko_chatbot_pro_filter_frontend_response_data($response_data, $result) {
+    if (!wpiko_chatbot_pro_is_takeover_frontend_available()) {
+        return $response_data;
+    }
+
+    if (empty($response_data['human_takeover']) || empty($response_data['thread_id'])) {
+        return $response_data;
+    }
+
+    $session_id = $response_data['thread_id'];
+    $response_data['takeover_admin_name'] = wpiko_chatbot_pro_get_takeover_admin_name($session_id);
+    $response_data['takeover_admin_avatar'] = wpiko_chatbot_pro_get_takeover_admin_avatar_url($session_id, 64);
+
+    return $response_data;
+}
+add_filter('wpiko_chatbot_frontend_response_data', 'wpiko_chatbot_pro_filter_frontend_response_data', 10, 2);
+
+/**
+ * Enrich the polling response with Pro takeover metadata.
+ */
+function wpiko_chatbot_pro_filter_check_new_messages_response($response_data, $thread_id, $messages, $last_id) {
+    if (!wpiko_chatbot_pro_is_takeover_frontend_available()) {
+        return $response_data;
+    }
+
+    $response_data['takeover_admin_name'] = wpiko_chatbot_pro_get_takeover_admin_name($thread_id);
+    $response_data['takeover_admin_avatar'] = wpiko_chatbot_pro_get_takeover_admin_avatar_url($thread_id, 64);
+
+    if (!empty($response_data['messages'])) {
+        foreach ($response_data['messages'] as $message) {
+            $message->event_type = wpiko_chatbot_pro_get_takeover_event_type(
+                $message->message,
+                isset($message->user_name) ? $message->user_name : ''
+            );
+            $message->avatar_url = !empty($message->user_id)
+                ? wpiko_chatbot_pro_get_admin_avatar_url($message->user_id, 58)
+                : '';
+        }
+    }
+
+    return $response_data;
+}
+add_filter('wpiko_chatbot_check_new_messages_response', 'wpiko_chatbot_pro_filter_check_new_messages_response', 10, 4);
+
+/**
  * Override email capture setting for pro users
  */
 function wpiko_chatbot_pro_enable_email_capture($enable_email_capture)
