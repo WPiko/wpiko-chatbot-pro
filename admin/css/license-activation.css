@@ -13,7 +13,6 @@
 #wpiko-delete-license {
     color: #dc3545!important;
     border-color: #dc3545!important;
-    padding: 8px 16px !important;
     font-weight: 500;
     transition: all 0.3s ease !important;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
@@ -37,6 +36,25 @@
     box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
 }
 
+#wpiko-test-connection {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 6px;
+}
+
+#wpiko-test-connection .dashicons {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+    line-height: 1;
+    margin: 0;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
 .license-status {
     font-weight: bold;
     font-style: italic;
@@ -56,8 +74,8 @@
 
 /* Success/Error Messages */
 #wpiko-chatbot-license-check-result {
-margin-top: 26px;
-margin-left: 15px;
+    margin-top: 26px;
+    margin-left: 15px;
     padding: 15px;
     border-radius: 8px;
     display: inline-block;
