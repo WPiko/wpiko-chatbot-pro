@@ -453,9 +453,10 @@ function wpiko_chatbot_get_formatted_products_data($offset = 0, $limit = 100) {
  * Accepts an optional callback for progress output (used by WP-CLI).
  */
 function wpiko_chatbot_build_products_file($progress_callback = null) {
-    $batch_size = 100;
+    $batch_size = (int) apply_filters('wpiko_chatbot_product_sync_batch_size', 20);
+    $batch_size = max(1, min(100, $batch_size));
     $offset = 0;
-    $total_products = wp_count_posts('product')->publish;
+    $total_products = intval(wp_count_posts('product')->publish);
     $processed_products = 0;
 
     if ($total_products === 0) {
@@ -496,11 +497,15 @@ function wpiko_chatbot_build_products_file($progress_callback = null) {
         }
         
         $processed_products += count($formatted_data);
+        $processed_products = min($processed_products, $total_products);
         $offset += $batch_size;
 
         // Update progress
-        $progress = min(99, round(($processed_products / max(1, $total_products)) * 100));
+        $progress = min(90, round(($processed_products / max(1, $total_products)) * 90));
         update_option('wpiko_chatbot_sync_progress', $progress);
+        update_option('wpiko_chatbot_sync_processed_products', $processed_products);
+        update_option('wpiko_chatbot_sync_total_products', $total_products);
+        update_option('wpiko_chatbot_sync_phase', 'building');
 
         // Call progress callback if provided (WP-CLI)
         if (is_callable($progress_callback)) {
@@ -588,12 +593,18 @@ function wpiko_chatbot_sync_existing_products() {
         // Set initial progress
         update_option('wpiko_chatbot_sync_progress', 0);
         update_option('wpiko_chatbot_sync_status', 'running');
+        update_option('wpiko_chatbot_sync_error', '');
+        update_option('wpiko_chatbot_sync_processed_products', 0);
+        update_option('wpiko_chatbot_sync_phase', 'starting');
         
-        $total_products = wp_count_posts('product')->publish;
+        $total_products = intval(wp_count_posts('product')->publish);
+        update_option('wpiko_chatbot_sync_total_products', $total_products);
+
         if ($total_products === 0) {
             wpiko_chatbot_log_error("No products found to sync");
             update_option('wpiko_chatbot_sync_status', 'completed');
             update_option('wpiko_chatbot_sync_progress', 100);
+            update_option('wpiko_chatbot_sync_phase', 'completed');
             wpiko_chatbot_release_lock('product_sync');
             return true;
         }
@@ -605,6 +616,8 @@ function wpiko_chatbot_sync_existing_products() {
         }
 
         // Upload to OpenAI
+        update_option('wpiko_chatbot_sync_phase', 'uploading');
+        update_option('wpiko_chatbot_sync_progress', max(90, intval(get_option('wpiko_chatbot_sync_progress', 0))));
         $upload_result = wpiko_chatbot_upload_products_file($temp_file_path);
         if (!$upload_result) {
             throw new Exception('Failed to upload products file to OpenAI');
@@ -613,6 +626,7 @@ function wpiko_chatbot_sync_existing_products() {
         // Reset progress
         update_option('wpiko_chatbot_sync_progress', 100);
         update_option('wpiko_chatbot_sync_status', 'completed');
+        update_option('wpiko_chatbot_sync_phase', 'completed');
         update_option('wpiko_chatbot_last_sync_time', current_time('mysql'));
 
         wpiko_chatbot_log_error("Sync completed successfully.");
@@ -623,6 +637,7 @@ function wpiko_chatbot_sync_existing_products() {
         wpiko_chatbot_log_error('Error in sync products: ' . $e->getMessage());
         update_option('wpiko_chatbot_sync_error', $e->getMessage());
         update_option('wpiko_chatbot_sync_status', 'failed');
+        update_option('wpiko_chatbot_sync_phase', 'failed');
         
         // Reset progress
         update_option('wpiko_chatbot_sync_progress', 0);
@@ -651,6 +666,9 @@ function wpiko_chatbot_get_sync_status() {
         'status' => get_option('wpiko_chatbot_sync_status', ''),
         'error' => get_option('wpiko_chatbot_sync_error', ''),
         'last_sync' => get_option('wpiko_chatbot_last_sync_time', ''),
+        'phase' => get_option('wpiko_chatbot_sync_phase', ''),
+        'processed_products' => intval(get_option('wpiko_chatbot_sync_processed_products', 0)),
+        'total_products' => intval(get_option('wpiko_chatbot_sync_total_products', 0)),
         'lock_active' => !wpiko_chatbot_get_lock('product_sync', 0, true)
     );
     
@@ -771,12 +789,36 @@ function wpiko_chatbot_sync_existing_products_ajax() {
         ));
         return;
     }
+
+    $total_products = intval(wp_count_posts('product')->publish);
+    $direct_sync_limit = (int) apply_filters('wpiko_chatbot_manual_product_sync_direct_limit', 20);
+
+    if ($total_products <= $direct_sync_limit) {
+        $result = wpiko_chatbot_sync_existing_products();
+        if ($result) {
+            wp_send_json_success(array(
+                'message' => 'Sync completed successfully.',
+                'status' => wpiko_chatbot_get_sync_status()
+            ));
+        } else {
+            $error = get_option('wpiko_chatbot_sync_error', 'Unknown error occurred');
+            wp_send_json_error(array(
+                'message' => 'Sync failed: ' . $error,
+                'status' => wpiko_chatbot_get_sync_status()
+            ));
+        }
+        return;
+    }
     
     // Set background processing if supported
     if (function_exists('wp_schedule_single_event')) {
         update_option('wpiko_chatbot_sync_status', 'scheduled');
         update_option('wpiko_chatbot_sync_progress', 0);
+        update_option('wpiko_chatbot_sync_processed_products', 0);
+        update_option('wpiko_chatbot_sync_total_products', $total_products);
+        update_option('wpiko_chatbot_sync_phase', 'scheduled');
         
+        wp_clear_scheduled_hook('wpiko_chatbot_background_sync');
         wp_schedule_single_event(time(), 'wpiko_chatbot_background_sync');
         
         // Trigger cron immediately — prevents stalling when WP-Cron is deferred

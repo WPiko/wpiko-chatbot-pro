@@ -210,13 +210,25 @@ jQuery(document).ready(function($) {
                         var errorMsg = status.error || '';
                         var lastSync = status.last_sync || '';
                         var lockActive = status.lock_active || false;
+                        var phase = status.phase || '';
+                        var processedProducts = parseInt(status.processed_products, 10) || 0;
+                        var totalProducts = parseInt(status.total_products, 10) || 0;
                         
                         // Update progress message
                         let statusText = '';
                         let statusClass = 'status-info';
                         
                         if (syncStatus === 'running' || syncStatus === 'scheduled') {
-                            statusText = `Sync in progress: ${progress}%`;
+                            if (syncStatus === 'scheduled') {
+                                statusText = 'Sync scheduled...';
+                            } else if (phase === 'uploading') {
+                                statusText = `Uploading product file: ${progress}%`;
+                            } else if (totalProducts > 0) {
+                                statusText = `Sync in progress: ${progress}% (${processedProducts} of ${totalProducts} products)`;
+                            } else {
+                                statusText = `Sync in progress: ${progress}%`;
+                            }
+
                             $('#sync_status')
                                 .text(statusText)
                                 .removeClass('status-success status-error')
@@ -383,7 +395,7 @@ jQuery(document).ready(function($) {
                         .addClass('status-error');
                     $syncButton.prop('disabled', false);
                 },
-                timeout: 30000 // 30 seconds timeout
+                timeout: 0
             });
         });
 
