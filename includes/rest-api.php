@@ -441,7 +441,7 @@ function wpiko_chatbot_pro_rest_capability_check($capability, $request = null) {
     if (!wpiko_chatbot_pro_user_can_access_pwa()) {
         return new WP_Error(
             'pwa_access_denied',
-            'This account cannot access the Mobile App. Use an Administrator or WPiko Agent account.',
+            'This account cannot access the Mobile App. Use an Administrator or Live Agent account.',
             array('status' => 403)
         );
     }

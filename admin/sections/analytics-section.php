@@ -3,27 +3,11 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-function wpiko_chatbot_get_date_range_array($start_date, $end_date) {
-    $dates = array();
-    $current = new DateTime($start_date);
-    $end = new DateTime($end_date);
-
-    while ($current <= $end) {
-        $dates[] = $current->format('Y-m-d');
-        $current->modify('+1 day');
-    }
-    return $dates;
-}
-
 function wpiko_chatbot_analytics_section() {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'wpiko_chatbot_conversations';
     $is_premium = wpiko_chatbot_is_license_active();
-    
-    // Basic date range for free users
-    $days = 7; // Default to last 7 days for free users
-    $current_period_end = gmdate('Y-m-d H:i:s');
-    $current_period_start = gmdate('Y-m-d H:i:s', strtotime("-{$days} days"));
+    $analytics_now = new DateTimeImmutable('now', wpiko_chatbot_pro_get_site_timezone());
+    $default_start_date = $analytics_now->modify('-6 days')->format('Y-m-d');
+    $default_end_date = $analytics_now->format('Y-m-d');
 
     // Advanced date range options for premium users
     if ($is_premium) {
@@ -52,283 +36,117 @@ function wpiko_chatbot_analytics_section() {
         $date_range = '7';
     }
 
+    $allowed_date_ranges = array('7', '30', '90', 'custom');
+    if (!in_array($date_range, $allowed_date_ranges, true)) {
+        $date_range = '7';
+        $custom_start_date = null;
+        $custom_end_date = null;
+    }
+
     // Get location view preference (default to country)
     // Validate location view parameter to prevent invalid values
     $allowed_location_views = array('country', 'city', 'region');
     $location_view_param = isset($_GET['location_view']) ? sanitize_text_field(wp_unslash($_GET['location_view'])) : 'country';
     $location_view = in_array($location_view_param, $allowed_location_views, true) ? $location_view_param : 'country';
     
-    // Set the date range based on selection
-    if ($date_range === 'custom' && $custom_start_date && $custom_end_date) {
-        // Ensure end date is not before start date
-        if (strtotime($custom_end_date) < strtotime($custom_start_date)) {
-            $temp = $custom_end_date;
-            $custom_end_date = $custom_start_date;
-            $custom_start_date = $temp;
-        }
-    
-        $current_period_start = $custom_start_date . ' 00:00:00';
-        $current_period_end = $custom_end_date . ' 23:59:59';
-
-        // Calculate previous period for custom range
-        $period_length = strtotime($current_period_end) - strtotime($current_period_start);
-        if ($period_length == 0) {
-            // If same day selected, set previous period to previous day
-            $previous_period_end = gmdate('Y-m-d H:i:s', strtotime($current_period_start));
-            $previous_period_start = gmdate('Y-m-d H:i:s', strtotime('-1 day', strtotime($current_period_start)));
-        } else {
-            $previous_period_end = $current_period_start;
-            $previous_period_start = gmdate('Y-m-d H:i:s', strtotime($current_period_start) - $period_length);
-        }
-    } else {
-        // Default date range
-        $days = intval($date_range);
-        $current_period_end = gmdate('Y-m-d H:i:s');
-        $current_period_start = gmdate('Y-m-d H:i:s', strtotime("-{$days} days"));
-
-        // Calculate previous period
-        $previous_period_end = $current_period_start;
-        $previous_period_start = gmdate('Y-m-d H:i:s', strtotime("-{$days} days", strtotime($previous_period_end)));
-    }
-
-    // Overall Statistics FOR THE SELECTED PERIOD
-    $total_conversations = $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(DISTINCT session_id) FROM {$wpdb->prefix}wpiko_chatbot_conversations 
-        WHERE timestamp >= %s AND timestamp <= %s",
-        $current_period_start,
-        $current_period_end
-    ));
-
-    $total_messages = $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM {$wpdb->prefix}wpiko_chatbot_conversations 
-        WHERE role IN ('user', 'assistant') AND timestamp >= %s AND timestamp <= %s",
-        $current_period_start,
-        $current_period_end
-    ));
-
-    $total_users = $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(DISTINCT CASE WHEN user_email != '' THEN user_email ELSE session_id END) 
-        FROM {$wpdb->prefix}wpiko_chatbot_conversations 
-        WHERE timestamp >= %s AND timestamp <= %s",
-        $current_period_start,
-        $current_period_end
-    ));
-
-    // Check if there's data
-    $has_data = $total_conversations > 0;
-    
-    // Current period stats
-    $current_period_conversations = $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(DISTINCT session_id) FROM {$wpdb->prefix}wpiko_chatbot_conversations WHERE timestamp >= %s",
-        $current_period_start
-    ));
-    
-    // Previous period stats for comparison
-    $previous_period_conversations = $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(DISTINCT session_id) FROM {$wpdb->prefix}wpiko_chatbot_conversations WHERE timestamp >= %s AND timestamp < %s",
-        $previous_period_start,
-        $previous_period_end
-    ));
-
-    // Calculate percentage change
-    $conversation_change = 0;
-    if ($previous_period_conversations > 0) {
-        $conversation_change = round((($current_period_conversations - $previous_period_conversations) / $previous_period_conversations) * 100, 1);
-    } elseif ($previous_period_conversations == 0 && $current_period_conversations > 0) {
-        $conversation_change = 100;
-    } elseif ($previous_period_conversations == 0 && $current_period_conversations == 0) {
-        $conversation_change = 0;
-    }
-
-    // Average messages per conversation
-    $avg_messages = $wpdb->get_var("
-        SELECT AVG(message_count) FROM (
-            SELECT session_id, COUNT(*) as message_count 
-            FROM {$wpdb->prefix}wpiko_chatbot_conversations 
-            WHERE role IN ('user', 'assistant')
-            GROUP BY session_id
-        ) as conversation_counts
-    ");
-
-    // Get messages by type
-    $message_types = $wpdb->get_results($wpdb->prepare("
-        SELECT role, COUNT(*) as count 
-        FROM {$wpdb->prefix}wpiko_chatbot_conversations 
-        WHERE timestamp >= %s AND timestamp <= %s
-        GROUP BY role
-    ", $current_period_start, $current_period_end), ARRAY_A);
-
-    // Error rate calculation
-    $error_count = 0;
-    $total_count = 0;
-    foreach ($message_types as $type) {
-        if ($type['role'] === 'error') {
-            $error_count = $type['count'];
-        }
-        $total_count += $type['count'];
-    }
-    $error_rate = $total_count > 0 ? ($error_count / $total_count) * 100 : 0;
-
-    // Get busiest hours
-    $busy_hours = $wpdb->get_results($wpdb->prepare("
-        SELECT HOUR(timestamp) as hour, COUNT(*) as count 
-        FROM {$wpdb->prefix}wpiko_chatbot_conversations 
-        WHERE timestamp >= %s AND timestamp <= %s
-        GROUP BY HOUR(timestamp) 
-        ORDER BY count DESC 
-        LIMIT 3
-    ", $current_period_start, $current_period_end));
-
-    // Get messages per day for the selected date range
-    $date_range_array = wpiko_chatbot_get_date_range_array($current_period_start, $current_period_end);
-    $daily_messages_results = $wpdb->get_results($wpdb->prepare("
-        SELECT 
-            DATE(timestamp) as date, 
-            COUNT(*) as total_count,
-            SUM(CASE WHEN role = 'user' THEN 1 ELSE 0 END) as user_count,
-            SUM(CASE WHEN role = 'assistant' THEN 1 ELSE 0 END) as assistant_count,
-            SUM(CASE WHEN role = 'error' THEN 1 ELSE 0 END) as error_count
-        FROM {$wpdb->prefix}wpiko_chatbot_conversations 
-        WHERE timestamp >= %s AND timestamp <= %s
-        GROUP BY DATE(timestamp)",
-        $current_period_start,
-        $current_period_end), ARRAY_A);
-
-    // Create a lookup array for quick access to daily counts
-    $daily_messages_lookup = array();
-    foreach ($daily_messages_results as $row) {
-        $daily_messages_lookup[$row['date']] = $row;
-    }
-
-    // Create the final array with all dates, including zeros
-    $daily_messages = array();
-    foreach ($date_range_array as $date) {
-        if (isset($daily_messages_lookup[$date])) {
-            $daily_messages[] = $daily_messages_lookup[$date];
-        } else {
-            $daily_messages[] = array(
-                'date' => $date,
-                'total_count' => 0,
-                'user_count' => 0,
-                'assistant_count' => 0,
-                'error_count' => 0
-            );
-        }
-    }
-    
-    // Get conversation length query
-    $conversation_lengths = $wpdb->get_results($wpdb->prepare("
-        SELECT session_id, COUNT(*) as message_count
-        FROM {$wpdb->prefix}wpiko_chatbot_conversations 
-        WHERE role IN ('user', 'assistant') AND timestamp >= %s AND timestamp <= %s
-        GROUP BY session_id
-    ", $current_period_start, $current_period_end));
-
-    // Get location distribution based on selected view
-    if ($location_view === 'city') {
-        $location_distribution = $wpdb->get_results($wpdb->prepare("
-            SELECT 
-                city as location,
-                COUNT(DISTINCT session_id) as count
-            FROM {$wpdb->prefix}wpiko_chatbot_conversations 
-            WHERE city IS NOT NULL AND city != ''
-                AND timestamp >= %s AND timestamp <= %s
-            GROUP BY city
-            ORDER BY count DESC
-            LIMIT 5
-        ", $current_period_start, $current_period_end));
-    } elseif ($location_view === 'region') {
-        $location_distribution = $wpdb->get_results($wpdb->prepare("
-            SELECT 
-                region as location,
-                COUNT(DISTINCT session_id) as count
-            FROM {$wpdb->prefix}wpiko_chatbot_conversations 
-            WHERE region IS NOT NULL AND region != ''
-                AND timestamp >= %s AND timestamp <= %s
-            GROUP BY region
-            ORDER BY count DESC
-            LIMIT 5
-        ", $current_period_start, $current_period_end));
-    } else {
-        // Default to country
-        $location_distribution = $wpdb->get_results($wpdb->prepare("
-            SELECT 
-                country as location,
-                COUNT(DISTINCT session_id) as count
-            FROM {$wpdb->prefix}wpiko_chatbot_conversations 
-            WHERE country IS NOT NULL AND country != ''
-                AND timestamp >= %s AND timestamp <= %s
-            GROUP BY country
-            ORDER BY count DESC
-            LIMIT 5
-        ", $current_period_start, $current_period_end));
-    }
-
-    $analyticsData = [
-        'dailyMessages' => $daily_messages,
-        'locationDistribution' => $location_distribution,
-        'conversationLengths' => $conversation_lengths
-    ];
+    // Resolve the selected and comparison periods using the shared AJAX rules.
+    $analytics_period = wpiko_chatbot_pro_get_analytics_period(
+        $date_range,
+        $custom_start_date ?? null,
+        $custom_end_date ?? null
+    );
+    $date_range = $analytics_period['date_range'];
+    $custom_start_date = $analytics_period['custom_start_date'];
+    $custom_end_date = $analytics_period['custom_end_date'];
+    $analytics_snapshot = wpiko_chatbot_pro_get_analytics_snapshot(
+        $analytics_period,
+        $location_view,
+        $is_premium
+    );
+    $has_data = $analytics_snapshot['has_data'];
+    $total_conversations = $analytics_snapshot['total_conversations'];
+    $total_messages = $analytics_snapshot['total_messages'];
+    $total_users = $analytics_snapshot['total_users'];
+    $conversation_change = $analytics_snapshot['conversation_change'];
+    $avg_messages = $analytics_snapshot['avg_messages'];
+    $error_count = $analytics_snapshot['error_count'];
+    $error_rate = $analytics_snapshot['error_rate'];
+    $daily_messages = $analytics_snapshot['daily_messages'];
+    $location_distribution = $analytics_snapshot['locations'];
+    $conversation_length_bins = $analytics_snapshot['conversation_length_bins'];
+    $busy_hours = $analytics_snapshot['busy_hours'];
+    $total_user_messages = $analytics_snapshot['total_user_messages'];
+    $device_counts = $analytics_snapshot['device_counts'];
+    $device_percentages = $analytics_snapshot['device_percentages'];
 
     ?>
     <div class="analytics-section">
-        <div class="analytics-header">        
-            <h2><span class="dashicons dashicons-chart-bar"></span> Analytics Dashboard</h2>
-        
-            <?php if ($is_premium): ?>
-                <!-- Premium date range selector -->
-                <div class="date-range">
-                    <form id="analytics-date-range" method="get" action="">
-                        <input type="hidden" name="page" value="ai-chatbot">
-                        <input type="hidden" name="tab" value="analytics">
-                        <input type="hidden" name="location_view" value="<?php echo esc_attr($location_view); ?>">
-                        <?php wp_nonce_field('wpiko_analytics_filter', 'wpiko_analytics_nonce'); ?>
-                        <select name="date_range" id="date_range">
-                            <option value="7" <?php selected($date_range, '7'); ?>>Last 7 Days</option>
-                            <option value="30" <?php selected($date_range, '30'); ?>>Last 30 Days</option>
-                            <option value="90" <?php selected($date_range, '90'); ?>>Last 90 Days</option>
-                            <option value="custom" <?php selected($date_range, 'custom'); ?>>Custom Range</option>
-                        </select>
-                        <div id="custom-date-inputs" style="display: <?php echo $date_range === 'custom' ? 'flex' : 'none'; ?>;">
-                            <input type="date" name="start_date" id="start_date" 
-                                   value="<?php echo esc_attr($custom_start_date ?? gmdate('Y-m-d', strtotime('-7 days'))); ?>">
-                            <span>to</span>
-                            <input type="date" name="end_date" id="end_date" 
-                                   value="<?php echo esc_attr($custom_end_date ?? gmdate('Y-m-d')); ?>">
-                        </div>
-                    </form>
+        <div class="analytics-header">
+            <div class="analytics-title-group">
+                <h2><span class="dashicons dashicons-chart-bar"></span> Analytics Dashboard</h2>
+                <div class="analytics-live-status" data-analytics-live-status>
+                    <span class="analytics-live-dot" aria-hidden="true"></span>
+                    <span data-analytics-live-label><?php esc_html_e('Live', 'wpiko-chatbot-pro'); ?></span>
                 </div>
-            <?php else: ?>
-                <!-- Free version date range display -->
-                <div class="date-range">
-                    <span class="date-value">
-                        <?php 
-                            echo esc_html(gmdate('M j, Y', strtotime('-7 days')) . ' - ' . gmdate('M j, Y'));
-                        ?>
-                    </span>
-                </div>
-            <?php endif; ?>
+            </div>
+
+            <div class="analytics-header-controls">
+                <?php if ($is_premium): ?>
+                    <!-- Premium date range selector -->
+                    <div class="date-range">
+                        <form id="analytics-date-range" method="get" action="">
+                            <input type="hidden" name="page" value="ai-chatbot">
+                            <input type="hidden" name="tab" value="analytics">
+                            <input type="hidden" name="location_view" value="<?php echo esc_attr($location_view); ?>">
+                            <?php wp_nonce_field('wpiko_analytics_filter', 'wpiko_analytics_nonce'); ?>
+                            <select name="date_range" id="date_range">
+                                <option value="7" <?php selected($date_range, '7'); ?>>Last 7 Days</option>
+                                <option value="30" <?php selected($date_range, '30'); ?>>Last 30 Days</option>
+                                <option value="90" <?php selected($date_range, '90'); ?>>Last 90 Days</option>
+                                <option value="custom" <?php selected($date_range, 'custom'); ?>>Custom Range</option>
+                            </select>
+                            <div id="custom-date-inputs" style="display: <?php echo $date_range === 'custom' ? 'flex' : 'none'; ?>;">
+                                <input type="date" name="start_date" id="start_date"
+                                       value="<?php echo esc_attr($custom_start_date ?? $default_start_date); ?>">
+                                <span>to</span>
+                                <input type="date" name="end_date" id="end_date"
+                                       value="<?php echo esc_attr($custom_end_date ?? $default_end_date); ?>">
+                            </div>
+                        </form>
+                    </div>
+                <?php else: ?>
+                    <!-- Free version date range display -->
+                    <div class="date-range">
+                        <span class="date-value">
+                            <?php
+                                echo esc_html(
+                                    $analytics_now->modify('-6 days')->format('M j, Y')
+                                    . ' - '
+                                    . $analytics_now->format('M j, Y')
+                                );
+                            ?>
+                        </span>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
 
-        <?php if (!$has_data): ?>
-            <div class="no-data-message">
-                <p>No conversations found for the selected date range</p>
-            </div>
-        <?php endif; ?>
+        <div class="no-data-message" data-analytics-empty-state<?php if ($has_data): ?> hidden<?php endif; ?>>
+            <p>No conversations found for the selected date range</p>
+        </div>
 
-        <?php if ($has_data): ?>
         <!-- Basic Analytics Cards (Available to all users) -->
-        <div class="analytics-grid">
+        <div class="analytics-grid" data-analytics-summary<?php if (!$has_data): ?> hidden<?php endif; ?>>
             <div class="analytics-card highlight-card">
                 <div class="card-content">
                     <div class="card-header">
                         <h3>Total Conversations</h3>
                         <span class="dashicons dashicons-admin-comments"></span>
                     </div>
-                    <div class="analytics-number"><?php echo number_format($total_conversations); ?></div>
-                    <div class="trend <?php echo $conversation_change >= 0 ? 'positive' : 'negative'; ?>">
+                    <div class="analytics-number" data-analytics-total-conversations><?php echo number_format($total_conversations); ?></div>
+                    <div class="trend <?php echo $conversation_change >= 0 ? 'positive' : 'negative'; ?>" data-analytics-conversation-trend>
                         <span class="dashicons <?php echo $conversation_change >= 0 ? 'dashicons-arrow-up-alt' : 'dashicons-arrow-down-alt'; ?>"></span>
-                        <?php echo esc_html(abs($conversation_change)); ?>% from last period
+                        <span><span data-analytics-conversation-change><?php echo esc_html(abs($conversation_change)); ?></span>% from last period</span>
                     </div>
                 </div>
             </div>
@@ -339,9 +157,9 @@ function wpiko_chatbot_analytics_section() {
                         <h3>Total Messages</h3>
                         <span class="dashicons dashicons-format-chat"></span>
                     </div>
-                    <div class="analytics-number"><?php echo number_format($total_messages); ?></div>
+                    <div class="analytics-number" data-analytics-total-messages><?php echo number_format($total_messages); ?></div>
                     <div class="metric-subtitle">
-                        <?php echo number_format($avg_messages, 1); ?> avg. messages per conversation
+                        <span data-analytics-average-messages><?php echo number_format($avg_messages, 1); ?></span> avg. messages per conversation
                     </div>
                 </div>
             </div>
@@ -352,7 +170,7 @@ function wpiko_chatbot_analytics_section() {
                         <h3>Unique Users</h3>
                         <span class="dashicons dashicons-groups"></span>
                     </div>
-                    <div class="analytics-number"><?php echo number_format($total_users); ?></div>
+                    <div class="analytics-number" data-analytics-total-users><?php echo number_format($total_users); ?></div>
                     <div class="metric-subtitle">
                         Based on unique emails/sessions
                     </div>
@@ -365,193 +183,117 @@ function wpiko_chatbot_analytics_section() {
                         <h3>Error Rate</h3>
                         <span class="dashicons dashicons-warning"></span>
                     </div>
-                    <div class="analytics-number <?php echo $error_rate > 3 ? 'warning' : ''; ?>">
+                    <div class="analytics-number <?php echo $error_rate > 3 ? 'warning' : ''; ?>" data-analytics-error-rate>
                         <?php echo number_format($error_rate, 1); ?>%
                     </div>
                     <div class="metric-subtitle">
-                        <?php echo number_format($error_count); ?> total errors
+                        <span data-analytics-error-count><?php echo number_format($error_count); ?></span> total errors
                     </div>
                 </div>
             </div>
         </div>
-        <?php endif; ?>
 
         <?php if ($is_premium): ?>
             <!-- Premium Analytics Section -->
             <div class="analytics-grid charts-grid">
-                <div class="analytics-card full-width">
-                    <div class="card-header">
-                        <h3>Message Activity</h3>
-                   </div>
-                   <div class="message-line-chart">
-                   <?php                                                                               
-                   
-                    // Get min and max values for scaling
-                   $max_count = 0;
-                   $values = array();
-                   foreach ($daily_messages as $day) {
-                        $max_count = max($max_count, $day['user_count']);
-                        $values[] = $day['user_count'];
-                    }
-                    
-                    // Calculate y-axis labels
-                   $label_count = 5; // Number of labels to show
-                   $step = $max_count > 0 ? ceil($max_count / ($label_count - 1)) : 1;
-                   $max_label = ceil($max_count / $step) * $step;
-                   
-                   // Determine label interval based on date range
-                   $interval = 1; // Default interval
-                   
-                   if ($date_range === 'custom') {
-                       // Calculate days between start and end date
-                       $days_difference = ceil((strtotime($current_period_end) - strtotime($current_period_start)) / (60 * 60 * 24));
-                       
-                       if ($days_difference <= 7) {
-                           $interval = 1;      // Show all dates for ≤ 7 days
-                        } elseif ($days_difference <= 30) {
-                            $interval = 5;      // Show every 5th day for 8-30 days
-                        } elseif ($days_difference <= 90) {
-                            $interval = 10;     // Show every 10th day for 31-90 days
-                        } elseif ($days_difference <= 180) {
-                            $interval = 15;     // Show every 15th day for 91-180 days
-                        } elseif ($days_difference <= 365) {
-                            $interval = 30;     // Show monthly for 181-365 days
-                        } else {
-                            // For ranges > 1 year, show fewer points to prevent overcrowding
-                            $interval = ceil($days_difference / 12); // Aim for roughly 12 points on the graph
-                        }
-                    } else {
-                   
-                       // Determine label interval based on date range
-                       if ($date_range == '90') {
-                           $interval = 10; // Show every 10th day
-                        } elseif ($date_range == '30') {
-                           $interval = 5;  // Show every 5th day
-                        } elseif ($date_range == '7') {
-                            $interval = 1;
-                        }
-                    }
-                    
-                    // Calculate points for the line
-                    $points = '';
-                    $dots = '';
-                    $dates = '';
-                    $total_points = count($values);
-                    $chart_width = 100; // percentage
-                    $chart_height = 100; // percentage
-                     
-            ?>
-            <div class="y-axis-labels">
-                <?php
-                for ($i = $max_label; $i >= 0; $i -= $step) {
-                    echo "<div class='y-label'>" . number_format($i) . "</div>";
-                }
-                ?>
-            </div>
-            
-            <?php
-            // Check if it's a single day view
-            $is_single_day = strtotime(gmdate('Y-m-d', strtotime($current_period_end))) === strtotime(gmdate('Y-m-d', strtotime($current_period_start)));
-            ?>
-        
-            <div class="line-chart-container<?php echo $is_single_day ? ' single-day-view' : ''; ?>">
-                <div class="chart-area">
-                    <?php
-                    
-                if ($total_points > 0) {
-                    // Generate points and dots
-                    
-                    foreach ($values as $index => $value) {
-                        if ($is_single_day) {
-                            // For single day, center the point
-                            $x = 50; // Center point
-                         } else {
-                             $x = ($index / max(1, $total_points - 1)) * $chart_width;
-                         }
-                          
-                        $y = $max_label > 0 ? (1 - ($value / $max_label)) * $chart_height : 100;
-        
-                        $points .= "$x,$y ";
-                        
-                        // Add zero-value class for dots with no messages
-                        $zero_class = $value == 0 ? ' zero-value' : '';
-                        // Define date format before using it
-                        $date_format = 'M j';
-                        $date = gmdate($date_format, strtotime($daily_messages[$index]['date']));
-                        $dots .= "<div class='chart-dot{$zero_class}' style='left: {$x}%; top: {$y}%;' data-value='{$value}' data-date='{$date}'></div>";
-        
-                        // Add date labels
-                        if ($date_range === 'custom') {
-                            if ($days_difference > 365) {
-                                $date_format = 'M Y'; // Show only month and year for ranges > 1 year
-                            } elseif ($days_difference > 90) {
-                                $date_format = 'M j'; // Show month and day for ranges > 90 days
-                            }
-                        }
-                                    
-                            if ($index === 0 || $index % $interval === 0 || $index === $total_points - 1) {
-                                $date = gmdate($date_format, strtotime($daily_messages[$index]['date']));
-                                $dates .= "<div class='date-label' style='left: {$x}%;'>{$date}</div>";
-                        }
-                    }
-                    ?>
-                
-                    <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-                        <defs>
-                            <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" style="stop-color:#0968FE;stop-opacity:0.2" />
-                                <stop offset="100%" style="stop-color:#0968FE;stop-opacity:0" />
-                            </linearGradient>
-                        </defs>
-                
-                        <!-- Area fill -->
-                        <polygon points="0,100 <?php echo esc_attr($points); ?> <?php echo esc_attr($total_points-1); ?>,100" fill="url(#gradient)" />
-                
-                        <!-- Line -->
-                        <polyline points="<?php echo esc_attr($points); ?>" fill="none" stroke="#0968FE" stroke-width="0.5" />
-                    </svg>
-                
-                    <!-- Dots and tooltips -->
-                    <?php echo wp_kses_post($dots); ?>
-                </div>
-
-                <!-- Date labels -->
-                <div class="date-labels">
-                    <?php echo wp_kses_post($dates); ?>
-                </div>
-                       
-                      </div> 
-                <?php } else { ?>
-                    <div class="no-data-message">
-                        <p>Not enough data available for the selected period</p>
+                <div class="analytics-card full-width message-activity-card">
+                    <div class="card-header message-activity-header">
+                        <div class="message-activity-heading">
+                            <h3 id="message-activity-title">Message Activity</h3>
+                            <p id="message-activity-summary" class="message-activity-summary" aria-live="polite" aria-atomic="true">
+                                Loading message activity…
+                            </p>
                         </div>
-                    <?php } ?>
+                        <div class="message-series-toggle" role="group" aria-label="Message activity series">
+                            <button type="button" class="message-series-btn active" data-series="total" aria-pressed="true" aria-controls="message-activity-chart">Total</button>
+                            <button type="button" class="message-series-btn" data-series="user" aria-pressed="false" aria-controls="message-activity-chart">User</button>
+                            <button type="button" class="message-series-btn" data-series="assistant" aria-pressed="false" aria-controls="message-activity-chart">Assistant</button>
+                            <button type="button" class="message-series-btn" data-series="error" aria-pressed="false" aria-controls="message-activity-chart">Errors</button>
+                        </div>
+                    </div>
+
+                    <div
+                        id="message-activity-chart"
+                        class="message-line-chart"
+                        data-message-activity-chart
+                        role="region"
+                        aria-labelledby="message-activity-title"
+                        aria-describedby="message-activity-instructions"
+                    >
+                        <p id="message-activity-instructions" class="screen-reader-text">
+                            Select a message type to update the chart. Use the left and right arrow keys to move between data points.
+                        </p>
+
+                        <div class="y-axis-labels" aria-hidden="true"></div>
+
+                        <div class="line-chart-container">
+                            <div class="chart-area message-chart-area">
+                                <div class="chart-gridlines" aria-hidden="true"></div>
+
+                                <svg class="message-chart-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                                    <defs>
+                                        <linearGradient id="message-activity-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                            <stop class="message-chart-gradient-start" offset="0%" stop-color="#0968FE" stop-opacity="0.2" />
+                                            <stop class="message-chart-gradient-end" offset="100%" stop-color="#0968FE" stop-opacity="0" />
+                                        </linearGradient>
+                                    </defs>
+                                    <polygon class="message-chart-fill" points="" fill="url(#message-activity-gradient)" />
+                                    <polyline class="message-chart-line" points="" fill="none" />
+                                </svg>
+
+                                <div class="chart-points"></div>
+                                <div class="vertical-line" hidden aria-hidden="true"></div>
+                                <div id="message-activity-tooltip" class="chart-tooltip" role="tooltip" hidden></div>
+
+                                <div class="chart-empty-state" hidden aria-hidden="true">
+                                    <strong class="chart-empty-title"></strong>
+                                    <span class="chart-empty-description">Try another message type or date range.</span>
+                                </div>
+                            </div>
+
+                            <div class="date-labels" aria-hidden="true"></div>
+                        </div>
+
+                        <table class="screen-reader-text message-activity-data-table">
+                            <caption>Message activity by date</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Date</th>
+                                    <th scope="col">Messages</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+
+                        <noscript>
+                            <p class="no-data-message">JavaScript is required to display the message activity chart.</p>
+                        </noscript>
+                    </div>
                 </div>
-            </div>
 
             <div class="analytics-card half-width">
                 <div class="card-header">
                     <h3>Top User Locations</h3>
-                    <div class="location-view-toggle">
-                        <button type="button" class="location-toggle-btn <?php echo $location_view === 'country' ? 'active' : ''; ?>" data-view="country">Country</button>
-                        <button type="button" class="location-toggle-btn <?php echo $location_view === 'city' ? 'active' : ''; ?>" data-view="city">City</button>
-                        <button type="button" class="location-toggle-btn <?php echo $location_view === 'region' ? 'active' : ''; ?>" data-view="region">Region</button>
+                    <div class="location-view-toggle" role="group" aria-label="Location type">
+                        <button type="button" class="location-toggle-btn <?php echo $location_view === 'country' ? 'active' : ''; ?>" data-view="country" aria-pressed="<?php echo $location_view === 'country' ? 'true' : 'false'; ?>" aria-controls="top-user-locations-list">Country</button>
+                        <button type="button" class="location-toggle-btn <?php echo $location_view === 'city' ? 'active' : ''; ?>" data-view="city" aria-pressed="<?php echo $location_view === 'city' ? 'true' : 'false'; ?>" aria-controls="top-user-locations-list">City</button>
+                        <button type="button" class="location-toggle-btn <?php echo $location_view === 'region' ? 'active' : ''; ?>" data-view="region" aria-pressed="<?php echo $location_view === 'region' ? 'true' : 'false'; ?>" aria-controls="top-user-locations-list">Region</button>
                     </div>
                 </div>
-                <div class="locations-list">
+                <div id="top-user-locations-list" class="locations-list" aria-live="polite" aria-busy="false">
                     <?php if (!empty($location_distribution)): ?>
-                        <?php 
-                        $max_count = !empty($location_distribution) ? $location_distribution[0]->count : 1;
-                        foreach ($location_distribution as $location): 
-                            $location_name = !empty($location->location) ? $location->location : 'Unknown';
-                            $percentage = $max_count > 0 ? ($location->count / $max_count) * 100 : 0;
+                        <?php
+                        $max_count = !empty($location_distribution) ? $location_distribution[0]['count'] : 1;
+                        foreach ($location_distribution as $location):
+                            $location_name = !empty($location['location']) ? $location['location'] : 'Unknown';
+                            $percentage = $max_count > 0 ? ($location['count'] / $max_count) * 100 : 0;
                         ?>
                             <div class="location-item">
                                 <span class="location-name" title="<?php echo esc_attr($location_name); ?>"><?php echo esc_html($location_name); ?></span>
                                 <div class="activity-bar-container">
                                     <div class="activity-bar" style="width: <?php echo esc_attr($percentage); ?>%"></div>
                                 </div>
-                                <span class="count"><?php echo number_format($location->count); ?></span>
+                                <span class="count"><?php echo number_format($location['count']); ?></span>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
@@ -568,26 +310,8 @@ function wpiko_chatbot_analytics_section() {
                 </div>
                 <div class="conversation-length-list">
                     <?php
-                    // Calculate bins for conversation lengths
-                    $bins = array(
-                        '1-2 msgs' => 0,
-                        '3-5 msgs' => 0,
-                        '6-10 msgs' => 0,
-                        '11-20 msgs' => 0,
-                        '20+ msgs' => 0
-                    );
-        
-                    foreach ($conversation_lengths as $conv) {
-                        $count = intval($conv->message_count);
-                        if ($count <= 2) $bins['1-2 msgs']++;
-                        elseif ($count <= 5) $bins['3-5 msgs']++;
-                        elseif ($count <= 10) $bins['6-10 msgs']++;
-                        elseif ($count <= 20) $bins['11-20 msgs']++;
-                        else $bins['20+ msgs']++;
-                    }
-        
-                    $max_count = max($bins);
-                    foreach ($bins as $label => $count): 
+                    $max_count = !empty($conversation_length_bins) ? max($conversation_length_bins) : 0;
+                    foreach ($conversation_length_bins as $label => $count):
                         $percentage = $max_count > 0 ? ($count / $max_count) * 100 : 0;
                     ?>
                         <div class="conversation-length-item">
@@ -605,52 +329,20 @@ function wpiko_chatbot_analytics_section() {
         <div class="analytics-card half-width">
             <h3>Peak Activity Hours</h3>
             <div class="peak-hours-list">
-                <?php foreach ($busy_hours as $hour): ?>
+                <?php
+                $peak_hour_maximum = !empty($busy_hours) ? $busy_hours[0]['count'] : 0;
+                foreach ($busy_hours as $hour):
+                ?>
                     <div class="peak-hour-item">
-                        <span class="hour"><?php echo esc_html(gmdate('ga', strtotime($hour->hour . ':00'))); ?></span>
+                        <span class="hour"><?php echo esc_html(gmdate('ga', strtotime($hour['hour'] . ':00'))); ?></span>
                         <div class="activity-bar-container">
-                            <div class="activity-bar" style="width: <?php echo esc_attr(($hour->count / $busy_hours[0]->count) * 100); ?>%"></div>
+                            <div class="activity-bar" style="width: <?php echo esc_attr($peak_hour_maximum > 0 ? ($hour['count'] / $peak_hour_maximum) * 100 : 0); ?>%"></div>
                         </div>
-                        <span class="count"><?php echo number_format($hour->count); ?></span>
+                        <span class="count"><?php echo number_format($hour['count']); ?></span>
                     </div>
                 <?php endforeach; ?>
             </div>
         </div>
-        
-        <?php
-        // Get device distribution
-        $device_stats = $wpdb->get_results($wpdb->prepare("
-            SELECT 
-                COALESCE(device_type, 'desktop') as device_type,
-                COUNT(*) as count
-            FROM {$wpdb->prefix}wpiko_chatbot_conversations 
-            WHERE timestamp >= %s AND timestamp <= %s
-            AND role = 'user'
-            GROUP BY device_type
-        ", $current_period_start, $current_period_end));
-
-        // Calculate totals and percentages
-        $total_user_messages = 0;
-        $device_percentages = array(
-            'desktop' => 0,
-            'mobile' => 0,
-            'tablet' => 0 
-        );
-
-        foreach ($device_stats as $stat) {
-            $total_user_messages += $stat->count;
-            if (isset($device_percentages[$stat->device_type])) {
-                $device_percentages[$stat->device_type] += $stat->count;
-            }
-        }
-
-        // Convert counts to percentages
-        if ($total_user_messages > 0) {
-            foreach ($device_percentages as $device => $count) {
-                $device_percentages[$device] = ($count / $total_user_messages) * 100;
-            }
-        }
-        ?>
 
     <!-- Messages by Device Card -->
     <div class="analytics-card half-width">
@@ -660,34 +352,34 @@ function wpiko_chatbot_analytics_section() {
         <div class="device-stats">
             <div class="messages-total">
                 <div class="messages-label">User Messages</div>
-                <div class="messages-count"><?php echo number_format($total_user_messages); ?></div>
+                <div class="messages-count" data-analytics-device-total><?php echo number_format($total_user_messages); ?></div>
                 </div>
                 <div class="device-distribution">
-                    <div class="device-box">
+                    <div class="device-box" data-analytics-device="desktop">
                         <div class="device-icon">
                             <span class="dashicons dashicons-desktop"></span>
                         </div>
                         <div class="device-info">
                             <div class="device-percentage"><?php echo esc_html(round($device_percentages['desktop'])); ?>%</div>
-                            <div class="device-details">Desktop: <?php echo esc_html(number_format(($device_percentages['desktop'] * $total_user_messages / 100))); ?></div>
+                            <div class="device-details">Desktop: <span class="device-count"><?php echo esc_html(number_format($device_counts['desktop'])); ?></span></div>
                         </div>
                     </div>
-                    <div class="device-box">
+                    <div class="device-box" data-analytics-device="mobile">
                         <div class="device-icon">
                             <span class="dashicons dashicons-smartphone"></span>
                         </div>
                         <div class="device-info">
                             <div class="device-percentage"><?php echo esc_html(round($device_percentages['mobile'])); ?>%</div>
-                            <div class="device-details">Mobile: <?php echo esc_html(number_format(($device_percentages['mobile'] * $total_user_messages / 100))); ?></div>
+                            <div class="device-details">Mobile: <span class="device-count"><?php echo esc_html(number_format($device_counts['mobile'])); ?></span></div>
                         </div>
                     </div>
-                    <div class="device-box">
+                    <div class="device-box" data-analytics-device="tablet">
                         <div class="device-icon">
                             <span class="dashicons dashicons-tablet"></span>
                         </div>
                         <div class="device-info">
                             <div class="device-percentage"><?php echo esc_html(round($device_percentages['tablet'])); ?>%</div>
-                            <div class="device-details">Tablet: <?php echo esc_html(number_format(($device_percentages['tablet'] * $total_user_messages / 100))); ?></div>
+                            <div class="device-details">Tablet: <span class="device-count"><?php echo esc_html(number_format($device_counts['tablet'])); ?></span></div>
                         </div>
                     </div>
                 </div>
@@ -734,13 +426,31 @@ function wpiko_chatbot_analytics_section() {
         <?php endif; ?>
     
     <?php
-    // Always enqueue the CSS file
-    wp_enqueue_style('wpiko-chatbot-analytics-css', plugins_url('/css/analytics-style.css', dirname(__FILE__)), array(), '1.0');
+    $analytics_asset_version = apply_filters(
+        'wpiko_chatbot_pro_asset_version',
+        defined('WPIKO_CHATBOT_PRO_VERSION') ? WPIKO_CHATBOT_PRO_VERSION : '1.0.0'
+    );
 
-    // Only enqueue JavaScript files if premium or has data
-    if ($is_premium || $has_data) {
-        wp_enqueue_script('wpiko-chatbot-analytics', plugins_url('/js/analytics.js', dirname(__FILE__)), array('jquery'), '1.0', true);
-    }
+    // Always enqueue the CSS file
+    wp_enqueue_style('wpiko-chatbot-analytics-css', plugins_url('/css/analytics-style.css', dirname(__FILE__)), array(), $analytics_asset_version);
+
+    wp_enqueue_script('wpiko-chatbot-analytics', plugins_url('/js/analytics.js', dirname(__FILE__)), array('jquery'), $analytics_asset_version, true);
+    wp_localize_script(
+        'wpiko-chatbot-analytics',
+        'wpikoChatbotAnalytics',
+        array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'locationAction' => 'wpiko_chatbot_get_analytics_locations',
+            'locationNonce' => wp_create_nonce('wpiko_chatbot_analytics_locations'),
+            'locationError' => __('Unable to load location analytics. Please try again.', 'wpiko-chatbot-pro'),
+            'liveAction' => 'wpiko_chatbot_get_analytics_snapshot',
+            'liveNonce' => wp_create_nonce('wpiko_chatbot_analytics_live'),
+            'liveInterval' => (int) apply_filters('wpiko_chatbot_analytics_live_interval', 15000),
+            'liveLabel' => __('Live', 'wpiko-chatbot-pro'),
+            'liveUpdatingLabel' => __('Updating…', 'wpiko-chatbot-pro'),
+            'liveErrorLabel' => __('Reconnecting…', 'wpiko-chatbot-pro'),
+        )
+    );
     ?>
 
     <script>
@@ -748,7 +458,6 @@ function wpiko_chatbot_analytics_section() {
     var analyticsData = {
         dailyMessages: <?php echo wp_json_encode($daily_messages); ?>,
         locationDistribution: <?php echo wp_json_encode($location_distribution); ?>,
-        conversationLengths: <?php echo wp_json_encode($conversation_lengths); ?>,
         currentLocationView: '<?php echo esc_js($location_view); ?>'
     };
     </script>

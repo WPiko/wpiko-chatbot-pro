@@ -18,7 +18,7 @@
 }
 
 #qa-management-section .description {
-    color: #3A4F66;
+    color: var(--wpiko-text);
     line-height: 1.6;
     font-size: 14px;
     margin-bottom: 25px;
@@ -27,7 +27,7 @@
 #qa-management-section h3 {
     display: flex;
     align-items: center;
-    color: #3A4F66;
+    color: var(--wpiko-text);
 }
 
 
@@ -36,7 +36,7 @@
     font-size: 28px; 
     width: 28px; 
     height: 28px;
-    background: linear-gradient(to right, #6498FC, #0968FE);
+    background: linear-gradient(to right, var(--wpiko-primary-light), var(--wpiko-primary));
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -51,11 +51,11 @@
 
 #qa-management-container-buttons button {
     padding: 8px 16px;
-    border-radius: 6px;
+    border-radius: var(--wpiko-radius-sm);
     transition: all 0.2s ease;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--wpiko-border);
     background: #fff;
-    color: #3A4F66;
+    color: var(--wpiko-text);
     font-weight: 500;
     display: flex;
     align-items: center;
@@ -72,47 +72,47 @@
 }
 
 #qa-management-container-buttons button:hover {
-    background: #f8fafc;
-    border-color: #0968fe;
-    color: #0968fe;
+    background: var(--wpiko-surface-alt);
+    border-color: var(--wpiko-primary);
+    color: var(--wpiko-primary);
     transform: translateY(-1px);
 }
 
 #add-qa-button {
-    background: #03B5AA !important;
+    background: var(--wpiko-accent) !important;
     color: white !important;
     border: none !important;
 }
 
 #add-qa-button:hover {
-    background: #029990 !important;
-    box-shadow: 0 4px 12px rgba(9, 104, 254, 0.15);
+    background: var(--wpiko-accent-hover) !important;
+    box-shadow: 0 4px 12px var(--wpiko-primary-glow-strong);
 }
 
 #delete-all-qa-button {
-    color: #dc3545 !important;
-    border-color: #dc3545 !important;
+    color: var(--wpiko-danger) !important;
+    border-color: var(--wpiko-danger) !important;
 }
 
 #delete-all-qa-button:hover {
-    background: #dc3545 !important;
+    background: var(--wpiko-danger) !important;
     color: white !important;
 }
 
 #qa-list {
     padding: 15px;
     margin-bottom: 20px;
-    background: #f8fafc;
-    color: #3A4F66;
-    border-radius: 8px;
+    background: var(--wpiko-surface-alt);
+    color: var(--wpiko-text);
+    border-radius: var(--wpiko-radius);
 }
 
 .qa-item {
     margin-bottom: 15px;
     background-color: #fff;
-    border-radius: 8px;
+    border-radius: var(--wpiko-radius);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--wpiko-border);
     transition: all 0.2s ease;
 }
 
@@ -130,32 +130,32 @@
     background-color: #fff;
     border-radius: 8px 8px 0 0;
     min-height: 24px;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--wpiko-border);
     transition: background-color 0.2s ease;
 }
 
 .qa-question-header:hover {
-    background-color: #f8fafc;
+    background-color: var(--wpiko-surface-alt);
 }
 
 .qa-question-text {
     flex-grow: 1;
     font-weight: 600;
-    color: #3A4F66;
+    color: var(--wpiko-text);
     font-size: 14px;
 }
 
 .delete-qa {
     background: none;
     border: none;
-    color: #3A4F66;
+    color: var(--wpiko-text);
     cursor: pointer;
     font-size: 20px;
     padding: 8px;
     width: 36px;
     height: 36px;
     line-height: 1;
-    border-radius: 6px;
+    border-radius: var(--wpiko-radius-sm);
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
@@ -163,7 +163,7 @@
 }
 
 .delete-qa:hover {
-    color: #dc3545;
+    color: var(--wpiko-danger);
     background-color: rgba(220, 53, 69, 0.1);
 }
 
@@ -176,23 +176,23 @@
     width: 100%;
     margin-bottom: 15px;
     padding: 12px 16px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    border: 1px solid var(--wpiko-border);
+    border-radius: var(--wpiko-radius);
     font-size: 14px;
     line-height: 1.6;
-    color: #3A4F66;
+    color: var(--wpiko-text);
     transition: all 0.2s ease;
 }
 
 .qa-question:focus,
 .qa-answer:focus {
     outline: none;
-    border-color: #0968fe;
-    box-shadow: 0 0 0 3px rgba(9, 104, 254, 0.1);
+    border-color: var(--wpiko-primary);
+    box-shadow: 0 0 0 3px var(--wpiko-primary-glow);
 }
 
 #save-all-qa-button:disabled {
-    background-color: #a7a7a7;
+    background-color: var(--wpiko-text-faint);
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
@@ -203,20 +203,20 @@
 .qa-file-section {
     margin-top: 35px;
     padding-top: 25px;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid var(--wpiko-border);
 }
 
 .qa-file-section h3 {
     display: flex;
     align-items: center;
-    color: #3A4F66;
+    color: var(--wpiko-text);
     margin-bottom: 12px;
 }
 
 .qa-file-info-box {
-    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    background: linear-gradient(135deg, var(--wpiko-surface-alt) 0%, #ffffff 100%);
+    border: 1px solid var(--wpiko-border);
+    border-radius: var(--wpiko-radius-lg);
     padding: 20px;
     margin: 20px 0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
@@ -243,7 +243,7 @@
 .qa-file-info-box .stat-label {
     font-size: 12px;
     font-weight: 600;
-    color: #64748b;
+    color: var(--wpiko-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -251,19 +251,19 @@
 .qa-file-info-box .stat-value {
     font-size: 16px;
     font-weight: 600;
-    color: #3A4F66;
+    color: var(--wpiko-text);
 }
 
 .stat-value.status-active {
-    color: #03B5AA;
+    color: var(--wpiko-accent);
 }
 
 .stat-value.status-syncing {
-    color: #f59e0b;
+    color: var(--wpiko-warning);
 }
 
 .stat-value.status-error {
-    color: #dc3545;
+    color: var(--wpiko-danger);
 }
 
 @media screen and (max-width: 768px) {
@@ -277,7 +277,7 @@
         justify-content: space-between;
         align-items: center;
         padding: 8px 0;
-        border-bottom: 1px solid #f1f5f9;
+        border-bottom: 1px solid var(--wpiko-bg-subtle);
     }
     
     .stat-item:last-child {
@@ -295,9 +295,9 @@
 #qa-files-list li {
     padding: 20px;
     margin-bottom: 15px;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    background: linear-gradient(135deg, #ffffff 0%, var(--wpiko-surface-alt) 100%);
+    border: 1px solid var(--wpiko-border);
+    border-radius: var(--wpiko-radius-lg);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -306,7 +306,7 @@
 }
 
 #qa-files-list li:hover {
-    border-color: #03B5AA;
+    border-color: var(--wpiko-accent);
     box-shadow: 0 8px 24px rgba(3, 181, 170, 0.1);
     transform: translateY(-2px);
 }
@@ -324,7 +324,7 @@
 
 #qa-files-list .qa-status.active {
     background-color: rgba(3, 181, 170, 0.1);
-    color: #03B5AA;
+    color: var(--wpiko-accent);
 }
 
 #qa-files-list .qa-status.active::before {
@@ -332,7 +332,7 @@
     display: inline-block;
     width: 8px;
     height: 8px;
-    background-color: #03B5AA;
+    background-color: var(--wpiko-accent);
     border-radius: 50%;
     animation: pulse 2s infinite;
 }
@@ -350,8 +350,8 @@
 }
     
 #qa-files-list .qa-status.disabled {
-    background-color: #f8f9fa;
-    color: #6c757d;
+    background-color: var(--wpiko-surface-alt);
+    color: var(--wpiko-text-muted);
 }
 
 #qa-files-list .qa-status.disabled::before {
@@ -359,7 +359,7 @@
     display: inline-block;
     width: 8px;
     height: 8px;
-    background-color: #6c757d;
+    background-color: var(--wpiko-text-muted);
     border-radius: 50%;
 }
 
@@ -372,39 +372,39 @@
     
 #qa-files-list .file-name {
     font-weight: 600;
-    color: #3A4F66;
+    color: var(--wpiko-text);
     font-size: 15px;
     margin-bottom: 2px;
 }
 
 #qa-files-list .file-meta {
-    color: #64748b;
+    color: var(--wpiko-text-muted);
     font-size: 13px;
     font-weight: 400;
 }
 
 #qa-files-list .empty-list {
-    color: #64748b;
+    color: var(--wpiko-text-muted);
     font-style: italic;
     text-align: center;
     padding: 40px 20px;
-    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-    border: 2px dashed #cbd5e1;
-    border-radius: 12px;
+    background: linear-gradient(135deg, var(--wpiko-surface-alt) 0%, #ffffff 100%);
+    border: 2px dashed var(--wpiko-border-strong);
+    border-radius: var(--wpiko-radius-lg);
     transition: all 0.3s ease;
     font-size: 14px;
 }
 
 #qa-files-list .empty-list:hover {
-    border-color: #03B5AA;
-    background: linear-gradient(135deg, #ffffff 0%, #f0fdfc 100%);
-    color: #3A4F66;
+    border-color: var(--wpiko-accent);
+    background: linear-gradient(135deg, #ffffff 0%, var(--wpiko-accent-tint) 100%);
+    color: var(--wpiko-text);
 }
 
 #qa-files-list .loading {
     text-align: center;
     padding: 20px;
-    color: #0968FE;
+    color: var(--wpiko-primary);
     letter-spacing: 1.5px;
     font-style: italic;
 }
@@ -414,37 +414,37 @@
 #qa-status {
     margin: 20px 0;
     padding: 15px;
-    border-radius: 8px;
+    border-radius: var(--wpiko-radius);
     font-size: 14px;
     line-height: 1.6;
 }
 
 #qa-status-message .processing,
 #qa-status .processing {
-    color: #0968fe;
+    color: var(--wpiko-primary);
     display: block;
     padding: 15px;
-    background-color: rgba(9, 104, 254, 0.1);
-    border-radius: 8px;
+    background-color: var(--wpiko-primary-glow);
+    border-radius: var(--wpiko-radius);
     margin-top: 15px;
 }
 
 #qa-status-message .success,
 #qa-status .success {
-    color: #03B5AA;
+    color: var(--wpiko-accent);
     display: block;
     padding: 15px;
     background-color: rgba(3, 181, 170, 0.1);
-    border-radius: 8px;
+    border-radius: var(--wpiko-radius);
     margin-top: 15px;
 }
 
 #qa-status-message .error,
 #qa-status .error {
-    color: #dc3545;
+    color: var(--wpiko-danger);
     display: block;
     padding: 15px;
     background-color: rgba(220, 53, 69, 0.1);
-    border-radius: 8px;
+    border-radius: var(--wpiko-radius);
     margin-top: 15px;
 }

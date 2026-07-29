@@ -51,7 +51,7 @@ The plugin automatically checks for updates from this GitHub repository every 12
 ## 📋 System Requirements
 
 ### WordPress Environment
-- **WordPress Version:** 5.0 or newer
+- **WordPress Version:** 6.0 or newer
 - **PHP Version:** 7.4 or newer  
 - **Base Plugin:** WPiko Chatbot (latest version)
 

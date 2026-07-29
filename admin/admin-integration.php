@@ -18,12 +18,16 @@ function wpiko_chatbot_pro_add_tab($tabs) {
     $tabs['email_capture'] = array(
         'label' => 'Email Capture',
         'icon' => 'dashicons-email',
+        'group' => 'pro_features',
+        'order' => 10,
     );
    
     // Add Contact Form tab
     $tabs['contact_form'] = array(
         'label' => 'Contact Form',
         'icon' => 'dashicons-email-alt',
+        'group' => 'pro_features',
+        'order' => 20,
     );
     
     // Add Product Card tabs only if WooCommerce is active
@@ -31,6 +35,8 @@ function wpiko_chatbot_pro_add_tab($tabs) {
         $tabs['product_card'] = array(
             'label' => 'Product Card',
             'icon' => 'dashicons-align-full-width',
+            'group' => 'pro_features',
+            'order' => 30,
         );
     }
     
@@ -38,18 +44,25 @@ function wpiko_chatbot_pro_add_tab($tabs) {
     $tabs['analytics'] = array(
         'label' => 'Analytics',
         'icon' => 'dashicons-chart-bar',
+        'group' => 'pro_features',
+        'order' => 40,
     );
     
     // Add Mobile App (PWA) tab
     $tabs['pwa_settings'] = array(
         'label' => 'Mobile App',
         'icon' => 'dashicons-smartphone',
+        'group' => 'pro_features',
+        'order' => 50,
     );
 
     // Add License Activation tabs
     $tabs['license_activation'] = array(
         'label' => 'License Activation',
         'icon' => 'dashicons-unlock',
+        'group' => 'pro_features',
+        'order' => 60,
+        'separator_before' => true,
     );
     
     return $tabs;
@@ -57,9 +70,30 @@ function wpiko_chatbot_pro_add_tab($tabs) {
 add_filter('wpiko_chatbot_admin_tabs', 'wpiko_chatbot_pro_add_tab');
 
 /**
+ * Keep Pro tools together as the final navigation group.
+ */
+function wpiko_chatbot_pro_add_tab_group($groups) {
+    $groups['pro_features'] = array(
+        'label' => 'Pro Features',
+        'badge' => 'PRO',
+        'class' => 'wpiko-nav-group-pro',
+        'order' => 100,
+    );
+
+    return $groups;
+}
+add_filter('wpiko_chatbot_admin_tab_groups', 'wpiko_chatbot_pro_add_tab_group');
+
+/**
  * Add Pro sections to the WordPress admin menu
  */
 function wpiko_chatbot_pro_admin_menu() {
+    // Current core versions build all submenus from the shared tab registry.
+    // Retain the code below for compatibility with older core versions.
+    if (function_exists('wpiko_chatbot_get_admin_tabs')) {
+        return;
+    }
+
     // Only add submenu items if the main menu exists
     global $submenu;
     if (!isset($submenu['ai-chatbot'])) {
@@ -312,13 +346,36 @@ add_action('wpiko_chatbot_conversation_user_location', 'wpiko_chatbot_pro_add_us
  * Add contact user button to conversation details
  */
 function wpiko_chatbot_pro_add_contact_button() {
+    $mail_icon = '<svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>';
+    $allowed_svg = array(
+        'svg'  => array(
+            'class'           => true,
+            'viewbox'         => true,
+            'fill'            => true,
+            'stroke'          => true,
+            'stroke-width'    => true,
+            'stroke-linecap'  => true,
+            'stroke-linejoin' => true,
+            'aria-hidden'     => true,
+        ),
+        'rect' => array(
+            'x'      => true,
+            'y'      => true,
+            'width'  => true,
+            'height' => true,
+            'rx'     => true,
+        ),
+        'path' => array(
+            'd' => true,
+        ),
+    );
     if (wpiko_chatbot_pro_is_license_active()) {
-        echo '<button class="button contact-user" disabled><span class="dashicons dashicons-email-alt"></span> Contact User</button>';
+        echo '<button class="button contact-user" disabled>' . wp_kses($mail_icon, $allowed_svg) . ' Contact User</button>';
     } else {
         echo '<div class="contact-user-locked">
             <span class="lock-icon dashicons dashicons-lock" title="Upgrade to unlock contact user feature"></span>
             <div class="button-content">
-                <span class="dashicons dashicons-email-alt"></span>
+                ' . wp_kses($mail_icon, $allowed_svg) . '
                 <span>Contact User</span>
             </div>
         </div>';
@@ -370,26 +427,44 @@ function wpiko_chatbot_pro_add_auto_delete_settings() {
     if (wpiko_chatbot_pro_is_license_active()) {
         ?>
         <div class="auto-delete-section">
-            <h3><span class="dashicons dashicons-clock"></span> Auto Delete Settings</h3>
+            <div class="wpiko-settings-card-header">
+                <span class="wpiko-settings-card-icon"><span class="dashicons dashicons-clock"></span></span>
+                <div class="wpiko-settings-card-heading">
+                    <h3>Auto Delete Settings</h3>
+                    <span class="wpiko-settings-card-subtitle">Schedule automatic cleanup of old conversations</span>
+                </div>
+            </div>
             <form method="post" action="" class="auto-delete-form">
                 <?php wp_nonce_field('save_auto_delete_settings', 'auto_delete_nonce'); ?>
-                <label>
-                    <input type="checkbox" name="enable_auto_delete" 
-                           <?php checked(get_option('wpiko_chatbot_enable_auto_delete', false)); ?>>
-                    Enable Auto Delete
-                </label>
-                <select name="auto_delete_days" <?php disabled(!get_option('wpiko_chatbot_enable_auto_delete', false)); ?>>
-                    <option value="7" <?php selected(get_option('wpiko_chatbot_auto_delete_days', 90), 7); ?>>7 days</option>
-                    <option value="14" <?php selected(get_option('wpiko_chatbot_auto_delete_days', 90), 14); ?>>14 days</option>
-                    <option value="30" <?php selected(get_option('wpiko_chatbot_auto_delete_days', 90), 30); ?>>30 days</option>
-                    <option value="60" <?php selected(get_option('wpiko_chatbot_auto_delete_days', 90), 60); ?>>60 days</option>
-                    <option value="90" <?php selected(get_option('wpiko_chatbot_auto_delete_days', 90), 90); ?>>90 days</option>
-                    <option value="365" <?php selected(get_option('wpiko_chatbot_auto_delete_days', 90), 365); ?>>1 year</option>
-                </select>
-                <input type="submit" class="button button-secondary" value="Save Settings">
+                <div class="auto-delete-toggle-row">
+                    <label class="wpiko-switch">
+                        <input type="checkbox" name="enable_auto_delete"
+                               <?php checked(get_option('wpiko_chatbot_enable_auto_delete', false)); ?>>
+                        <span class="wpiko-slider round"></span>
+                    </label>
+                    <div class="auto-delete-toggle-text">
+                        <span class="auto-delete-toggle-title">Enable Auto Delete</span>
+                        <span class="auto-delete-toggle-hint">Turn on scheduled maintenance</span>
+                    </div>
+                </div>
+                <div class="auto-delete-field">
+                    <label for="wpiko_auto_delete_days" class="auto-delete-field-label">Delete conversations older than</label>
+                    <div class="wpiko-select-wrap">
+                        <select id="wpiko_auto_delete_days" name="auto_delete_days" <?php disabled(!get_option('wpiko_chatbot_enable_auto_delete', false)); ?>>
+                            <option value="7" <?php selected(get_option('wpiko_chatbot_auto_delete_days', 90), 7); ?>>7 days</option>
+                            <option value="14" <?php selected(get_option('wpiko_chatbot_auto_delete_days', 90), 14); ?>>14 days</option>
+                            <option value="30" <?php selected(get_option('wpiko_chatbot_auto_delete_days', 90), 30); ?>>30 days</option>
+                            <option value="60" <?php selected(get_option('wpiko_chatbot_auto_delete_days', 90), 60); ?>>60 days</option>
+                            <option value="90" <?php selected(get_option('wpiko_chatbot_auto_delete_days', 90), 90); ?>>90 days</option>
+                            <option value="365" <?php selected(get_option('wpiko_chatbot_auto_delete_days', 90), 365); ?>>1 year</option>
+                        </select>
+                    </div>
+                </div>
+                <input type="submit" class="button auto-delete-save" value="Save Settings">
             </form>
             <p class="auto-delete-description">
-                Automatically deletes conversations older than the selected time period. For example, if set to 7 days, any conversations older than 7 days will be permanently deleted.
+                <span class="dashicons dashicons-warning"></span>
+                <span>Conversations older than the selected period are <strong>permanently deleted</strong>, checked once daily. For example, at 7 days, any conversation older than a week is removed.</span>
             </p>
         </div>
     <?php
@@ -944,7 +1019,75 @@ function wpiko_chatbot_pro_add_dashboard_config_status() {
 add_action('wpiko_chatbot_dashboard_config_status', 'wpiko_chatbot_pro_add_dashboard_config_status');
 
 /**
+ * Add actionable Pro issues to the core dashboard.
+ *
+ * @param array $attention_items Existing dashboard attention items.
+ * @return array
+ */
+function wpiko_chatbot_pro_add_dashboard_attention_items($attention_items) {
+    if (!is_array($attention_items)) {
+        $attention_items = array();
+    }
+
+    if (!function_exists('wpiko_chatbot_pro_is_license_active') || !function_exists('wpiko_chatbot_pro_decrypt_data')) {
+        return $attention_items;
+    }
+
+    $license_active = wpiko_chatbot_pro_is_license_active();
+    $license_status = wpiko_chatbot_pro_decrypt_data(get_option('wpiko_chatbot_license_status', ''));
+
+    if ($license_status === 'expired') {
+        $attention_items[] = array(
+            'severity' => 'critical',
+            'icon' => 'dashicons-unlock',
+            'title' => __('Your WPiko Chatbot Pro license has expired', 'wpiko-chatbot-pro'),
+            'description' => __('Renew the license to restore access to Pro features and updates.', 'wpiko-chatbot-pro'),
+            'url' => wp_nonce_url('?page=ai-chatbot&tab=license_activation', 'wpiko_chatbot_tab_nonce'),
+            'action_label' => __('Renew license', 'wpiko-chatbot-pro'),
+        );
+    }
+
+    if (!$license_active || !class_exists('WooCommerce') || !function_exists('wpiko_chatbot_is_woocommerce_integration_enabled') || !wpiko_chatbot_is_woocommerce_integration_enabled()) {
+        return $attention_items;
+    }
+
+    $integration_url = wp_nonce_url('?page=ai-chatbot&tab=ai_configuration', 'wpiko_chatbot_tab_nonce');
+
+    if (get_option('wpiko_chatbot_sync_status', '') === 'failed') {
+        $product_sync_error = trim((string) get_option('wpiko_chatbot_sync_error', ''));
+
+        $attention_items[] = array(
+            'severity' => 'warning',
+            'icon' => 'dashicons-update',
+            'title' => __('WooCommerce product sync failed', 'wpiko-chatbot-pro'),
+            'description' => $product_sync_error !== ''
+                ? wp_trim_words($product_sync_error, 18, '…')
+                : __('Open the WooCommerce integration to review the failure and retry the sync.', 'wpiko-chatbot-pro'),
+            'url' => $integration_url,
+            'action_label' => __('Open integration', 'wpiko-chatbot-pro'),
+        );
+    }
+
+    if (get_option('wpiko_chatbot_orders_sync_status', '') === 'failed') {
+        $orders_sync_error = trim((string) get_option('wpiko_chatbot_orders_sync_error', ''));
+
+        $attention_items[] = array(
+            'severity' => 'warning',
+            'icon' => 'dashicons-cart',
+            'title' => __('WooCommerce order sync failed', 'wpiko-chatbot-pro'),
+            'description' => $orders_sync_error !== ''
+                ? wp_trim_words($orders_sync_error, 18, '…')
+                : __('Open the WooCommerce integration to review the failure and retry the sync.', 'wpiko-chatbot-pro'),
+            'url' => $integration_url,
+            'action_label' => __('Open integration', 'wpiko-chatbot-pro'),
+        );
+    }
+
+    return $attention_items;
+}
+add_filter('wpiko_chatbot_dashboard_attention_items', 'wpiko_chatbot_pro_add_dashboard_attention_items');
+
+/**
  * Takeover button removed from WP admin conversations page.
  * Admins should use /wpiko-app/ for takeover functionality.
  */
-

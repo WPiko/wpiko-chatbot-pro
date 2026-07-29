@@ -78,47 +78,40 @@ function wpiko_chatbot_pro_build_contact_form_instructions() {
     }
 
     // Build the instruction
-    $instructions = "You have access to a contact form that users can fill out to reach the website team.\n\n";
-    $instructions .= "WHEN TO OFFER THE CONTACT FORM:\n";
-    $instructions .= $trigger_text . "\n\n";
+    $instructions = "You can offer users a contact form to reach the website team.\n\n";
+    $instructions .= "WHEN TO OFFER IT:\n";
+    $instructions .= $trigger_text . " Never offer it when you can answer the user's question directly.\n\n";
 
     // Describe the output format
-    $instructions .= "HOW TO OFFER THE CONTACT FORM:\n";
-    $instructions .= "When you decide the user should be offered the contact form, include the following marker in your response exactly as shown, on its own line:\n";
+    $instructions .= "HOW TO OFFER IT:\n";
+    $instructions .= "Place this marker on its own line, in exactly this format — never wrapped in code blocks, backticks, or other formatting, at most one per response (it renders as a Contact Form button):\n";
 
     if ($enable_prefill === '1') {
-        $instructions .= '[wpiko-contact-form:{"message":"A clear summary of the user inquiry based on the conversation","category":"The best matching category if available"}]' . "\n\n";
-        $instructions .= "The marker must contain valid JSON inside the square brackets after the colon. The form will be pre-filled with the data you provide.\n\n";
-        $instructions .= "IMPORTANT RULES FOR THE MARKER:\n";
-        $instructions .= "- Always output the marker exactly as shown: opening bracket, wpiko-contact-form:, then JSON, then closing bracket.\n";
-        $instructions .= "- The \"message\" field should summarize what the user needs help with based on the conversation so far. Write it as if the user is writing to support.\n";
-        $instructions .= "- Write the message in the same language the user is communicating in.\n";
-        $instructions .= "- Do NOT include the user's name or email in the message — those are collected separately.\n";
-        $instructions .= "- Do NOT wrap the marker in code blocks, backticks, or any formatting.\n";
-    } else {
-        $instructions .= '[wpiko-contact-form:{}]' . "\n\n";
-        $instructions .= "The marker will display a contact form for the user to fill out.\n";
-        $instructions .= "- Do NOT wrap the marker in code blocks, backticks, or any formatting.\n\n";
-    }
+        // Categories are only pre-fillable via the marker JSON, so they only
+        // apply when prefill is on; the example marker mirrors the form config
+        $enable_dropdown = get_option('wpiko_chatbot_contact_form_dropdown', '0');
+        $dropdown_options = get_option('wpiko_chatbot_contact_form_dropdown_options', '');
+        $categories = array();
+        if ($enable_dropdown === '1' && !empty($dropdown_options)) {
+            $categories = array_filter(array_map('trim', explode("\n", $dropdown_options)));
+        }
 
-    // Add available categories if dropdown is enabled
-    $enable_dropdown = get_option('wpiko_chatbot_contact_form_dropdown', '0');
-    $dropdown_options = get_option('wpiko_chatbot_contact_form_dropdown_options', '');
-
-    if ($enable_dropdown === '1' && !empty($dropdown_options)) {
-        $categories = array_filter(array_map('trim', explode("\n", $dropdown_options)));
         if (!empty($categories)) {
-            $instructions .= "AVAILABLE CATEGORIES:\n";
-            $instructions .= "The \"category\" field in the marker should be one of the following (use exact text):\n";
+            $instructions .= '[wpiko-contact-form:{"message":"Summary of the user\'s inquiry","category":"Best matching category"}]' . "\n\n";
+        } else {
+            $instructions .= '[wpiko-contact-form:{"message":"Summary of the user\'s inquiry"}]' . "\n\n";
+        }
+        $instructions .= "The JSON pre-fills the form. Write \"message\" as a concise summary of what the user needs, phrased as if the user is writing to support, in the user's own language. Do not include the user's name or email — those are collected separately. You may add one brief sentence before the marker letting the user know the form is ready.\n";
+
+        if (!empty($categories)) {
+            $instructions .= "\nCATEGORIES:\n";
+            $instructions .= "Set \"category\" to one of these exact values, or omit it if none fit:\n";
             foreach ($categories as $cat) {
                 $instructions .= "- " . $cat . "\n";
             }
-            $instructions .= "Choose the category that best matches the user's inquiry. If none fit well, omit the category field.\n\n";
         }
-    }
 
-    // Add custom field info if enabled and prefill is on
-    if ($enable_prefill === '1') {
+        // Add custom field info if enabled
         $custom_fields_info = array();
         for ($i = 1; $i <= 2; $i++) {
             $field_enabled = get_option("wpiko_chatbot_contact_form_custom_field_{$i}", '0');
@@ -129,20 +122,18 @@ function wpiko_chatbot_pro_build_contact_form_instructions() {
         }
 
         if (!empty($custom_fields_info)) {
-            $instructions .= "CUSTOM FIELDS:\n";
-            $instructions .= "The contact form also has these custom fields that you can pre-fill if the information is available in the conversation:\n";
+            $instructions .= "\nCUSTOM FIELDS:\n";
+            $instructions .= "Also pre-fill these keys in the marker JSON when the information appears in the conversation:\n";
             foreach ($custom_fields_info as $info) {
                 $instructions .= "- \"" . $info['key'] . "\": " . $info['label'] . "\n";
             }
-            $instructions .= "\n";
         }
-    }
 
-    $instructions .= "GUIDELINES:\n";
-    $instructions .= "- You can include a brief, helpful message before the marker to provide context to the user (e.g., \"I've prepared a contact form with your details — feel free to review and send it.\").\n";
-    $instructions .= "- Only include ONE marker per response.\n";
-    $instructions .= "- Do NOT use the marker if the user's question can be answered directly.\n";
-    $instructions .= "- The marker will be replaced with a Contact Form button that the user can see and click.";
+        $instructions = rtrim($instructions);
+    } else {
+        $instructions .= '[wpiko-contact-form:{}]' . "\n\n";
+        $instructions .= "You may add one brief sentence before the marker letting the user know the form is ready.";
+    }
 
     return $instructions;
 }

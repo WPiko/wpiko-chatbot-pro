@@ -17,7 +17,7 @@ function wpiko_chatbot_pro_get_pwa_capabilities() {
 }
 
 /**
- * Ensure the WPiko Agent role and required capabilities exist.
+ * Ensure the Live Agent role and required capabilities exist.
  *
  * The role and capabilities are intentionally left in place on deactivation so
  * existing users keep a valid WordPress role if Pro is later removed.
@@ -37,7 +37,7 @@ function wpiko_chatbot_pro_sync_pwa_access_role() {
 
     $agent_role = get_role('wpiko_chatbot_agent');
     if (!$agent_role) {
-        add_role('wpiko_chatbot_agent', 'WPiko Agent', $agent_caps);
+        add_role('wpiko_chatbot_agent', 'Live Agent', $agent_caps);
         return;
     }
 
@@ -45,6 +45,17 @@ function wpiko_chatbot_pro_sync_pwa_access_role() {
         if ($grant) {
             $agent_role->add_cap($capability);
         }
+    }
+
+    // Sites where the role predates the rename have an old display name
+    // stored in the database; update it once in place.
+    $old_labels = array('WPiko Agent', 'Support Agent');
+    $wp_roles = wp_roles();
+    if (isset($wp_roles->roles['wpiko_chatbot_agent']['name'])
+        && in_array($wp_roles->roles['wpiko_chatbot_agent']['name'], $old_labels, true)) {
+        $wp_roles->roles['wpiko_chatbot_agent']['name'] = 'Live Agent';
+        $wp_roles->role_names['wpiko_chatbot_agent'] = 'Live Agent';
+        update_option($wp_roles->role_key, $wp_roles->roles);
     }
 }
 

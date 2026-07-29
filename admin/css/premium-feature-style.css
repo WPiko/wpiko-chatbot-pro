@@ -1,6 +1,6 @@
 /* Premium Feature Badge */
 .premium-feature-badge {
-    background: #03B5AA;
+    background: var(--wpiko-accent);
     color: white;
     font-size: 11px;
     font-weight: 600;
@@ -25,15 +25,15 @@
 
 /* Premium Feature Notice */
 .premium-feature-notice {
-    background: linear-gradient(135deg, #f8fafc, #f1f5ff);
+    background: linear-gradient(135deg, var(--wpiko-surface-alt), var(--wpiko-primary-tint));
     padding: 25px;
-    border-radius: 12px;
+    border-radius: var(--wpiko-radius-lg);
     border: 1px solid rgba(100, 152, 252, 0.2);
     margin: 20px 0;
 }
 
 .premium-feature-notice h3 {
-    color: #2c3338;
+    color: var(--wpiko-text-strong);
     font-size: 1.3em;
     margin-bottom: 15px;
 }
@@ -46,7 +46,7 @@
 
 .premium-feature-notice li {
     padding: 8px 0;
-    color: #4a5568;
+    color: var(--wpiko-text);
     display: flex;
     align-items: center;
     gap: 10px;

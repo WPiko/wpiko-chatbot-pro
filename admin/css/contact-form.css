@@ -1,15 +1,15 @@
 /* TAB - CONTACT FORM SETTINGS */
 .chatbot-contact-form-section {
-    background: #ffffff;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-    border: none;
+    background: var(--wpiko-surface);
+    padding: 24px;
+    border-radius: var(--wpiko-radius-lg);
+    box-shadow: var(--wpiko-shadow-xs);
+    border: 1px solid var(--wpiko-border);
 }
 
 .chatbot-contact-form-section .description {
     margin-bottom: 10px;
-    color: #64748b;
+    color: var(--wpiko-text-muted);
 }
 
 /* Clean up top table styles */
@@ -23,7 +23,7 @@
 .chatbot-contact-form-section form>.form-table td {
     padding-top: 20px;
     padding-bottom: 20px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--wpiko-bg-subtle);
 }
 
 .chatbot-contact-form-section form>.form-table tr:last-child th,
@@ -49,16 +49,16 @@
 
 /* Score Guide Styling */
 .score-guide {
-    background: #f8fafc;
-    border: 1px solid #f1f5f9;
-    border-radius: 10px;
+    background: var(--wpiko-surface-alt);
+    border: 1px solid var(--wpiko-bg-subtle);
+    border-radius: var(--wpiko-radius-lg);
     padding: 20px;
     margin-top: 15px;
     margin-bottom: 10px;
 }
 
 .score-guide strong {
-    color: #1e293b;
+    color: var(--wpiko-text-strong);
     font-weight: 600;
     font-size: 14px;
 }
@@ -69,12 +69,12 @@
     margin: 10px 0;
     padding: 10px 15px;
     background: #ffffff;
-    border-radius: 6px;
-    color: #475569;
+    border-radius: var(--wpiko-radius-sm);
+    color: var(--wpiko-text);
     font-size: 13px;
     line-height: 1.5;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-    border: 1px solid #f1f5f9;
+    border: 1px solid var(--wpiko-bg-subtle);
 }
 
 .score-guide-item:hover {
@@ -86,7 +86,7 @@
     content: '';
     width: 8px;
     height: 8px;
-    background: #3b82f6;
+    background: var(--wpiko-primary);
     border-radius: 50%;
     margin-right: 15px;
     flex-shrink: 0;
@@ -96,64 +96,64 @@
     display: inline-block;
     min-width: 70px;
     font-weight: 600;
-    color: #3b82f6;
+    color: var(--wpiko-primary);
     font-size: 13px;
-    background: #eff6ff;
+    background: var(--wpiko-primary-tint);
     padding: 3px 8px;
-    border-radius: 4px;
+    border-radius: var(--wpiko-radius-xs);
     margin-right: 12px;
     text-align: center;
 }
 
 .score-guide-description {
     flex-grow: 1;
-    color: #64748b;
+    color: var(--wpiko-text-muted);
     font-size: 13px;
 }
 
 .score-guide-note {
-    background: #fffbeb;
-    border-left: 3px solid #f59e0b;
+    background: var(--wpiko-warning-tint);
+    border-left: 3px solid var(--wpiko-warning);
     padding: 12px 16px;
     margin-top: 16px;
-    border-radius: 4px;
+    border-radius: var(--wpiko-radius-xs);
     font-size: 13px;
-    color: #78350f;
+    color: var(--wpiko-warning-text);
     line-height: 1.6;
 }
 
 .score-guide-note strong {
-    color: #b45309;
+    color: var(--wpiko-warning-hover);
     font-weight: 600;
 }
 
 /* Utility to ensure instruction content has good spacing */
 .instruction-content p {
     line-height: 1.6;
-    color: #475569;
+    color: var(--wpiko-text);
     margin-bottom: 15px;
 }
 
 .instruction-content h4 {
     margin-top: 25px;
     margin-bottom: 15px;
-    color: #1e293b;
+    color: var(--wpiko-text-strong);
     font-size: 15px;
     font-weight: 600;
 }
 
 .instruction-content h5 {
-    color: #334155;
+    color: var(--wpiko-text-strong);
     font-size: 14px;
     margin-bottom: 8px;
     margin-top: 15px;
 }
 
 .instruction-content pre {
-    border-radius: 6px;
-    border: 1px solid #e2e8f0;
-    background: #f8fafc !important;
-    color: #334155;
+    border-radius: var(--wpiko-radius-sm);
+    border: 1px solid var(--wpiko-border);
+    background: var(--wpiko-surface-alt) !important;
+    color: var(--wpiko-text-strong);
     font-family: 'Menlo', 'Monaco', monospace;
     font-size: 13px;
     padding: 12px;

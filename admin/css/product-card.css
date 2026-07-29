@@ -1,9 +1,9 @@
 /* TAB - PRODUCT CARD */
 
 .product-card-section {
-    background: white;
+    background: var(--wpiko-surface);
     padding: 20px;
-    border-radius: 10px;
+    border-radius: var(--wpiko-radius-lg);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
     border: none;
 }
@@ -15,7 +15,7 @@
 
 .product-card-section .description {
     margin-bottom: 10px;
-    color: #64748b;
+    color: var(--wpiko-text-muted);
 }
 
 /* Clean up table styles to match other sections */
@@ -28,12 +28,12 @@
 .product-card-section form .form-table td {
     padding-top: 20px;
     padding-bottom: 20px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--wpiko-bg-subtle);
 }
 
 .product-card-section form .form-table tr:last-child th,
 .product-card-section form .form-table tr:last-child td {
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--wpiko-bg-subtle);
     /* Keep separation if needed, or none if it's the absolute last */
 }
 

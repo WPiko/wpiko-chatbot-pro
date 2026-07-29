@@ -1,15 +1,15 @@
 /* Mobile App (PWA) Page Styles */
 .pwa-settings-section {
-    background: #ffffff;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-    border: none;
+    background: var(--wpiko-surface);
+    padding: 24px;
+    border-radius: var(--wpiko-radius-lg);
+    box-shadow: var(--wpiko-shadow-xs);
+    border: 1px solid var(--wpiko-border);
 }
 
 .pwa-settings-section .description {
     margin-bottom: 10px;
-    color: #64748b;
+    color: var(--wpiko-text-muted);
 }
 
 .pwa-settings-section form>.form-table {
@@ -22,7 +22,7 @@
 .pwa-settings-section form>.form-table td {
     padding-top: 20px;
     padding-bottom: 20px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--wpiko-bg-subtle);
 }
 
 .pwa-settings-section form>.form-table tr:last-child th,
@@ -58,7 +58,7 @@
 
 .pwa-settings-section .collapsible-content .form-table th,
 .pwa-settings-section .collapsible-content .form-table td {
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--wpiko-bg-subtle);
 }
 
 .pwa-settings-section .collapsible-content .form-table tr:last-child th,
@@ -72,13 +72,13 @@
 
 .pwa-setup-guide p {
     max-width: 920px;
-    color: #475569;
+    color: var(--wpiko-text);
 }
 
 .pwa-setup-guide ol {
     margin: 0;
     padding-left: 20px;
-    color: #475569;
+    color: var(--wpiko-text);
     list-style: decimal;
 }
 
@@ -93,12 +93,12 @@
 
 .wpiko-pwa-install-guide p {
     max-width: 920px;
-    color: #475569;
+    color: var(--wpiko-text);
 }
 
 .wpiko-pwa-guide-block {
     padding: 18px 0;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid var(--wpiko-border);
 }
 
 .wpiko-pwa-guide-block:first-of-type {
@@ -113,7 +113,7 @@
 .wpiko-pwa-install-guide ul {
     margin: 0 0 14px;
     padding-left: 20px;
-    color: #475569;
+    color: var(--wpiko-text);
 }
 
 .wpiko-pwa-install-guide ol {
@@ -129,7 +129,7 @@
 .wpiko-pwa-install-guide li {
     margin-bottom: 10px;
     line-height: 1.6;
-    color: #475569;
+    color: var(--wpiko-text);
 }
 
 .wpiko-pwa-install-guide li:last-child {
@@ -159,9 +159,9 @@
 #wpiko-send-test-push {
     min-height: 40px;
     padding: 8px 16px;
-    border: 1px solid #0968fe;
-    border-radius: 6px;
-    background: #0968fe;
+    border: 1px solid var(--wpiko-primary);
+    border-radius: var(--wpiko-radius-sm);
+    background: var(--wpiko-primary);
     color: #ffffff;
     font-size: 14px;
     font-weight: 600;
@@ -171,11 +171,11 @@
 
 #wpiko-send-test-push:hover:not(:disabled),
 #wpiko-send-test-push:focus-visible:not(:disabled) {
-    background: #0756d6;
-    border-color: #0756d6;
+    background: var(--wpiko-primary-hover);
+    border-color: var(--wpiko-primary-hover);
     color: #ffffff;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(9, 104, 254, 0.18);
+    box-shadow: 0 4px 12px var(--wpiko-primary-glow-strong);
 }
 
 #wpiko-send-test-push:focus-visible {
@@ -183,9 +183,9 @@
 }
 
 #wpiko-send-test-push:disabled {
-    background: #e2e8f0;
-    border-color: #e2e8f0;
-    color: #64748b;
+    background: var(--wpiko-border);
+    border-color: var(--wpiko-border);
+    color: var(--wpiko-text-muted);
     cursor: not-allowed;
     box-shadow: none;
     transform: none;
@@ -201,7 +201,7 @@
     font-weight: 500;
     margin: 4px 0 0;
     padding: 14px 16px;
-    border-radius: 8px;
+    border-radius: var(--wpiko-radius);
     font-size: 14px;
     line-height: 1.4;
     box-sizing: border-box;
@@ -215,21 +215,21 @@
 }
 
 #wpiko-test-push-status.success {
-    color: #03b5aa;
+    color: var(--wpiko-accent);
     background-color: rgba(3, 181, 170, 0.1);
     border-color: rgba(3, 181, 170, 0.18);
 }
 
 #wpiko-test-push-status.error {
-    color: #dc3545;
+    color: var(--wpiko-danger);
     background-color: rgba(220, 53, 69, 0.1);
     border-color: rgba(220, 53, 69, 0.18);
 }
 
 #wpiko-test-push-status.info {
-    color: #0968fe;
-    background-color: rgba(9, 104, 254, 0.1);
-    border-color: rgba(9, 104, 254, 0.18);
+    color: var(--wpiko-primary);
+    background-color: var(--wpiko-primary-glow);
+    border-color: var(--wpiko-primary-glow-strong);
 }
 
 /* ── Registered Devices Table ── */
@@ -241,7 +241,7 @@
     padding: 4px 10px;
     border-radius: 999px;
     background: rgba(3, 181, 170, 0.1);
-    color: #029990;
+    color: var(--wpiko-accent-hover);
     font-size: 14px;
     font-weight: 700;
     line-height: 1.2;
@@ -254,30 +254,30 @@
 .wpiko-registered-devices-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(58, 79, 102, 0.06);
+    border: 1px solid var(--wpiko-border);
+    border-radius: var(--wpiko-radius-lg);
+    box-shadow: var(--wpiko-shadow-xs);
     margin-top: 12px;
     max-width: 980px;
 }
 
 #wpiko-registered-devices-table {
     border: none;
-    border-radius: 10px;
+    border-radius: var(--wpiko-radius-lg);
     border-spacing: 0;
     width: 100%;
     min-width: 680px;
 }
 
 #wpiko-registered-devices-table thead th {
-    background: #f8fafc;
-    color: #334155;
+    background: var(--wpiko-surface-alt);
+    color: var(--wpiko-text-strong);
     font-weight: 600;
     font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0.4px;
     padding: 14px 16px;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 2px solid var(--wpiko-border);
     white-space: nowrap;
     text-align: left;
 }
@@ -292,9 +292,9 @@
 
 #wpiko-registered-devices-table tbody td {
     padding: 14px 16px;
-    color: #3A4F66;
+    color: var(--wpiko-text);
     font-size: 14px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--wpiko-bg-subtle);
     vertical-align: middle;
     line-height: 1.5;
     background: #ffffff;
@@ -314,11 +314,11 @@
 }
 
 #wpiko-registered-devices-table tbody tr:hover td {
-    background: #f9fbfc;
+    background: var(--wpiko-surface-alt);
 }
 
 #wpiko-registered-devices-table tbody td .description {
-    color: #94a3b8;
+    color: var(--wpiko-text-faint);
     font-size: 12px;
     margin-top: 2px;
     font-style: normal;
@@ -330,10 +330,10 @@
     align-items: center;
     gap: 5px;
     padding: 7px 14px !important;
-    border: 1px solid #dc3545 !important;
+    border: 1px solid var(--wpiko-danger) !important;
     border-radius: 6px !important;
     background: #fff !important;
-    color: #dc3545 !important;
+    color: var(--wpiko-danger) !important;
     font-size: 13px !important;
     font-weight: 500 !important;
     line-height: 1.2;
@@ -345,7 +345,7 @@
 }
 
 .wpiko-remove-device:hover:not(:disabled) {
-    background: #dc3545 !important;
+    background: var(--wpiko-danger) !important;
     color: #fff !important;
     box-shadow: 0 4px 12px rgba(220, 53, 69, 0.2) !important;
     transform: translateY(-1px);

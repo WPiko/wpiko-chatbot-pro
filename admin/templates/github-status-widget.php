@@ -16,87 +16,105 @@ if (!defined('ABSPATH')) {
  */
 function wpiko_chatbot_pro_github_status_widget() {
     $status = wpiko_chatbot_pro_get_github_status();
+    $connection_ok = $status['config_valid'] && $status['connection_valid'];
     ?>
     <div class="wpiko-github-status-widget">
         <h3>
             <span class="dashicons dashicons-update"></span>
             GitHub Update System
         </h3>
-        
+
         <?php if (!$status['config_valid']): ?>
-            <div class="github-config-required">
-                <strong>Configuration Required:</strong>
-                <p style="margin: 5px 0 0 0;">
-                    <?php echo esc_html($status['config_error']); ?><br>
-                    <small>Please update your GitHub settings in <code>includes/github-config.php</code></small>
-                </p>
-            </div>
-        <?php elseif (!$status['connection_valid']): ?>
-            <div class="github-connection-error">
-                <strong>Connection Error:</strong>
-                <p style="margin: 5px 0 0 0;">
-                    <?php echo esc_html($status['connection_error']); ?>
-                </p>
-            </div>
-        <?php else: ?>
-            <div class="github-connection-active">
-                <strong>✓ GitHub connection is active</strong>
-                <p style="margin: 5px 0 0 0;">
-                    Automatic updates are working correctly.
-                </p>
-            </div>
-            
-            <?php if ($status['update_available']): ?>
-                <div class="github-update-available">
-                    <strong>Update Available!</strong>
-                    <p style="margin: 5px 0 0 0;">
-                        A new version is available. 
-                        <a href="<?php echo esc_url(admin_url('update-core.php')); ?>">Check for updates</a>
+            <div class="github-status-banner is-error">
+                <span class="github-status-banner__icon dashicons dashicons-warning"></span>
+                <div class="github-status-banner__content">
+                    <span class="github-status-banner__title">Configuration Required</span>
+                    <p class="github-status-banner__text">
+                        <?php echo esc_html($status['config_error']); ?><br>
+                        <small>Please update your GitHub settings in <code>includes/github-config.php</code>.</small>
                     </p>
                 </div>
-            <?php else: ?>
-                <p class="github-status-up-to-date">
-                    <span class="dashicons dashicons-yes-alt"></span>
-                    Your plugin is up to date.
-                </p>
-            <?php endif; ?>
+            </div>
+        <?php elseif (!$status['connection_valid']): ?>
+            <div class="github-status-banner is-error">
+                <span class="github-status-banner__icon dashicons dashicons-dismiss"></span>
+                <div class="github-status-banner__content">
+                    <span class="github-status-banner__title">Connection Error</span>
+                    <p class="github-status-banner__text"><?php echo esc_html($status['connection_error']); ?></p>
+                </div>
+            </div>
+        <?php elseif ($status['update_available']): ?>
+            <div class="github-status-banner is-update">
+                <span class="github-status-banner__icon dashicons dashicons-download"></span>
+                <div class="github-status-banner__content">
+                    <span class="github-status-banner__title">Update Available</span>
+                    <p class="github-status-banner__text">
+                        A new version is ready to install.
+                        <a href="<?php echo esc_url(admin_url('update-core.php')); ?>">Go to updates &rarr;</a>
+                    </p>
+                </div>
+            </div>
+        <?php else: ?>
+            <div class="github-status-banner is-success">
+                <span class="github-status-banner__icon dashicons dashicons-yes-alt"></span>
+                <div class="github-status-banner__content">
+                    <span class="github-status-banner__title">You&rsquo;re up to date</span>
+                    <p class="github-status-banner__text">GitHub connection is active and automatic updates are working correctly.</p>
+                </div>
+            </div>
         <?php endif; ?>
-        
+
         <div class="github-status-footer">
-            <p class="github-status-version-info">
-                Current Version: <strong><?php echo esc_html(WPIKO_CHATBOT_PRO_VERSION); ?></strong> | 
-                <a href="#" onclick="wpikoChatbotProForceUpdateCheck(); return false;" id="force-update-link">Force Update Check</a>
-            </p>
-            <div id="github-update-check-result"></div>
+            <div class="github-status-meta">
+                <span class="github-status-pill <?php echo $connection_ok ? 'is-connected' : 'is-disconnected'; ?>">
+                    <span class="github-status-pill__dot"></span>
+                    <?php echo $connection_ok ? 'Connected' : 'Disconnected'; ?>
+                </span>
+                <span class="github-status-version">
+                    <span class="github-status-version__label">Current version</span>
+                    <span class="github-status-version__value">v<?php echo esc_html(WPIKO_CHATBOT_PRO_VERSION); ?></span>
+                </span>
+            </div>
+            <button type="button" id="force-update-check-btn" class="button button-secondary github-force-check-btn" onclick="wpikoChatbotProForceUpdateCheck(); return false;">
+                <span class="dashicons dashicons-update github-force-check-btn__icon"></span>
+                <span class="github-force-check-btn__label">Force Update Check</span>
+            </button>
         </div>
+        <div id="github-update-check-result"></div>
     </div>
-    
+
     <script>
     function wpikoChatbotProForceUpdateCheck() {
         if (confirm('This will force a check for updates. Continue?')) {
-            var $link = jQuery('#force-update-link');
+            var $btn = jQuery('#force-update-check-btn');
+            var $label = $btn.find('.github-force-check-btn__label');
+            var $icon = $btn.find('.github-force-check-btn__icon');
             var $result = jQuery('#github-update-check-result');
-            
+
             // Show loading state
-            $link.text('Checking...');
+            $btn.prop('disabled', true);
+            $icon.addClass('is-spinning');
+            $label.text('Checking...');
             $result.removeClass('github-update-success-message github-update-error-message')
                    .text('Checking for updates...')
                    .show();
-            
+
             var data = {
                 action: 'wpiko_chatbot_pro_force_update_check',
                 nonce: '<?php echo esc_attr(wp_create_nonce('wpiko_chatbot_pro_update_check')); ?>'
             };
-            
+
             jQuery.post('<?php echo esc_url(admin_url('admin-ajax.php')); ?>', data, function(response) {
                 setTimeout(function() {
-                    $link.text('Force Update Check');
+                    $btn.prop('disabled', false);
+                    $icon.removeClass('is-spinning');
+                    $label.text('Force Update Check');
                     $result.removeClass('github-update-success-message github-update-error-message');
-                    
+
                     if (response.success) {
                         $result.text(response.data.message || 'Update check completed successfully!')
                                .addClass('github-update-success-message');
-                        
+
                         // Auto-hide success message after 5 seconds and reload if update available
                         setTimeout(function() {
                             $result.fadeOut();
@@ -105,8 +123,8 @@ function wpiko_chatbot_pro_github_status_widget() {
                             }
                         }, 5000);
                     } else {
-                        var errorMessage = response.data && response.data.message ? 
-                                         response.data.message : 
+                        var errorMessage = response.data && response.data.message ?
+                                         response.data.message :
                                          (response.data || 'Update check failed. Please try again.');
                         $result.text(errorMessage)
                                .addClass('github-update-error-message');
@@ -114,7 +132,9 @@ function wpiko_chatbot_pro_github_status_widget() {
                 }, 500);
             }).fail(function() {
                 setTimeout(function() {
-                    $link.text('Force Update Check');
+                    $btn.prop('disabled', false);
+                    $icon.removeClass('is-spinning');
+                    $label.text('Force Update Check');
                     $result.removeClass('github-update-success-message github-update-error-message')
                            .text('Network error. Please check your connection and try again.')
                            .addClass('github-update-error-message');

@@ -82,7 +82,7 @@ function wpiko_chatbot_pwa_settings_section() {
                     <span class="premium-feature-badge">Premium</span>
                 <?php endif; ?>
             </h2>
-            <p class="description">Access conversations and reply to users directly from your phone as an Administrator or WPiko Agent.</p>
+            <p class="description">Access conversations and reply to users directly from your phone as an Administrator or Live Agent.</p>
         </div>
 
         <?php if ($is_license_active): ?>
@@ -100,7 +100,7 @@ function wpiko_chatbot_pwa_settings_section() {
                                 <span class="wpiko-slider round"></span>
                             </label>
                             <label for="wpiko_chatbot_enable_pwa">Enable the mobile web app</label>
-                            <p class="description">When enabled, Administrators and WPiko Agents can access the chat app at the URL below.</p>
+                            <p class="description">When enabled, Administrators and Live Agents can access the chat app at the URL below.</p>
                         </td>
                     </tr>
                 </table>
@@ -254,7 +254,7 @@ function wpiko_chatbot_pwa_settings_section() {
                                 <div class="wpiko-pwa-guide-block">
                                     <h4>Quick setup steps</h4>
                                     <ol>
-                                        <li>Log in as an <strong>Administrator</strong> or <strong>WPiko Agent</strong> and create an <strong>Application Password</strong> from <strong>WordPress &rarr; Users &rarr; Profile</strong>.</li>
+                                        <li>Log in as an <strong>Administrator</strong> or <strong>Live Agent</strong> and create an <strong>Application Password</strong> from <strong>WordPress &rarr; Users &rarr; Profile</strong>.</li>
                                         <li>Open <code><?php echo esc_html($pwa_url); ?></code> on your phone.</li>
                                         <li>Add the app to your home screen from the browser menu. On iPhone/iPad use <strong>Add to Home Screen</strong> in Safari, and on Android look for <strong>Install app</strong> or <strong>Add to Home screen</strong> in Chrome.</li>
                                         <li>Sign in with your <strong>WordPress username</strong> and the <strong>Application Password</strong>.</li>
@@ -265,8 +265,8 @@ function wpiko_chatbot_pwa_settings_section() {
                                 <div class="wpiko-pwa-guide-block">
                                     <h4>Access and permissions</h4>
                                     <ul class="wpiko-pwa-requirements-list">
-                                        <li><strong>Administrator</strong> and <strong>WPiko Agent</strong> users can sign in to the Mobile App.</li>
-                                        <li><strong>WPiko Agent</strong> can view conversations, send replies, take over chats, release takeover, and manage push notifications.</li>
+                                        <li><strong>Administrator</strong> and <strong>Live Agent</strong> users can sign in to the Mobile App.</li>
+                                        <li><strong>Live Agent</strong> can view conversations, send replies, take over chats, release takeover, and manage push notifications.</li>
                                     </ul>
                                 </div>
                             </div>
@@ -312,7 +312,7 @@ function wpiko_chatbot_pwa_settings_section() {
                                     <h4>Requirements and limitations</h4>
                                     <ul class="wpiko-pwa-requirements-list">
                                         <li><strong>Use the correct browser:</strong> Safari is recommended on iPhone/iPad, and Chrome is recommended on Android.</li>
-                                        <li><strong>Application Password required:</strong> admins and WPiko Agents should sign in with a WordPress username plus an Application Password, not their normal site password.</li>
+                                        <li><strong>Application Password required:</strong> admins and Live Agents should sign in with a WordPress username plus an Application Password, not their normal site password.</li>
                                         <li><strong>Push notifications require user permission:</strong> users must allow notifications on their phone after opening the installed app.</li>
                                         <li><strong>iPhone/iPad installs are isolated:</strong> the installed app can have a separate session from Safari, so logging in again after installation is normal.</li>
                                         <li><strong>Install wording varies on Android:</strong> some devices show <em>Install app</em> and others show <em>Add to Home screen</em>.</li>
