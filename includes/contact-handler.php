@@ -123,6 +123,8 @@ function wpiko_chatbot_pro_enhance_text() {
         return;
     }
 
+    $tone = isset($_POST['tone']) ? sanitize_text_field(wp_unslash($_POST['tone'])) : 'professional';
+
     // Get OpenAI API key from options
     $encrypted_api_key = get_option('wpiko_chatbot_api_key');
     if (empty($encrypted_api_key)) {
@@ -138,61 +140,27 @@ function wpiko_chatbot_pro_enhance_text() {
         return;
     }
 
-    // Prepare API request with retry mechanism
-    $max_retries = 3;
-    $retry_count = 0;
-    $response = null;
-
-    while ($retry_count < $max_retries) {
-        $response = wp_remote_post('https://api.openai.com/v1/chat/completions', array(
-            'headers' => array(
-                'Authorization' => 'Bearer ' . $api_key,
-                'Content-Type' => 'application/json',
-            ),
-            'body' => json_encode(array(
-                'model' => 'gpt-4.1-mini',
-                'messages' => array(
-                array(
-                    'role' => 'system',
-                    'content' => 'You are a helpful assistant that enhances text to be more ' . sanitize_text_field(isset($_POST['tone']) ? wp_unslash($_POST['tone']) : 'professional') . ' while maintaining the original meaning. Focus on making the text sound naturally ' . sanitize_text_field(isset($_POST['tone']) ? wp_unslash($_POST['tone']) : 'professional') . ' without being overly formal or informal unless specifically requested.'
-                ),
-                    array(
-                        'role' => 'user',
-                        'content' => 'Please enhance this text to be more ' . sanitize_text_field(isset($_POST['tone']) ? wp_unslash($_POST['tone']) : 'professional') . ' in tone, while keeping the same meaning: ' . $text
-                    )
-                ),
-                'temperature' => 0.7,
-                'max_tokens' => 500
-            )),
-            'timeout' => 30 // Increased timeout for API call
-        ));
-
-        if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) === 200) {
-            break;
-        }
-
-        $retry_count++;
-        if ($retry_count < $max_retries) {
-            wpiko_chatbot_log('OpenAI API request failed, attempt ' . $retry_count . ' of ' . $max_retries, 'warning');
-            sleep(1); // Wait 1 second before retrying
-        }
+    if (!function_exists('wpiko_chatbot_openai_feature_text_request')) {
+        wpiko_chatbot_log('The base plugin does not provide the utility Responses API helper', 'error');
+        wp_send_json_error('WPiko Chatbot must be updated before this feature can use AI.');
+        return;
     }
 
+    $response = wpiko_chatbot_openai_feature_text_request(
+        $api_key,
+        'contact_enhancement',
+        'Enhance the supplied text so it sounds naturally ' . $tone . ' while preserving its meaning. Do not make it overly formal or informal unless requested. Return only the enhanced text.',
+        $text
+    );
+
     if (is_wp_error($response)) {
-        wpiko_chatbot_log('OpenAI API request failed after ' . $max_retries . ' attempts: ' . $response->get_error_message(), 'error');
+        wpiko_chatbot_log('Contact text enhancement failed: ' . $response->get_error_message(), 'error');
         wp_send_json_error($response->get_error_message());
         return;
     }
 
-    $body = json_decode(wp_remote_retrieve_body($response), true);
-    
-    if (isset($body['error'])) {
-        wp_send_json_error($body['error']['message']);
-        return;
-    }
-
-    if (!empty($body['choices'][0]['message']['content'])) {
-        wp_send_json_success($body['choices'][0]['message']['content']);
+    if (!empty($response['wpiko_output_text'])) {
+        wp_send_json_success($response['wpiko_output_text']);
     } else {
         wp_send_json_error('Failed to enhance text');
     }

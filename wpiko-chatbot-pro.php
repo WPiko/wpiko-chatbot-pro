@@ -3,9 +3,9 @@
  * Plugin Name: WPiko Chatbot Pro
  * Plugin URI: https://wpiko.com/chatbot
  * Description: Premium add-on for WPiko Chatbot with advanced features.
- * Version: 2.0.5
+ * Version: 2.0.7
  * Requires at least: 6.0
- * Tested up to: 7.0
+ * Tested up to: 7.1
  * Requires PHP: 7.0
  * Author: WPiko
  * Author URI: https://wpiko.com
@@ -23,7 +23,8 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('WPIKO_CHATBOT_PRO_VERSION', '2.0.5');
+define('WPIKO_CHATBOT_PRO_VERSION', '2.0.7');
+define('WPIKO_CHATBOT_PRO_MIN_BASE_VERSION', '2.0.7');
 define('WPIKO_CHATBOT_PRO_FILE', __FILE__);
 define('WPIKO_CHATBOT_PRO_PATH', plugin_dir_path(__FILE__));
 define('WPIKO_CHATBOT_PRO_URL', plugin_dir_url(__FILE__));
@@ -65,7 +66,9 @@ if (defined('WP_CLI') && WP_CLI) {
 global $wpiko_chatbot_pro_github_updater;
 
 /**
- * Check if WPiko Chatbot (free version) is active
+ * Check whether the required WPiko Chatbot base version is active.
+ *
+ * @return bool True when the base plugin is active and meets the minimum version.
  */
 function wpiko_chatbot_pro_check_base_plugin()
 {
@@ -81,6 +84,12 @@ function wpiko_chatbot_pro_check_base_plugin()
         if (isset($_GET['activate']) && isset($_REQUEST['_wpnonce']) && wp_verify_nonce(sanitize_key($_REQUEST['_wpnonce']), 'activate-plugin_' . plugin_basename(__FILE__))) {
             unset($_GET['activate']);
         }
+        return false;
+    }
+
+    $base_version = defined('WPIKO_CHATBOT_VERSION') ? WPIKO_CHATBOT_VERSION : '0';
+    if (version_compare($base_version, WPIKO_CHATBOT_PRO_MIN_BASE_VERSION, '<')) {
+        add_action('admin_notices', 'wpiko_chatbot_pro_outdated_base_plugin_notice');
         return false;
     }
 
@@ -104,6 +113,40 @@ function wpiko_chatbot_pro_missing_base_plugin_notice()
                 echo '<a href="' . esc_url(wp_nonce_url(self_admin_url('update.php?action=install-plugin&plugin=wpiko-chatbot'), 'install-plugin_wpiko-chatbot')) . '" class="button button-primary">' . esc_html__('Install WPiko Chatbot', 'wpiko-chatbot-pro') . '</a>';
             }
             ?>
+        </p>
+    </div>
+    <?php
+}
+
+/**
+ * Admin notice shown when the active base plugin is too old for this Pro build.
+ */
+function wpiko_chatbot_pro_outdated_base_plugin_notice()
+{
+    $base_version = defined('WPIKO_CHATBOT_VERSION') ? WPIKO_CHATBOT_VERSION : __('unknown', 'wpiko-chatbot-pro');
+    $base_plugin = 'wpiko-chatbot/wpiko-chatbot.php';
+    $update_url = wp_nonce_url(
+        self_admin_url('update.php?action=upgrade-plugin&plugin=' . $base_plugin),
+        'upgrade-plugin_' . $base_plugin
+    );
+    ?>
+    <div class="notice notice-error">
+        <p>
+            <?php
+            echo esc_html(
+                sprintf(
+                    /* translators: 1: required base-plugin version, 2: installed base-plugin version */
+                    __('WPiko Chatbot Pro requires WPiko Chatbot %1$s or newer. The installed version is %2$s.', 'wpiko-chatbot-pro'),
+                    WPIKO_CHATBOT_PRO_MIN_BASE_VERSION,
+                    $base_version
+                )
+            );
+            ?>
+        </p>
+        <p>
+            <a href="<?php echo esc_url($update_url); ?>" class="button button-primary">
+                <?php esc_html_e('Update WPiko Chatbot', 'wpiko-chatbot-pro'); ?>
+            </a>
         </p>
     </div>
     <?php
@@ -199,7 +242,7 @@ function wpiko_chatbot_pro_load_admin_essentials()
  */
 function wpiko_chatbot_pro_fallback_admin_menu()
 {
-    // Only add if base plugin is not active
+    // Add when the base plugin is missing, inactive, or below the minimum version.
     if (!wpiko_chatbot_pro_check_base_plugin()) {
         add_menu_page(
             'WPiko Chatbot Pro',
@@ -222,11 +265,18 @@ function wpiko_chatbot_pro_fallback_admin_page()
     <div class="wrap">
         <h1>WPiko Chatbot Pro</h1>
 
-        <?php wpiko_chatbot_pro_missing_base_plugin_notice(); ?>
+        <?php
+        $base_version = defined('WPIKO_CHATBOT_VERSION') ? WPIKO_CHATBOT_VERSION : '0';
+        if ($base_version !== '0' && version_compare($base_version, WPIKO_CHATBOT_PRO_MIN_BASE_VERSION, '<')) {
+            wpiko_chatbot_pro_outdated_base_plugin_notice();
+        } else {
+            wpiko_chatbot_pro_missing_base_plugin_notice();
+        }
+        ?>
 
         <div style="margin-top: 30px;">
             <h2>Update Management</h2>
-            <p>You can still manage plugin updates even when the base plugin is not active:</p>
+            <p>You can still manage plugin updates when the base plugin is unavailable or needs to be updated:</p>
 
             <?php
             // Display GitHub status widget
@@ -248,7 +298,7 @@ function wpiko_chatbot_pro_init()
     // Always load admin essentials
     wpiko_chatbot_pro_load_admin_essentials();
 
-    // Check if the base plugin is active before proceeding with other features
+    // Do not initialize Pro features until the active base plugin meets the minimum version.
     if (!wpiko_chatbot_pro_check_base_plugin()) {
         return;
     }

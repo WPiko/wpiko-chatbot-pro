@@ -170,9 +170,16 @@ function wpiko_chatbot_process_with_wpiko($json) {
         return false;
     }
     
-    // Check if content needs to be chunked (approximately 15,000 characters is safe for GPT-4o)
+    if (!function_exists('wpiko_chatbot_openai_feature_text_request')) {
+        wpiko_chatbot_log('The base plugin does not provide the utility Responses API helper', 'error');
+        return false;
+    }
+
+    // Keep normal pages in one request. Chunk only unusually large pages to limit
+    // request duration and allow enough output space for comprehensive Q&A content.
     $content_length = strlen($data['content']);
-    if ($content_length > 15000) {
+    $chunk_threshold = max(1000, (int) apply_filters('wpiko_chatbot_qa_chunk_threshold', 60000));
+    if ($content_length > $chunk_threshold) {
         return wpiko_chatbot_process_large_content($data, $api_key);
     }
 
@@ -198,35 +205,19 @@ Based on the following JSON structure, generate a comprehensive set of questions
 
 $json";
 
-    $response = wp_remote_post('https://api.openai.com/v1/chat/completions', [
-        'headers' => [
-            'Authorization' => 'Bearer ' . $api_key,
-            'Content-Type' => 'application/json',
-        ],
-        'body' => json_encode([
-            'model' => 'gpt-4.1',
-            'messages' => [
-                ['role' => 'system', 'content' => 'You are a helpful assistant that creates Q&A pairs from structured web content.'],
-                ['role' => 'user', 'content' => $prompt]
-            ],
-            'max_tokens' => 4000,
-            'temperature' => 0.7,
-        ]),
-        'timeout' => 90,
-    ]);
+    $response = wpiko_chatbot_openai_feature_text_request(
+        $api_key,
+        'qa_generation',
+        'You create accurate, comprehensive Q&A pairs from structured web content. Preserve source links and follow the requested output format exactly.',
+        $prompt
+    );
 
     if (is_wp_error($response)) {
-        wpiko_chatbot_log('OpenAI API request failed: ' . $response->get_error_message(), 'error');
+        wpiko_chatbot_log('Q&A generation failed: ' . $response->get_error_message(), 'error');
         return false;
     }
 
-    $body = json_decode(wp_remote_retrieve_body($response), true);
-    if (!isset($body['choices'][0]['message']['content'])) {
-        wpiko_chatbot_log('Unexpected response from OpenAI API: ' . wp_json_encode($body), 'error');
-        return false;
-    }
-
-    return trim($body['choices'][0]['message']['content']);
+    return trim($response['wpiko_output_text']);
 }
 
 /**
@@ -237,8 +228,11 @@ $json";
  * @return string The combined processed content
  */
 function wpiko_chatbot_process_large_content($data, $api_key) {
-    // Calculate number of chunks needed (aiming for ~10,000 chars per chunk for safe processing)
-    $chunk_size = 10000;
+    // The GPT-5.6 context window can handle much larger inputs than the previous
+    // implementation. This conservative operational limit avoids excessive calls.
+    $chunk_size = max(1000, (int) apply_filters('wpiko_chatbot_qa_chunk_size', 45000));
+    $chunk_overlap = max(0, (int) apply_filters('wpiko_chatbot_qa_chunk_overlap', 500));
+    $chunk_overlap = min($chunk_overlap, (int) floor($chunk_size / 2));
     $content = $data['content'];
     $total_length = strlen($content);
     $num_chunks = ceil($total_length / $chunk_size);
@@ -250,8 +244,8 @@ function wpiko_chatbot_process_large_content($data, $api_key) {
     // Process each chunk
     for ($i = 0; $i < $num_chunks; $i++) {
         // Extract chunk with some overlap to avoid cutting sentences
-        $start = max(0, $i * $chunk_size - 200);
-        $length = min($chunk_size + 400, $total_length - $start);
+        $start = max(0, $i * $chunk_size - $chunk_overlap);
+        $length = min($chunk_size + ($chunk_overlap * 2), $total_length - $start);
         $chunk = substr($content, $start, $length);
         
         // If not the first chunk, find the first paragraph or sentence break to start cleanly
@@ -293,35 +287,22 @@ Guidelines:
 Content:
 $chunk_json";
 
-        $response = wp_remote_post('https://api.openai.com/v1/chat/completions', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $api_key,
-                'Content-Type' => 'application/json',
-            ],
-            'body' => json_encode([
-                'model' => 'gpt-4.1',
-                'messages' => [
-                    ['role' => 'system', 'content' => 'You are a specialist in creating Q&A content from web page segments. Always maintain consistent formatting between question and answer pairs.'],
-                    ['role' => 'user', 'content' => $chunk_prompt]
-                ],
-                'max_tokens' => 4000,
-                'temperature' => 0.7,
-            ]),
-            'timeout' => 90,
-        ]);
+        $response = wpiko_chatbot_openai_feature_text_request(
+            $api_key,
+            'qa_generation',
+            'You create accurate Q&A content from web page segments. Preserve source links and maintain identical Q: and A: formatting across every segment.',
+            $chunk_prompt
+        );
 
         if (is_wp_error($response)) {
-            wpiko_chatbot_log('Chunk ' . ($i + 1) . ' processing failed: ' . $response->get_error_message(), 'error');
-            continue;
+            wpiko_chatbot_log(
+                'Chunk ' . ($i + 1) . ' of ' . $num_chunks . ' failed; discarding the incomplete Q&A result: ' . $response->get_error_message(),
+                'error'
+            );
+            return false;
         }
 
-        $body = json_decode(wp_remote_retrieve_body($response), true);
-        if (!isset($body['choices'][0]['message']['content'])) {
-            wpiko_chatbot_log('Unexpected response from OpenAI API for chunk ' . ($i + 1), 'error');
-            continue;
-        }
-
-        $results[] = trim($body['choices'][0]['message']['content']);
+        $results[] = trim($response['wpiko_output_text']);
     }
     
     // If no chunks were processed successfully, return false
