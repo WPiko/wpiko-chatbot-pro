@@ -228,7 +228,7 @@ $json";
  * @return string The combined processed content
  */
 function wpiko_chatbot_process_large_content($data, $api_key) {
-    // The GPT-5.6 context window can handle much larger inputs than the previous
+    // The GPT-6 context window can handle much larger inputs than the previous
     // implementation. This conservative operational limit avoids excessive calls.
     $chunk_size = max(1000, (int) apply_filters('wpiko_chatbot_qa_chunk_size', 45000));
     $chunk_overlap = max(0, (int) apply_filters('wpiko_chatbot_qa_chunk_overlap', 500));
