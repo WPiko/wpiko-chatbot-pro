@@ -68,6 +68,20 @@ def tag_commit(api, reference):
     raise ValueError("Could not resolve the existing version tag to a commit")
 
 
+def find_release(api, tag):
+    # The tag endpoint only promises published releases. Listing with write
+    # access also includes drafts, allowing recovery after an interrupted upload.
+    page = 1
+    while True:
+        releases = api.request("releases?per_page=100&page=" + str(page))
+        for candidate in releases:
+            if candidate["tag_name"] == tag:
+                return candidate
+        if len(releases) < 100:
+            return None
+        page += 1
+
+
 def publish(api, version, notes, package, commit, dry_run):
     version_numbers(version)
     tag = "v" + version
@@ -83,7 +97,7 @@ def publish(api, version, notes, package, commit, dry_run):
     reference = api.request("git/ref/tags/" + tag, missing_ok=True)
     if reference and tag_commit(api, reference) != commit:
         raise ValueError(tag + " already points to another commit; choose a new version")
-    release = api.request("releases/tags/" + tag, missing_ok=True)
+    release = find_release(api, tag)
     if release and not release["draft"]:
         raise ValueError(tag + " is already published; published releases are never replaced")
     if release and not reference:

@@ -42,8 +42,8 @@ class ReleaseTests(unittest.TestCase):
             return {"commit": {"sha": self.commit}}
         if path == "git/ref/tags/v2.0.9":
             return self.reference
-        if path == "releases/tags/v2.0.9":
-            return self.draft
+        if path == "releases?per_page=100&page=1":
+            return [dict(self.draft, tag_name="v2.0.9")] if self.draft else []
         if path == "git/refs" and method == "POST":
             self.reference = {"object": {"type": "commit", "sha": data["sha"]}}
             return self.reference
@@ -163,6 +163,18 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.publish()
         self.assertEqual(self.writes(), [])
+
+    def test_draft_lookup_includes_paginated_releases(self):
+        api = Mock()
+        draft = {"tag_name": "v2.0.9", "draft": True}
+        api.request.side_effect = [[{"tag_name": "other-" + str(index)} for index in range(100)], [draft]]
+        self.assertEqual(release.find_release(api, "v2.0.9"), draft)
+        self.assertEqual(api.request.call_args_list[-1].args, ("releases?per_page=100&page=2",))
+
+    def test_draft_lookup_returns_none_if_tag_is_absent(self):
+        api = Mock()
+        api.request.return_value = [{"tag_name": "v2.0.8", "draft": False}]
+        self.assertIsNone(release.find_release(api, "v2.0.9"))
 
 
 if __name__ == "__main__":
