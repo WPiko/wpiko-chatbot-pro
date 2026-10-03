@@ -252,9 +252,15 @@ class WPiko_Chatbot_Pro_GitHub_Updater {
         $info->homepage = $this->get_github_repo_url();
         $info->download_link = $this->get_download_url($info->version);
         $info->package = $this->get_download_url($info->version);
-        $info->requires = '5.0';
-        $info->tested = get_bloginfo('version');
-        $info->requires_php = '7.4';
+        // Use this plugin's declared requirements, rather than the site's versions.
+        $headers = get_file_data($this->plugin_file, array(
+            'requires' => 'Requires at least',
+            'tested' => 'Tested up to',
+            'requires_php' => 'Requires PHP'
+        ));
+        $info->requires = $headers['requires'];
+        $info->tested = $headers['tested'];
+        $info->requires_php = $headers['requires_php'];
         $info->last_updated = $data['published_at'];
         $info->sections = array(
             'description' => 'Premium add-on for WPiko Chatbot with advanced features.',

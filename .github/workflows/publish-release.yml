@@ -1,0 +1,62 @@
+name: Publish Pro Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Test only (leave unchecked to publish the plugin version)
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-wpiko-chatbot-pro
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Validate, package, and publish Pro
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the exact triggering commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Require main
+        run: |
+          if [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo "::error::Select main when running this workflow."
+            exit 1
+          fi
+          git merge-base --is-ancestor HEAD origin/main
+
+      - name: Test publishing safeguards
+        run: python3 -m unittest discover -s .github/tests -v
+
+      - name: Validate and publish, or test without publishing
+        id: package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          options=(--output-dir "$RUNNER_TEMP/wpiko-pro-package")
+          if [ "$DRY_RUN" = true ]; then
+            options+=(--dry-run)
+          fi
+          python3 .github/scripts/publish-release.py "${options[@]}"
+
+      - name: Save verified ZIP
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: wpiko-chatbot-pro-package-${{ github.run_id }}
+          path: ${{ steps.package.outputs.zip_path }}
+          if-no-files-found: error
+          retention-days: 7
