@@ -3,7 +3,7 @@
  * Plugin Name: WPiko Chatbot Pro
  * Plugin URI: https://wpiko.com/chatbot
  * Description: Premium add-on for WPiko Chatbot with advanced features.
- * Version: 2.0.8
+ * Version: 2.1.0
  * Requires at least: 6.0
  * Tested up to: 7.1
  * Requires PHP: 7.0
@@ -23,8 +23,8 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('WPIKO_CHATBOT_PRO_VERSION', '2.0.8');
-define('WPIKO_CHATBOT_PRO_MIN_BASE_VERSION', '2.0.7');
+define('WPIKO_CHATBOT_PRO_VERSION', '2.1.0');
+define('WPIKO_CHATBOT_PRO_MIN_BASE_VERSION', '2.1.0');
 define('WPIKO_CHATBOT_PRO_FILE', __FILE__);
 define('WPIKO_CHATBOT_PRO_PATH', plugin_dir_path(__FILE__));
 define('WPIKO_CHATBOT_PRO_URL', plugin_dir_url(__FILE__));
@@ -36,11 +36,14 @@ require_once WPIKO_CHATBOT_PRO_PATH . 'includes/github-updater.php';
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/github-helpers.php';
 
 // Include pro functions
+require_once WPIKO_CHATBOT_PRO_PATH . 'includes/license-signature.php';
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/license-activation.php';
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/analytics.php';
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/scan-website.php';
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/qa-management.php';
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/woocommerce-integration.php';
+require_once WPIKO_CHATBOT_PRO_PATH . 'includes/order-lookup.php';
+require_once WPIKO_CHATBOT_PRO_PATH . 'includes/order-file-cleanup.php';
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/contact-form-handler.php';
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/contact-form-ai.php';
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/chatbot-interface-integration.php';
@@ -199,7 +202,7 @@ function wpiko_chatbot_pro_enqueue_email_capture_scripts()
         ));
     }
 }
-add_action('wp_enqueue_scripts', 'wpiko_chatbot_pro_enqueue_email_capture_scripts', 25); // Run after main plugin scripts
+add_action('wpiko_chatbot_enqueue_frontend_assets', 'wpiko_chatbot_pro_enqueue_email_capture_scripts', 25); // Run after main plugin scripts
 
 /**
  * Initialize the GitHub updater (always available for updates)
@@ -304,10 +307,10 @@ function wpiko_chatbot_pro_init()
     }
 
     // Initialize license activation and enqueue scripts
-    add_action('wp_enqueue_scripts', 'wpiko_chatbot_pro_enqueue_scripts');
+    add_action('wpiko_chatbot_enqueue_frontend_assets', 'wpiko_chatbot_pro_enqueue_scripts');
 
     // Enqueue frontend styles
-    add_action('wp_enqueue_scripts', 'wpiko_chatbot_pro_enqueue_frontend_styles');
+    add_action('wpiko_chatbot_enqueue_frontend_assets', 'wpiko_chatbot_pro_enqueue_frontend_styles');
 
     // Include the admin integration file
     require_once WPIKO_CHATBOT_PRO_PATH . 'admin/admin-integration.php';
@@ -364,6 +367,8 @@ add_action('plugins_loaded', 'wpiko_chatbot_pro_init');
  */
 function wpiko_chatbot_pro_deactivate_license_on_plugin_deactivation()
 {
+    wp_clear_scheduled_hook('wpiko_chatbot_cleanup_order_files');
+    wp_clear_scheduled_hook('wpiko_chatbot_order_lookup_purge_limits');
     // Only run if the main plugin function exists
     if (function_exists('wpiko_chatbot_pro_deactivate_license') && function_exists('wpiko_chatbot_pro_encrypt_data')) {
         // Deactivate the license key

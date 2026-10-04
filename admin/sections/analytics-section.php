@@ -412,7 +412,7 @@ function wpiko_chatbot_analytics_section() {
                     <?php else: ?>
                         <div class="premium-feature-notice">
                             <h3>📈 Unlock Advanced Analytics</h3>
-                            <p>Upgrade to Premium to access:</p>
+                            <p>Activate Pro to access:</p>
                             <ul>
                                 <li>✨ Real-time Message Activity Tracking</li>
                                 <li>🌍 Global User Distribution Maps</li>
@@ -420,7 +420,7 @@ function wpiko_chatbot_analytics_section() {
                                 <li>⚡ Performance Metrics Dashboard</li>
                                 <li>🔄 Custom Date Range Filtering</li>
                             </ul>
-                            <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Upgrade to Premium</a>
+                            <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Activate Pro</a>
                         </div>
                     <?php endif; ?>
         <?php endif; ?>

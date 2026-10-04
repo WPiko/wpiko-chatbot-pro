@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
         <span class="dashicons dashicons-admin-site-alt3"></span> 
         Scan Website 
         <?php if (!wpiko_chatbot_is_license_active()): ?>
-            <span class="premium-feature-badge">Premium</span>
+            <span class="premium-feature-badge">PRO</span>
         <?php endif; ?>
     </h3>
     <div id="url-processing-content">
@@ -39,7 +39,7 @@ if (!defined('ABSPATH')) {
     ?>
 
     <?php if (wpiko_chatbot_is_license_active()): ?>
-        <p class="description">Scan your website to generate Q&A for the AI Assistant knowledge base.</p>
+        <p class="description">AI turns a page into questions and answers for your chatbot. Pages you scan here are removed from "Quick learn from your pages" automatically, so nothing is stored twice.</p>
         <table class="form-table">
             <tr valign="top">
                 <th scope="row"><label for="process_url_search">Search Page</label></th>
@@ -81,7 +81,7 @@ if (!defined('ABSPATH')) {
     <?php else: ?>
         <div class="premium-feature-notice">
             <h3>🔍 Unlock Website Scanning</h3>
-            <p>Upgrade to Premium to automatically generate Q&A pairs from your website content:</p>
+            <p>Activate Pro to automatically generate Q&A pairs from your website content:</p>
             <ul>
                 <li>✨ Scan any page on your website</li>
                 <li>📝 Automatically generate relevant Q&A pairs</li>
@@ -89,7 +89,7 @@ if (!defined('ABSPATH')) {
                 <li>⚡ Save hours of manual Q&A creation</li>
                 <li>📈 Keep your chatbot's knowledge base up-to-date</li>
             </ul>
-            <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Upgrade to Premium</a>
+            <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Activate Pro</a>
         </div>
     <?php endif; ?>
 

@@ -80,7 +80,7 @@ function wpiko_chatbot_product_card_section() {
                 <span class="dashicons dashicons-align-full-width"></span> 
                 Product Card
                 <?php if (!wpiko_chatbot_is_license_active()): ?>
-                    <span class="premium-feature-badge">Premium</span>
+                    <span class="premium-feature-badge">PRO</span>
                 <?php endif; ?>
             </h2>
             <p class="description">Customize WooCommerce product cards in chatbot responses. When enabled, products in chat appear as cards with an image, title, description, and price to enhance shopping experience.</p>
@@ -193,7 +193,7 @@ function wpiko_chatbot_product_card_section() {
         <?php else: ?>
             <div class="premium-feature-notice">
                 <h3>🛍️ Unlock Product Cards</h3>
-                <p>Upgrade to Premium to enhance your chatbot with beautiful product cards:</p>
+                <p>Activate Pro to enhance your chatbot with beautiful product cards:</p>
                 <ul>
                     <li>✨ Show product cards in chat responses</li>
                     <li>📝 Display product images, titles, and descriptions</li>
@@ -201,7 +201,7 @@ function wpiko_chatbot_product_card_section() {
                     <li>🛍️ Enhance shopping experience</li>
                     <li>💼 Professional product presentation</li>
                 </ul>
-                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Upgrade to Premium</a>
+                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Activate Pro</a>
             </div>
         <?php endif; ?>
         </div>

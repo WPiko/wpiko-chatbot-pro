@@ -38,7 +38,7 @@ function wpiko_chatbot_pro_add_cache_monitored_options($options)
 
         // WooCommerce integration options
         'wpiko_chatbot_products_auto_sync',
-        'wpiko_chatbot_orders_auto_sync',
+        'wpiko_chatbot_order_lookup_enabled',
 
         // License activation (affects feature availability)
         'wpiko_chatbot_pro_license_key',

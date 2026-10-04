@@ -223,6 +223,10 @@ add_filter('rest_pre_serve_request', 'wpiko_chatbot_pro_rest_cors_preflight', 10
  * Return the allowlist used to sanitize assistant HTML before it reaches the PWA.
  */
 function wpiko_chatbot_pro_get_rest_allowed_message_html() {
+    // Keep a fallback for installations where the free plugin has not been updated yet.
+    if (function_exists('wpiko_chatbot_get_allowed_message_html')) {
+        return wpiko_chatbot_get_allowed_message_html();
+    }
     return array(
         'a' => array(
             'href' => true,
@@ -295,7 +299,7 @@ function wpiko_chatbot_pro_rest_sanitize_transcript_message($message, $role) {
         return $message;
     }
 
-    return wp_kses($message, wpiko_chatbot_pro_get_rest_allowed_message_html());
+    return wp_kses($message, wpiko_chatbot_pro_get_rest_allowed_message_html(), array('http', 'https', 'mailto', 'tel'));
 }
 
 /**

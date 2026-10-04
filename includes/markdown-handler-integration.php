@@ -92,7 +92,7 @@ function wpiko_chatbot_pro_format_product_link($product_details, $use_wp_functio
     $show_price = get_option('wpiko_chatbot_show_product_price', 1);
     
     $all_disabled = !$show_title && !$show_description && !$show_price;
-    $product_info_style = $all_disabled ? ' style="display:none;"' : '';
+    $product_info_style = ''; // No inline styles in untrusted message HTML.
     $product_info_class = 'product-info';
     
     // Build product info HTML based on settings
@@ -149,12 +149,22 @@ function wpiko_chatbot_pro_format_product_link($product_details, $use_wp_functio
         </div>";
     }
 
+    if ($all_disabled) {
+        $html = preg_replace('/<div class="product-info">\s*<\/div>/', '', $html);
+    }
     return $html;
 }
 
 /**
  * Process product links and add product cards
  */
+function wpiko_chatbot_pro_replace_message_text($pattern, $callback, $text) {
+    if (function_exists('wpiko_chatbot_replace_message_text')) {
+        return wpiko_chatbot_replace_message_text($pattern, $callback, $text);
+    }
+    return preg_replace_callback($pattern, $callback, $text);
+}
+
 function wpiko_chatbot_pro_process_product_links($text) {
     // Check if license is active and product cards are enabled
     if (!wpiko_chatbot_is_license_active() || !get_option('wpiko_chatbot_enable_product_cards', 0)) {
@@ -169,7 +179,7 @@ function wpiko_chatbot_pro_process_product_links($text) {
     $site_domain = wp_parse_url($site_url, PHP_URL_HOST);
 
     // Handle markdown-style links
-    $text = preg_replace_callback('/\[([^\]]+)\]\s*\(?\s*((?:https?:\/\/|www\.)[^\s\)]+)\s*\)?/', function($matches) use ($site_domain) {
+    $text = wpiko_chatbot_pro_replace_message_text('/\[([^\]]+)\]\s*\(?\s*((?:https?:\/\/|www\.)[^\s\)]+)\s*\)?/', function($matches) use ($site_domain) {
         $linkText = $matches[1];
         $url = trim($matches[2], '()*');
         if (strpos($url, 'www.') === 0) {
@@ -194,7 +204,7 @@ function wpiko_chatbot_pro_process_product_links($text) {
 
     // Handle plain URLs
     $urlPattern = '/((?:https?:\/\/|www\.)[^\s<>"]+)(?![^<>]*>|[^<>]*<\/a>)/i';
-    $text = preg_replace_callback($urlPattern, function($matches) use ($site_domain) {
+    $text = wpiko_chatbot_pro_replace_message_text($urlPattern, function($matches) use ($site_domain) {
         $url = rtrim($matches[1], '.,:;!?*');
         if (strpos($url, 'www.') === 0) {
             $url = 'http://' . $url;
@@ -296,11 +306,11 @@ function wpiko_chatbot_pro_build_contact_form_link($json_data) {
 
     if (empty($safe_data)) {
         // No prefill data — render simple button
-        return '<a href="javascript:void(0);" onclick="if(typeof window.wpikoOpenChatbotWithContactForm === \'function\') { window.wpikoOpenChatbotWithContactForm(); } return false;" class="wpiko-contact-button">Contact Form</a>';
+        return '<a href="#wpiko-contact-form" class="wpiko-contact-button">Contact Form</a>';
     }
 
-    $encoded_data = esc_attr(wp_json_encode($safe_data));
-    return '<a href="javascript:void(0);" data-wpiko-prefill="' . $encoded_data . '" onclick="if(typeof window.wpikoOpenChatbotWithContactForm === \'function\') { window.wpikoOpenChatbotWithContactForm(JSON.parse(this.getAttribute(\'data-wpiko-prefill\'))); } return false;" class="wpiko-contact-button">Contact Form</a>';
+    $encoded_data = esc_attr(wp_json_encode($safe_data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT));
+    return '<a href="#wpiko-contact-form" data-wpiko-prefill="' . $encoded_data . '" class="wpiko-contact-button">Contact Form</a>';
 }
 
 /**
@@ -359,7 +369,7 @@ function wpiko_chatbot_pro_process_contact_form_links($text) {
     // 3. Legacy: Match "Wpiko Form" text patterns (no pre-fill data)
     $text = preg_replace_callback('/\[Wpiko Form\]|\[wpiko form\]|Wpiko Form:|Wpiko Form button|(?<!\w)Wpiko Form(?!\w)/i', 
         function($matches) {
-            return '<a href="javascript:void(0);" onclick="if(typeof window.wpikoOpenChatbotWithContactForm === \'function\') { window.wpikoOpenChatbotWithContactForm(); } return false;" class="wpiko-contact-button">Contact Form</a>';
+            return '<a href="#wpiko-contact-form" class="wpiko-contact-button">Contact Form</a>';
          }, 
          $text
     );

@@ -1,14 +1,17 @@
-/* Premium Feature Badge */
+/* Pro feature badge — matches the Scan Website comparison badge. */
 .premium-feature-badge {
-    background: var(--wpiko-accent);
-    color: white;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 6px 12px;
-    border-radius: 20px;
+    display: inline-block;
+    padding: 0 6px;
+    border-radius: var(--wpiko-radius-full);
+    background: var(--wpiko-gold-light);
+    color: var(--wpiko-text-strong);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 18px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    box-shadow: 0 4px 8px rgba(3, 181, 170, 0.2);
+    letter-spacing: normal;
+    vertical-align: middle;
+    white-space: nowrap;
 }
 
 .chatbot-menu-section .premium-feature-badge {

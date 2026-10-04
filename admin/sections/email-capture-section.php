@@ -75,7 +75,7 @@ function wpiko_chatbot_email_capture_section() {
                 <span class="dashicons dashicons-email"></span> 
                 Email Capture
                 <?php if (!wpiko_chatbot_is_license_active()): ?>
-                    <span class="premium-feature-badge">Premium</span>
+                    <span class="premium-feature-badge">PRO</span>
                 <?php endif; ?>
             </h2>
             <p class="description">Configure email capture settings to collect user information before starting chat sessions.</p>
@@ -194,7 +194,7 @@ function wpiko_chatbot_email_capture_section() {
         <?php else: ?>
             <div class="premium-feature-notice email-capture-notice">
                 <h3>📧 Unlock Email Capture</h3>
-                <p>Upgrade to Premium to collect user information before chat sessions:</p>
+                <p>Activate Pro to collect user information before chat sessions:</p>
                 <ul>
                     <li>✨ Capture user names and email addresses</li>
                     <li>📧 Build your email list automatically</li>
@@ -202,7 +202,7 @@ function wpiko_chatbot_email_capture_section() {
                     <li>📊 Track user engagement</li>
                     <li>🔧 Customize popup appearance</li>
                 </ul>
-                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Upgrade to Premium</a>
+                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Activate Pro</a>
             </div>
         <?php endif; ?>
     </div>

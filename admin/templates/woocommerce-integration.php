@@ -11,11 +11,12 @@ if (!defined('ABSPATH')) {
         <span class="dashicons dashicons-update-alt"></span> 
         WooCommerce Integration 
         <?php if (!wpiko_chatbot_is_license_active()): ?>
-            <span class="premium-feature-badge">Premium</span>
+            <span class="premium-feature-badge">PRO</span>
         <?php endif; ?>
     </h3>
     <div id="woocommerce-integration-content">
         <?php 
+        $api_display_name = 'AI Assistant';
         // Get current license status
         $license_status = wpiko_chatbot_decrypt_data(get_option('wpiko_chatbot_license_status', ''));
         $is_license_expired = $license_status === 'expired';
@@ -37,14 +38,14 @@ if (!defined('ABSPATH')) {
         ?>
 
         <?php if (wpiko_chatbot_is_license_active()): ?>
-            <p class="description">Integrate your WooCommerce products and orders with the AI Assistant knowledge base.</p>
+            <p class="description">Sync your product catalog and enable controlled order assistance.</p>
         <table class="form-table">
         
         <tr valign="top">
             <th scope="row">
                 Enable WooCommerce Integration 
                 <?php if (!wpiko_chatbot_is_license_active()): ?>
-                    <span class="premium-feature-badge">Premium</span>
+                    <span class="premium-feature-badge">PRO</span>
                 <?php endif; ?>
             </th>
             <td>
@@ -58,7 +59,7 @@ if (!defined('ABSPATH')) {
                 <?php else: ?>
                     <input type="checkbox" disabled>
                     <label>Enable integration with WooCommerce</label>
-                    <p class="description">This feature requires a premium license. <a href="?page=ai-chatbot&tab=license_activation">Upgrade now</a> to enable WooCommerce integration.</p>
+                    <p class="description">This feature requires a premium license. <a href="?page=ai-chatbot&tab=license_activation">Activate Pro</a> to enable WooCommerce integration.</p>
                 <?php endif; ?>
             </td>
         </tr>
@@ -114,8 +115,8 @@ if (!defined('ABSPATH')) {
                     <?php
                     $enabled_count = 0;
                     $total_fields = count($fields);
-                    foreach ($field_options as $key => $enabled) {
-                        if ($enabled) $enabled_count++;
+                    foreach ($fields as $key => $label) {
+                        if (!empty($field_options[$key])) $enabled_count++;
                     }
                     ?>
                     <span><?php echo sprintf('%d of %d fields selected', esc_html($enabled_count), esc_html($total_fields)); ?></span>
@@ -147,33 +148,36 @@ if (!defined('ABSPATH')) {
             </td>
         </tr>
 
+        <tr valign="top" class="download-files-option">
+            <th scope="row">Download Product Data</th>
+            <td>
+                <button type="button" id="download_products_json" class="button button-secondary" <?php disabled(!wpiko_chatbot_is_woocommerce_integration_enabled()); ?>>Download Products JSON</button>
+                <p class="description">
+                    Click to download and preview WooCommerce products file without uploading to <?php echo esc_html($api_display_name); ?>. 
+                    This is for preview purposes only and does not affect the AI Assistant's knowledge.
+                </p>
+                <span id="download_status" class="status-message"></span>
+            </td>
+        </tr>
+
         <tr valign="top">
             <th scope="row">
                 <div class="collapsible-header" id="order-fields-toggle">
-                    Order Data Fields 
+                    Signed-in Order Details 
                     <span class="dashicons dashicons-arrow-down-alt2"></span>
                 </div>
             </th>
             <td>
                 <div class="collapsible-content" id="order-fields-content" style="display:none;">
-                    <p class="description">Choose which order data fields to include when syncing with the <?php echo esc_html($api_display_name); ?>.</p>
+                    <p class="description">Choose the additional details a signed-in customer can receive about their own order. Order number and status are always included. Guests receive basic status only after matching the order number and checkout email.</p>
                     
                     <?php 
                     $field_options = wpiko_chatbot_get_order_fields_options(); 
                     $fields = array(
-                        'id' => 'Order ID',
                         'date_created' => 'Date Created',
                         'date_paid' => 'Date Paid',
                         'date_completed' => 'Date Completed',
-                        'date_last_status_change' => 'Last Status Change Date',
-                        'status' => 'Order Status',
                         'total' => 'Order Total',
-                        'customer_id' => 'Customer ID',
-                        'first_name' => 'Customer First Name',
-                        'billing_email' => 'Customer Email',
-                        'order_note' => 'Order Note',
-                        'note_to_customer' => 'Note to Customer',
-                        'payment_method' => 'Payment Method',
                         'tracking_number' => 'Tracking Number',
                         'tracking_link' => 'Tracking Link',
                         'items' => 'Order Items'
@@ -192,8 +196,7 @@ if (!defined('ABSPATH')) {
                                 <?php 
                                 if ($field_key === 'tracking_number') {
                                     echo '<span class="info-icon tracking-number-info dashicons dashicons-info-outline"></span>';
-                                } elseif ($field_key === 'billing_email') {
-                                    echo '<span class="info-icon customer-email-info dashicons dashicons-info-outline"></span>';
+
                                 }
                                 ?>
                             </div>
@@ -207,8 +210,8 @@ if (!defined('ABSPATH')) {
                     <?php
                     $enabled_count = 0;
                     $total_fields = count($fields);
-                    foreach ($field_options as $key => $enabled) {
-                        if ($enabled) $enabled_count++;
+                    foreach ($fields as $key => $label) {
+                        if (!empty($field_options[$key])) $enabled_count++;
                     }
                     ?>
                     <span><?php echo sprintf('%d of %d fields selected', esc_html($enabled_count), esc_html($total_fields)); ?></span>
@@ -218,41 +221,23 @@ if (!defined('ABSPATH')) {
         
         <tr valign="top">
             <th scope="row">
-                Recent Orders Auto-Sync
+                Order Assistance
             </th>
             <td>
-                <select name="orders_auto_sync" id="orders_auto_sync">
-                    <option value="disabled" <?php selected(get_option('wpiko_chatbot_orders_auto_sync', 'disabled'), 'disabled'); ?>>Disabled</option>
-                    <option value="100" <?php selected(get_option('wpiko_chatbot_orders_auto_sync', 'disabled'), '100'); ?>>Recent 100 Orders</option>
-                    <option value="200" <?php selected(get_option('wpiko_chatbot_orders_auto_sync', 'disabled'), '200'); ?>>Recent 200 Orders</option>
-                    <option value="300" <?php selected(get_option('wpiko_chatbot_orders_auto_sync', 'disabled'), '300'); ?>>Recent 300 Orders</option>
+                <select name="order_lookup_enabled" id="order_lookup_enabled">
+                    <option value="0" <?php selected((bool) get_option('wpiko_chatbot_order_lookup_enabled', false), false); ?>>Disabled</option>
+                    <option value="1" <?php selected((bool) get_option('wpiko_chatbot_order_lookup_enabled', false), true); ?>>Enabled</option>
                 </select>
-                <p class="description">
-                    Configure the number of recent orders to sync with the AI Assistant. Once enabled, orders will automatically sync when they are placed, updated, or their status changes. This ensures the AI can provide up-to-date information about orders.
-                    <strong class="note">Note:</strong> At least one order must exist in your WooCommerce store to enable this feature.
-                </p>
+                <p class="description">Look up orders directly in WooCommerce when a visitor asks. Signed-in owners can receive the selected details. Guests must provide the order number and checkout email and receive only basic status. Orders are never uploaded to the knowledge base. Guest matching does not verify identity; lookup attempts are limited.</p>
             </td>
         </tr>
 
-        <tr valign="top" class="download-files-option">
-            <th scope="row">Download Files</th>
-            <td>
-                <button type="button" id="download_products_json" class="button button-secondary" <?php disabled(!wpiko_chatbot_is_woocommerce_integration_enabled()); ?>>Download Products JSON</button>
-                <button type="button" id="download_orders_json" class="button button-secondary" <?php disabled(!wpiko_chatbot_is_woocommerce_integration_enabled()); ?>>Download Orders JSON</button>
-                <p class="description">
-                    Click to download and preview WooCommerce products or orders file without uploading to <?php echo esc_html($api_display_name); ?>. 
-                    This is for preview purposes only and does not affect the AI Assistant's knowledge.
-                </p>
-                <span id="download_status" class="status-message"></span>
-                <span id="orders_download_status" class="status-message"></span>
-            </td>
-        </tr>
 
         </table>
         
             <div class="woocommerce-files-section">
                 <h3>WooCommerce List</h3>
-                <p class="description">View and manage the WooCommerce products and orders information you’ve synced with the AI Assistant.</p>
+                <p class="description">View and manage the WooCommerce product files you’ve synced with the AI Assistant.</p>
                 <ul id="woocommerce-files-list"></ul>
             </div>
             
@@ -267,7 +252,7 @@ if (!defined('ABSPATH')) {
                     <li>📦 Track order status and provide updates</li>
                     <li>💬 Answer product-specific questions</li>
                     <li>🔄 Automatic product updates</li>
-                    <li>📊 Order tracking and management</li>
+                    <li>📊 Controlled order status lookup</li>
                 </ul>
                 <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Renew License</a>
             </div>
@@ -295,7 +280,7 @@ if (!defined('ABSPATH')) {
                     
                     <div class="woocommerce-files-section">
                         <h3>WooCommerce List</h3>
-                        <p class="description">View the WooCommerce products and orders information previously synced with the AI Assistant.</p>
+                        <p class="description">View the WooCommerce product files previously synced with the AI Assistant.</p>
                         <ul id="woocommerce-files-list"></ul>
                     </div>
                 </div>
@@ -311,15 +296,15 @@ if (!defined('ABSPATH')) {
             <!-- Notice for No License -->
             <div class="premium-feature-notice">
                 <h3>🛍️ Unlock WooCommerce Integration</h3>
-                <p>Upgrade to Premium to enable powerful WooCommerce integration features:</p>
+                <p>Activate Pro to enable powerful WooCommerce integration features:</p>
                 <ul>
                     <li>✨ Sync product catalog with the chatbot</li>
                     <li>📦 Track order status and provide updates</li>
                     <li>💬 Answer product-specific questions</li>
                     <li>🔄 Automatic product updates</li>
-                    <li>📊 Order tracking and management</li>
+                    <li>📊 Controlled order status lookup</li>
                 </ul>
-                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Upgrade to Premium</a>
+                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Activate Pro</a>
             </div>
                 
             <?php if ($has_woo_files): ?>
@@ -345,7 +330,7 @@ if (!defined('ABSPATH')) {
                     
                     <div class="woocommerce-files-section">
                         <h3>WooCommerce List</h3>
-                        <p class="description">View the WooCommerce products and orders information previously synced with the AI Assistant.</p>
+                        <p class="description">View the WooCommerce product files previously synced with the AI Assistant.</p>
                         <ul id="woocommerce-files-list"></ul>
                     </div>
                 </div>

@@ -18,7 +18,7 @@ function wpiko_chatbot_pro_add_contact_form_menu()
     }
 
     // Enqueue contact form script on pages where chatbot is displayed
-    add_action('wp_enqueue_scripts', 'wpiko_chatbot_pro_enqueue_contact_form_scripts');
+    add_action('wpiko_chatbot_enqueue_frontend_assets', 'wpiko_chatbot_pro_enqueue_contact_form_scripts');
 
     // Add contact form menu item visibility logic
     add_filter('wpiko_chatbot_menu_items', 'wpiko_chatbot_pro_filter_menu_items');
@@ -171,7 +171,7 @@ function wpiko_chatbot_pro_enqueue_contact_form_assets()
 
     wp_add_inline_script('wpiko-chatbot-js', $contact_form_js);
 }
-add_action('wp_enqueue_scripts', 'wpiko_chatbot_pro_enqueue_contact_form_assets', 25);
+add_action('wpiko_chatbot_enqueue_frontend_assets', 'wpiko_chatbot_pro_enqueue_contact_form_assets', 25);
 
 /**
  * Pass heartbeat_enabled flag to frontend JS when PWA is active and licensed
@@ -190,7 +190,7 @@ function wpiko_chatbot_pro_enqueue_heartbeat_flag() {
         'before'
     );
 }
-add_action('wp_enqueue_scripts', 'wpiko_chatbot_pro_enqueue_heartbeat_flag', 30);
+add_action('wpiko_chatbot_enqueue_frontend_assets', 'wpiko_chatbot_pro_enqueue_heartbeat_flag', 30);
 
 /**
  * Check whether the Pro takeover frontend should be active.
@@ -219,7 +219,7 @@ function wpiko_chatbot_pro_enable_takeover_frontend_flag() {
         'before'
     );
 }
-add_action('wp_enqueue_scripts', 'wpiko_chatbot_pro_enable_takeover_frontend_flag', 31);
+add_action('wpiko_chatbot_enqueue_frontend_assets', 'wpiko_chatbot_pro_enable_takeover_frontend_flag', 31);
 
 /**
  * Output takeover-specific frontend color variables.
@@ -238,7 +238,7 @@ function wpiko_chatbot_pro_enqueue_takeover_style_variables() {
 
     wp_add_inline_style('wpiko-chatbot-pro-frontend-styles', $css_content);
 }
-add_action('wp_enqueue_scripts', 'wpiko_chatbot_pro_enqueue_takeover_style_variables', 11);
+add_action('wpiko_chatbot_enqueue_frontend_assets', 'wpiko_chatbot_pro_enqueue_takeover_style_variables', 11);
 
 /**
  * Enqueue the Pro takeover frontend controller.
@@ -258,7 +258,7 @@ function wpiko_chatbot_pro_enqueue_takeover_frontend_assets() {
         true
     );
 }
-add_action('wp_enqueue_scripts', 'wpiko_chatbot_pro_enqueue_takeover_frontend_assets', 32);
+add_action('wpiko_chatbot_enqueue_frontend_assets', 'wpiko_chatbot_pro_enqueue_takeover_frontend_assets', 32);
 
 /**
  * Enrich the send-message response with takeover metadata for the Pro frontend.

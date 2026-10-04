@@ -79,7 +79,7 @@ function wpiko_chatbot_pwa_settings_section() {
                 <span class="dashicons dashicons-smartphone"></span>
                 Mobile App (PWA)
                 <?php if (!$is_license_active): ?>
-                    <span class="premium-feature-badge">Premium</span>
+                    <span class="premium-feature-badge">PRO</span>
                 <?php endif; ?>
             </h2>
             <p class="description">Access conversations and reply to users directly from your phone as an Administrator or Live Agent.</p>
@@ -347,7 +347,7 @@ function wpiko_chatbot_pwa_settings_section() {
         <?php else: ?>
             <div class="premium-feature-notice pwa-settings-notice">
                 <h3>📱 Unlock Mobile App</h3>
-                <p>Upgrade to Premium to manage chatbot conversations directly from your phone:</p>
+                <p>Activate Pro to manage chatbot conversations directly from your phone:</p>
                 <ul>
                     <li>📲 Install the chatbot as a mobile app on your phone</li>
                     <li>💬 Reply to conversations away from your desktop</li>
@@ -355,7 +355,7 @@ function wpiko_chatbot_pwa_settings_section() {
                     <li>🛠️ See live agent join and leave notices in conversations</li>
                     <li>🧪 Send test notifications to verify device setup</li>
                 </ul>
-                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Upgrade to Premium</a>
+                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Activate Pro</a>
             </div>
         <?php endif; ?>
 

@@ -1,5 +1,27 @@
 // Contact form functionality
 document.addEventListener('DOMContentLoaded', function () {
+    // Delegation supports new replies and historical buttons without allowing
+    // inline event handlers in model-generated or stored message HTML.
+    document.addEventListener('click', function (event) {
+        const button = event.target.closest('a.wpiko-contact-button');
+        if (!button || !button.closest('#chatbot-messages')) return;
+        event.preventDefault();
+        if (typeof wpikoChatbot === 'undefined' || !wpikoChatbot.is_license_active || wpikoChatbot.enable_contact_form !== '1') return;
+
+        let prefill = {};
+        try {
+            const data = JSON.parse(button.getAttribute('data-wpiko-prefill') || '{}');
+            if (data && typeof data === 'object' && !Array.isArray(data)) {
+                ['message', 'category', 'custom_field_1', 'custom_field_2'].forEach(function (key) {
+                    if (typeof data[key] === 'string') prefill[key] = data[key];
+                });
+            }
+        } catch (error) {
+            // Malformed historical prefill data must not break the contact form.
+        }
+        window.wpikoOpenChatbotWithContactForm(prefill);
+    });
+
     // Load reCAPTCHA script if enabled
     if (typeof wpikoChatbot !== 'undefined' && wpikoChatbot.enable_recaptcha === '1' && wpikoChatbot.recaptcha_site_key) {
         const recaptchaScript = document.createElement('script');

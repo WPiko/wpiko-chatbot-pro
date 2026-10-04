@@ -9,6 +9,10 @@ if (!function_exists('wpiko_chatbot_pro_search_pages')) {
 
     function wpiko_chatbot_pro_search_pages() {
         check_ajax_referer('wpiko_chatbot_nonce', 'security');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'You do not have permission to do this.'), 403);
+        }
         
         // Check for premium license
         if (!wpiko_chatbot_is_license_active()) {
@@ -467,6 +471,7 @@ function wpiko_chatbot_pro_ajax_process_page() {
     wp_send_json_success([
         'content' => $processed_content,
         'filename' => $filename,
+        'page_id' => $page_id,
         'enable_download' => $enable_qa_download === '1'
     ]);
 }
@@ -483,6 +488,7 @@ function wpiko_chatbot_pro_upload_qa_to_assistant() {
     // Validate, unslash, and sanitize the input data
     $content = isset($_POST['content']) ? sanitize_textarea_field(wp_unslash($_POST['content'])) : '';
     $filename = isset($_POST['filename']) ? sanitize_file_name(wp_unslash($_POST['filename'])) : '';
+    $page_id = isset($_POST['page_id']) ? absint($_POST['page_id']) : 0;
 
     // Upload to Responses API
     $file_id = wpiko_chatbot_upload_qa_file_to_responses($filename, $content);
@@ -490,6 +496,22 @@ function wpiko_chatbot_pro_upload_qa_to_assistant() {
     
     if (!$file_id) {
         wp_send_json_error(['message' => 'Failed to upload file to the AI Assistant']);
+    }
+
+    if ($page_id) {
+        // Remember which page this Q&A file covers.
+        wpiko_chatbot_pro_remember_scanned_page($page_id, $filename, $file_id);
+
+        // The page is now in the knowledge base as Q&A: take it out of the free
+        // "Quick learn from your pages" file so it is not stored twice.
+        if (function_exists('wpiko_chatbot_site_knowledge_remove_pages')) {
+            $cleanup = wpiko_chatbot_site_knowledge_remove_pages(array($page_id));
+            if (is_array($cleanup) && !empty($cleanup['success'])) {
+                $success_message .= '. This page was also removed from "Quick learn from your pages" so it is not stored twice.';
+            } elseif (is_array($cleanup)) {
+                wpiko_chatbot_log('Could not remove scanned page ' . $page_id . ' from quick learn: ' . (isset($cleanup['message']) ? $cleanup['message'] : 'unknown error'), 'warning');
+            }
+        }
     }
 
     wp_send_json_success([
@@ -558,3 +580,200 @@ function wpiko_chatbot_upload_qa_file_to_responses($filename, $content) {
         return false;
     }
 }
+
+/**
+ * Remember which WordPress page a Scan Website Q&A file was generated from.
+ *
+ * @param int    $page_id  Page ID.
+ * @param string $filename Q&A file name (without extension).
+ * @param string $file_id  OpenAI file ID.
+ * @return void
+ */
+function wpiko_chatbot_pro_remember_scanned_page($page_id, $filename, $file_id) {
+    $scanned = get_option('wpiko_chatbot_pro_scanned_pages', array());
+    $scanned = is_array($scanned) ? $scanned : array();
+    $scanned[(int) $page_id] = array(
+        'filename' => $filename,
+        'file_id' => $file_id,
+        'time' => time(),
+    );
+    update_option('wpiko_chatbot_pro_scanned_pages', $scanned, false);
+}
+
+/**
+ * Read the filename => file ID options also written by pre-2.1.0 scans.
+ *
+ * @return array Option name => file ID.
+ */
+function wpiko_chatbot_pro_scan_file_options() {
+    global $wpdb;
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
+        $wpdb->esc_like('wpiko_chatbot_responses_qa_file_') . '%'
+    ));
+    $options = array();
+    foreach ((array) $rows as $row) {
+        $options[$row->option_name] = $row->option_value;
+    }
+    return $options;
+}
+
+/**
+ * Recover page associations for scans uploaded before page IDs were recorded.
+ * Runs on demand from Quick learn, once per store after a successful lookup.
+ * Old filenames came from page titles; ambiguous or renamed pages cannot be
+ * identified reliably and must not be guessed. Explicit page IDs always win.
+ *
+ * @return void
+ */
+function wpiko_chatbot_pro_migrate_scan_coverage() {
+    $vector_store_id = get_option('wpiko_chatbot_responses_vector_store_id', '');
+    if ($vector_store_id === '' || get_option('wpiko_chatbot_pro_scan_coverage_migrated', '') === $vector_store_id) {
+        return;
+    }
+    // Also bounds retries when the remote service is temporarily unavailable.
+    if (get_transient('wpiko_chatbot_pro_scan_coverage_retry')) {
+        return;
+    }
+    set_transient('wpiko_chatbot_pro_scan_coverage_retry', 1, MINUTE_IN_SECONDS);
+
+    $legacy_options = wpiko_chatbot_pro_scan_file_options();
+    $scanned = get_option('wpiko_chatbot_pro_scanned_pages', array());
+    $scanned = is_array($scanned) ? $scanned : array();
+    foreach ($scanned as $entry) {
+        if (!empty($entry['filename']) && !empty($entry['file_id'])) {
+            $key = 'wpiko_chatbot_responses_qa_file_' . md5($entry['filename']);
+            if (isset($legacy_options[$key]) && $legacy_options[$key] === $entry['file_id']) {
+                unset($legacy_options[$key]);
+            }
+        }
+    }
+
+    $matches = array();
+    if ($legacy_options) {
+        global $wpdb;
+        // Only titles and IDs are needed. Include non-public pages to detect
+        // filename collisions, without loading every page's content into memory.
+        $pages = $wpdb->get_results($wpdb->prepare(
+            "SELECT ID, post_title FROM {$wpdb->posts} WHERE post_type = %s",
+            'page'
+        ));
+        $filenames = array();
+        foreach ((array) $pages as $page) {
+            $filename = sanitize_file_name(wpiko_chatbot_pro_get_filename_from_title($page->post_title));
+            $filenames[$filename][] = (int) $page->ID;
+        }
+        foreach ($filenames as $filename => $page_ids) {
+            $key = 'wpiko_chatbot_responses_qa_file_' . md5($filename);
+            if (count($page_ids) === 1 && !isset($scanned[$page_ids[0]]) && !empty($legacy_options[$key])) {
+                $matches[$page_ids[0]] = array('filename' => $filename, 'file_id' => $legacy_options[$key]);
+            }
+        }
+    }
+
+    if ($matches) {
+        // Old releases could leave options behind after a file was deleted.
+        // Verify membership before treating any of those options as coverage.
+        $result = wpiko_chatbot_list_responses_files();
+        if (empty($result['success']) || empty($result['complete']) || !isset($result['files']) || !empty($result['source'])) {
+            return;
+        }
+        if (get_option('wpiko_chatbot_responses_vector_store_id', '') !== $vector_store_id) {
+            return;
+        }
+        $active_files = array_column($result['files'], null, 'id');
+        // Reload after the remote request so a concurrent new scan is preserved.
+        $scanned = get_option('wpiko_chatbot_pro_scanned_pages', array());
+        $scanned = is_array($scanned) ? $scanned : array();
+        foreach ($matches as $page_id => $entry) {
+            $key = 'wpiko_chatbot_responses_qa_file_' . md5($entry['filename']);
+            if (!isset($scanned[$page_id]) && isset($active_files[$entry['file_id']])
+                && get_option($key, '') === $entry['file_id']) {
+                $scanned[$page_id] = $entry + array('time' => 0);
+            }
+        }
+        update_option('wpiko_chatbot_pro_scanned_pages', $scanned, false);
+    }
+
+    update_option('wpiko_chatbot_pro_scan_coverage_migrated', $vector_store_id, false);
+    delete_transient('wpiko_chatbot_pro_scan_coverage_retry');
+}
+
+/**
+ * Pages whose Scan Website Q&A file is still in the knowledge base.
+ *
+ * @param array $covered Page ID => label.
+ * @return array
+ */
+function wpiko_chatbot_pro_site_knowledge_covered_pages($covered) {
+    wpiko_chatbot_pro_migrate_scan_coverage();
+    $scanned = get_option('wpiko_chatbot_pro_scanned_pages', array());
+    if (!is_array($scanned)) {
+        return $covered;
+    }
+
+    foreach ($scanned as $page_id => $entry) {
+        if (empty($entry['filename']) || empty($entry['file_id'])) {
+            continue;
+        }
+        // Only count it while this Q&A file is still the current one for the page.
+        $current_file_id = get_option('wpiko_chatbot_responses_qa_file_' . md5($entry['filename']), '');
+        if ($current_file_id !== '' && $current_file_id === $entry['file_id']) {
+            $covered[(int) $page_id] = 'Covered by Scan Website';
+        }
+    }
+
+    return $covered;
+}
+add_filter('wpiko_chatbot_site_knowledge_covered_pages', 'wpiko_chatbot_pro_site_knowledge_covered_pages');
+
+/**
+ * Forget a scanned page when its Q&A file is deleted (for example in File Management),
+ * so it can be added to "Quick learn from your pages" again.
+ *
+ * @param string $file_id Deleted file ID.
+ * @return void
+ */
+function wpiko_chatbot_pro_forget_deleted_scan_file($file_id) {
+    // Clean legacy records even if they have not acquired a page ID yet.
+    foreach (wpiko_chatbot_pro_scan_file_options() as $key => $stored_file_id) {
+        if ($stored_file_id === $file_id) {
+            delete_option($key);
+        }
+    }
+    $scanned = get_option('wpiko_chatbot_pro_scanned_pages', array());
+    if (!is_array($scanned) || empty($scanned)) {
+        return;
+    }
+
+    $changed = false;
+    foreach ($scanned as $page_id => $entry) {
+        if (isset($entry['file_id']) && $entry['file_id'] === $file_id) {
+            unset($scanned[$page_id]);
+            if (!empty($entry['filename']) && get_option('wpiko_chatbot_responses_qa_file_' . md5($entry['filename']), '') === $file_id) {
+                delete_option('wpiko_chatbot_responses_qa_file_' . md5($entry['filename']));
+            }
+            $changed = true;
+        }
+    }
+
+    if ($changed) {
+        update_option('wpiko_chatbot_pro_scanned_pages', $scanned, false);
+    }
+}
+add_action('wpiko_chatbot_responses_file_deleted', 'wpiko_chatbot_pro_forget_deleted_scan_file');
+
+/**
+ * The whole knowledge store was deleted: no page is covered any more.
+ *
+ * @return void
+ */
+function wpiko_chatbot_pro_forget_all_scanned_pages() {
+    foreach (wpiko_chatbot_pro_scan_file_options() as $key => $file_id) {
+        delete_option($key);
+    }
+    delete_option('wpiko_chatbot_pro_scanned_pages');
+    delete_option('wpiko_chatbot_pro_scan_coverage_migrated');
+    delete_transient('wpiko_chatbot_pro_scan_coverage_retry');
+}
+add_action('wpiko_chatbot_responses_vector_store_deleted', 'wpiko_chatbot_pro_forget_all_scanned_pages');

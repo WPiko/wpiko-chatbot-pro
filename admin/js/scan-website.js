@@ -145,7 +145,7 @@ jQuery(document).ready(function($) {
                             downloadQAContent(response.data.content, response.data.filename);
                         }
                         
-                        uploadQAToAssistant(response.data.content, response.data.filename);
+                        uploadQAToAssistant(response.data.content, response.data.filename, response.data.page_id || pageId);
 
                         let statusMessage = '<span class="success">' +
                             'Q&A content generated successfully. <br>';
@@ -191,7 +191,7 @@ jQuery(document).ready(function($) {
             window.URL.revokeObjectURL(link.href);
         }
 
-        function uploadQAToAssistant(content, filename) {
+        function uploadQAToAssistant(content, filename, pageId) {
             $.ajax({
                 url: wpikoChatbotAdmin.ajax_url,
                 type: 'POST',
@@ -199,7 +199,8 @@ jQuery(document).ready(function($) {
                     action: 'wpiko_chatbot_upload_qa_to_assistant',
                     security: wpikoChatbotAdmin.nonce,
                     content: content,
-                    filename: filename
+                    filename: filename,
+                    page_id: pageId
                 },
                 success: function(response) {
                     if (response.success) {

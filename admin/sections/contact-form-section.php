@@ -128,7 +128,7 @@ function wpiko_chatbot_contact_form_section()
                 <span class="dashicons dashicons-email"></span>
                 Contact Form Settings
                 <?php if (!wpiko_chatbot_is_license_active()): ?>
-                    <span class="premium-feature-badge">Premium</span>
+                    <span class="premium-feature-badge">PRO</span>
                 <?php endif; ?>
             </h2>
             <p class="description">Configure the contact form functionality for the chatbot.</p>
@@ -705,7 +705,7 @@ function wpiko_chatbot_contact_form_section()
             <?php else: ?>
                 <div class="premium-feature-notice">
                     <h3>📨 Unlock Contact Form</h3>
-                    <p>Upgrade to Premium to enhance your chatbot with integrated contact form:</p>
+                    <p>Activate Pro to enhance your chatbot with integrated contact form:</p>
                     <ul>
                         <li>✨ Enable contact form in chatbot menu</li>
                         <li>📎 Allow file attachments</li>
@@ -713,7 +713,7 @@ function wpiko_chatbot_contact_form_section()
                         <li>🛡️ reCAPTCHA integration</li>
                         <li>📧 Direct email communication</li>
                     </ul>
-                    <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Upgrade to Premium</a>
+                    <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Activate Pro</a>
                 </div>
             <?php endif; ?>
         </div>

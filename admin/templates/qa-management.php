@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
         <span class="dashicons dashicons-insert"></span> 
         Q&A Builder 
         <?php if (!wpiko_chatbot_is_license_active()): ?>
-            <span class="premium-feature-badge">Premium</span>
+            <span class="premium-feature-badge">PRO</span>
         <?php endif; ?>
     </h3>
     <div id="qa-management-content">
@@ -94,7 +94,7 @@ if (!defined('ABSPATH')) {
         <?php elseif ($is_license_expired || !wpiko_chatbot_is_license_active()): ?>
             <div class="premium-feature-notice">
                 <h3><?php echo $is_license_expired ? '🔒 Q&A Builder Disabled' : '🤖 Unlock Q&A Builder'; ?></h3>
-                <p><?php echo $is_license_expired ? 'Your license has expired. Q&A Builder has been disabled.' : 'Upgrade to Premium to manually create and manage Q&A pairs:'; ?></p>
+                <p><?php echo $is_license_expired ? 'Your license has expired. Q&A Builder has been disabled.' : 'Activate Pro to manually create and manage Q&A pairs:'; ?></p>
                 <ul>
                     <li>✨ Create custom Q&A pairs manually</li>
                     <li>📝 Edit and update existing Q&A pairs</li>
@@ -102,7 +102,7 @@ if (!defined('ABSPATH')) {
                     <li>⚡ Add up to 30 custom Q&A pairs</li>
                     <li>📥 Download Q&A pairs for backup</li>
                 </ul>
-                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary"><?php echo $is_license_expired ? 'Renew License' : 'Upgrade to Premium'; ?></a>
+                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary"><?php echo $is_license_expired ? 'Renew License' : 'Activate Pro'; ?></a>
             </div>
             
             <?php if ($has_qa_pairs || $has_qa_files): ?>

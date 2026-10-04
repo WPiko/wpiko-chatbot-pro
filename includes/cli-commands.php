@@ -4,7 +4,7 @@
  *
  * Usage:
  *   wp wpiko-chatbot sync products     — Sync all published WooCommerce products to OpenAI
- *   wp wpiko-chatbot sync orders       — Sync recent WooCommerce orders to OpenAI
+ *   wp wpiko-chatbot sync orders       — Retired: use controlled Order Assistance
  *   wp wpiko-chatbot sync status       — Show current sync status
  *
  * @package WPiko_Chatbot_Pro
@@ -158,39 +158,7 @@ class WPiko_Chatbot_CLI_Command {
      * Sync orders to OpenAI via CLI.
      */
     private function sync_orders() {
-        // Pre-flight checks
-        if (!function_exists('wpiko_chatbot_pro_is_main_wc_active') || !wpiko_chatbot_pro_is_main_wc_active()) {
-            WP_CLI::error('WooCommerce is not active.');
-        }
-
-        if (!function_exists('wpiko_chatbot_is_woocommerce_integration_enabled') || !wpiko_chatbot_is_woocommerce_integration_enabled()) {
-            WP_CLI::error('WooCommerce Integration is not enabled.');
-        }
-
-        if (!function_exists('wpiko_chatbot_is_license_active') || !wpiko_chatbot_is_license_active()) {
-            WP_CLI::error('WPiko Chatbot Pro license is not active.');
-        }
-
-        $sync_option = get_option('wpiko_chatbot_orders_auto_sync', 'disabled');
-        if ($sync_option === 'disabled') {
-            WP_CLI::error('Orders auto-sync is disabled. Enable it first in the admin panel (WooCommerce Integration → Recent Orders Auto-Sync).');
-        }
-
-        $limit = intval($sync_option);
-        WP_CLI::log("Syncing the {$limit} most recent orders...");
-
-        // Remove PHP time limit in CLI context
-        if (function_exists('set_time_limit')) {
-            @set_time_limit(0);
-        }
-
-        $result = wpiko_chatbot_sync_orders();
-
-        if ($result) {
-            WP_CLI::success("Successfully synced orders to OpenAI.");
-        } else {
-            WP_CLI::error('Orders sync failed. Check the debug log for details.');
-        }
+        WP_CLI::error('Order uploads have been retired. Enable Order Assistance in WooCommerce Integration for controlled live lookups.');
     }
 
     /**
@@ -227,22 +195,12 @@ class WPiko_Chatbot_CLI_Command {
         WP_CLI::log("  File ID:   " . ($products_file_id ?: 'None'));
         
         WP_CLI::log('');
-        WP_CLI::log('--- Orders Sync Status ---');
-        
-        $orders_status = get_option('wpiko_chatbot_orders_sync_status', '');
-        $orders_last = get_option('wpiko_chatbot_orders_last_sync_time', '');
-        $orders_auto = get_option('wpiko_chatbot_orders_auto_sync', 'disabled');
-        $orders_file_id = get_option('wpiko_chatbot_responses_orders_file_id', '');
-        
-        WP_CLI::log("  Auto-sync: {$orders_auto}");
-        WP_CLI::log("  Status:    " . ($orders_status ?: 'None'));
-        if ($orders_last) {
-            WP_CLI::log("  Last sync: {$orders_last}");
-        }
-        WP_CLI::log("  File ID:   " . ($orders_file_id ?: 'None'));
-        
+        WP_CLI::log('--- Order Assistance ---');
+        WP_CLI::log('  Lookup: ' . (wpiko_chatbot_order_lookup_enabled() ? 'Enabled' : 'Disabled'));
+        $cleanup = get_option('wpiko_chatbot_order_file_cleanup', array());
+        WP_CLI::log('  Old order file cleanup: ' . (!empty($cleanup['done']) ? 'Complete' : 'Pending'));
         WP_CLI::log('');
-        
+
         $total_products = wp_count_posts('product')->publish;
         WP_CLI::log("Total published products: {$total_products}");
         

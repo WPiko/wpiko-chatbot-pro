@@ -401,22 +401,16 @@ add_action('rest_api_init', 'wpiko_chatbot_pro_register_revoke_endpoint');
 
 // Function to revoke license
 function wpiko_chatbot_pro_handle_revoke_license($request) {
-    $license_key = $request->get_param('license_key');
-    $source_domain = $request->get_param('source_domain');
+    $license_key = (string) $request->get_param('license_key');
 
-    // Get the domain where the license was purchased
-    $license_domain = get_option('wpiko_chatbot_license_source_domain');
-
-    // Verify the source domain
-    if ($source_domain !== $license_domain) {
-        return new WP_Error('invalid_source', 'Invalid source domain', array('status' => 403));
+    // Only the license server can revoke: it signs the request with its private key.
+    $verified = wpiko_chatbot_pro_verify_license_server_request($request, 'revoke');
+    if (is_wp_error($verified)) {
+        wpiko_chatbot_log('Rejected license revoke request: ' . $verified->get_error_code(), 'warning');
+        return $verified;
     }
 
-    // Check if this is the active license
-    $encrypted_current_license = get_option('wpiko_chatbot_license_key');
-    $decrypted_current_license = wpiko_chatbot_pro_decrypt_data($encrypted_current_license);
-    
-    if ($decrypted_current_license === $license_key) {
+    if (wpiko_chatbot_pro_license_key_matches($license_key)) {
         // Deactivate the license
         delete_option('wpiko_chatbot_license_key');
         delete_option('wpiko_chatbot_license_status');
@@ -443,23 +437,21 @@ add_action('rest_api_init', 'wpiko_chatbot_pro_register_update_expiration_endpoi
 
 // Function to update date expiration
 function wpiko_chatbot_pro_handle_update_expiration($request) {
-    $license_key = $request->get_param('license_key');
+    $license_key = (string) $request->get_param('license_key');
     $expiration_date = $request->get_param('expiration_date');
-    $source_domain = $request->get_param('source_domain');
 
-    // Get the domain where the license was purchased
-    $license_domain = get_option('wpiko_chatbot_license_source_domain');
-
-    // Verify the source domain
-    if ($source_domain !== $license_domain) {
-        return new WP_Error('invalid_source', 'Invalid source domain', array('status' => 403));
+    // Only the license server can change the expiration: it signs the request with its private key.
+    $verified = wpiko_chatbot_pro_verify_license_server_request($request, 'update-expiration');
+    if (is_wp_error($verified)) {
+        wpiko_chatbot_log('Rejected license expiration update: ' . $verified->get_error_code(), 'warning');
+        return $verified;
     }
 
-    // Check if this is the active license
-    $encrypted_current_license = get_option('wpiko_chatbot_license_key');
-    $decrypted_current_license = wpiko_chatbot_pro_decrypt_data($encrypted_current_license);
-    
-    if ($decrypted_current_license === $license_key) {
+    if ($expiration_date !== null && $expiration_date !== '' && strtotime((string) $expiration_date) === false) {
+        return new WP_Error('invalid_date', 'Invalid expiration date', array('status' => 400));
+    }
+
+    if (wpiko_chatbot_pro_license_key_matches($license_key)) {
         // If expiration_date is null, it's a lifetime license
         if ($expiration_date === null) {
             $encrypted_lifetime = wpiko_chatbot_pro_encrypt_data('1');

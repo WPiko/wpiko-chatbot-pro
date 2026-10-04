@@ -19,10 +19,9 @@ jQuery(document).ready(function($) {
         // Cache DOM elements
         var $wooCommerceIntegration = $('#woocommerce_integration_enabled');
         var $productsAutoUpdate = $('#products_auto_sync');
-        var $ordersSync = $('#orders_auto_sync');
+        var $ordersSync = $('#order_lookup_enabled');
         var $syncButton = $('#sync_existing_products');
         var $downloadProductsButton = $('#download_products_json');
-        var $downloadOrdersButton = $('#download_orders_json');
         var $statusDiv = $('#woocommerce-integration-status');
         var $saveProductFieldsButton = $('#save_product_fields');
         var $productFieldsToggle = $('#product-fields-toggle');
@@ -41,7 +40,6 @@ jQuery(document).ready(function($) {
         $ordersSync.off('change');
         $syncButton.off('click');
         $downloadProductsButton.off('click');
-        $downloadOrdersButton.off('click');
         $saveProductFieldsButton.off('click');
         $productFieldsToggle.off('click');
         $saveOrderFieldsButton.off('click');
@@ -71,8 +69,8 @@ jQuery(document).ready(function($) {
                 $('#order-fields-toggle').closest('tr'),
                 $('#order-fields-summary'),
                 
-                // Recent Orders Auto-Sync
-                $('#orders_auto_sync').closest('tr'),
+                // Order Assistance
+                $('#order_lookup_enabled').closest('tr'),
                 
                 // Download Files
                 $('.download-files-option')
@@ -93,7 +91,6 @@ jQuery(document).ready(function($) {
             $ordersSync.prop('disabled', !isEnabled);
             $syncButton.prop('disabled', !isEnabled);
             $downloadProductsButton.prop('disabled', !isEnabled);
-            $downloadOrdersButton.prop('disabled', !isEnabled);
             $saveProductFieldsButton.prop('disabled', !isEnabled);
             $saveOrderFieldsButton.prop('disabled', !isEnabled);
             
@@ -103,12 +100,9 @@ jQuery(document).ready(function($) {
             $productFieldsToggle.toggleClass('disabled', !isEnabled);
             $orderFieldsToggle.toggleClass('disabled', !isEnabled);
             
-            // Toggle Products System Instructions visibility
-            $('.products-instructions-row').toggle(isEnabled);
-
             if (!isEnabled) {
                 $productsAutoUpdate.val('disabled');
-                $ordersSync.val('disabled');
+                $ordersSync.val('0');
             }
         }
 
@@ -147,50 +141,10 @@ jQuery(document).ready(function($) {
         // Function to update integration status display
         function updateWooCommerceIntegrationStatus(isEnabled) {
             if (isEnabled) {
-                $statusDiv.html('<p><strong class="woocommerce-integration-active">Enabled:</strong> You can sync products manually or automate the synchronization of products and orders.</p>').show();
+                $statusDiv.html('<p><strong class="woocommerce-integration-active">Enabled:</strong> You can sync products and enable controlled order assistance.</p>').show();
             } else {
                 $statusDiv.hide();
             }
-        }
-
-        // Function to update assistant details
-        function updateAssistantDetails(details) {
-            // Get system instructions from database and update specific textareas
-            $.ajax({
-                url: ajaxurl,
-                type: 'POST',
-                data: {
-                    action: 'get_system_instructions',
-                    security: wpikoChatbotAdmin.nonce
-                },
-                success: function(response) {
-                    if (response.success && response.data) {
-                        // Check current API type
-                        var currentApiType = (typeof wpikoChatbotAdmin !== 'undefined' && wpikoChatbotAdmin.apiType) ? wpikoChatbotAdmin.apiType : 'responses';
-                        
-                        // Update Responses API fields
-                        if (response.data.products !== undefined && $('#responses_products_system_instructions').length) {
-                            $('#responses_products_system_instructions').val(response.data.products);
-                        }
-                        
-                        if (response.data.main !== undefined && $('#responses_main_system_instructions').length) {
-                            $('#responses_main_system_instructions').val(response.data.main);
-                        }
-                        
-                        if (response.data.specific !== undefined && $('#responses_specific_system_instructions').length) {
-                            $('#responses_specific_system_instructions').val(response.data.specific);
-                        }
-                        
-                        if (response.data.knowledge !== undefined && $('#responses_knowledge_system_instructions').length) {
-                            $('#responses_knowledge_system_instructions').val(response.data.knowledge);
-                        }
-                        
-                        if (response.data.orders !== undefined && $('#responses_orders_system_instructions').length) {
-                            $('#responses_orders_system_instructions').val(response.data.orders);
-                        }
-                    }
-                }
-            });
         }
 
         // Function to check sync progress with improved error handling
@@ -330,11 +284,9 @@ jQuery(document).ready(function($) {
                             if (typeof wpikoChatbotFileManagement !== 'undefined') {
                                 wpikoChatbotFileManagement.refreshWooCommerceFileList();
                             }
-                            // Get system instructions
-                            updateAssistantDetails();
                         }, 1000);                        if (!newState) {
                             $productsAutoUpdate.val('disabled');
-                            $ordersSync.val('disabled').trigger('change');
+                            $ordersSync.val('0').trigger('change');
                         }
                     } else {
                         alert('Error: ' + (response.data ? response.data.message : 'Unknown error'));
@@ -432,58 +384,7 @@ jQuery(document).ready(function($) {
             });
         });
 
-        // Function to poll orders sync status
-        function pollOrdersSyncStatus($statusEl) {
-            $.ajax({
-                url: ajaxurl,
-                type: 'POST',
-                data: {
-                    action: 'check_orders_sync_status',
-                    security: wpikoChatbotAdmin.nonce
-                },
-                success: function(response) {
-                    if (response.success) {
-                        var syncStatus = response.data.status;
-                        
-                        if (syncStatus === 'scheduled' || syncStatus === 'running') {
-                            $statusEl.text(syncStatus === 'scheduled' ? 'Sync scheduled...' : 'Syncing orders...')
-                                .removeClass('status-success status-error')
-                                .addClass('status-loading');
-                            setTimeout(function() { pollOrdersSyncStatus($statusEl); }, 3000);
-                        } else if (syncStatus === 'completed') {
-                            $statusEl.text('Orders synced successfully!')
-                                .removeClass('status-loading status-error')
-                                .addClass('status-success');
-                            
-                            // Refresh UI
-                            updateAssistantDetails();
-                            if (typeof wpikoChatbotFileManagement !== 'undefined') {
-                                wpikoChatbotFileManagement.refreshWooCommerceFileList();
-                            }
-                            
-                            setTimeout(function() { $statusEl.fadeOut(400, function() { $(this).remove(); }); }, 5000);
-                        } else if (syncStatus === 'failed') {
-                            var errorMsg = response.data.error ? response.data.error : 'Check debug log for details.';
-                            $statusEl.text('Orders sync failed: ' + errorMsg)
-                                .removeClass('status-loading status-success')
-                                .addClass('status-error');
-                            setTimeout(function() { $statusEl.fadeOut(400, function() { $(this).remove(); }); }, 12000);
-                        } else {
-                            // Unknown or disabled status
-                            $statusEl.fadeOut(400, function() { $(this).remove(); });
-                        }
-                    }
-                },
-                error: function() {
-                    $statusEl.text('Could not check sync status.')
-                        .removeClass('status-loading status-success')
-                        .addClass('status-error');
-                    setTimeout(function() { $statusEl.fadeOut(400, function() { $(this).remove(); }); }, 5000);
-                }
-            });
-        }
-
-        // Orders Auto-Sync Handler
+        // Controlled Order Assistance setting
         $ordersSync.on('change', function() {
             var syncOption = $(this).val();
             var $status = $('<span>').insertAfter($(this))
@@ -494,37 +395,16 @@ jQuery(document).ready(function($) {
                 url: ajaxurl,
                 type: 'POST',
                 data: {
-                    action: 'update_orders_auto_sync',
+                    action: 'wpiko_chatbot_update_order_lookup',
                     security: wpikoChatbotAdmin.nonce,
-                    sync_option: syncOption
+                    enabled: syncOption
                 },
                 success: function(response) {
                     if (response.success) {
-                        // Update Orders System Instructions visibility
-                        var ordersAutoSync = $('#orders_auto_sync').val();
-                        var $ordersInstructions = $('#responses_orders_system_instructions').closest('tr');
-                        
-                        if (ordersAutoSync === 'disabled') {
-                            $ordersInstructions.hide();
-                            $status.text(response.data.message)
-                                .removeClass('status-loading')
-                                .addClass('status-success');
-                            
-                            updateAssistantDetails();
-                            if (typeof wpikoChatbotFileManagement !== 'undefined') {
-                                wpikoChatbotFileManagement.refreshWooCommerceFileList();
-                            }
-                            setTimeout(function() { $status.fadeOut(400, function() { $(this).remove(); }); }, 5000);
-                        } else {
-                            $ordersInstructions.show();
-                            // Sync is running in background — start polling
-                            $status.text('Sync running in the background...')
-                                .removeClass('status-success status-error')
-                                .addClass('status-loading');
-                            
-                            updateAssistantDetails();
-                            setTimeout(function() { pollOrdersSyncStatus($status); }, 3000);
-                        }
+                        $status.text(response.data.message)
+                            .removeClass('status-loading')
+                            .addClass('status-success');
+                        setTimeout(function() { $status.fadeOut(400, function() { $(this).remove(); }); }, 5000);
                     } else {
                         $status.text('Error: ' + response.data.message)
                             .removeClass('status-loading')
@@ -533,7 +413,7 @@ jQuery(document).ready(function($) {
                     }
                 },
                 error: function() {
-                    $status.text('An error occurred while updating orders sync setting.')
+                    $status.text('An error occurred while updating order assistance.')
                         .removeClass('status-loading')
                         .addClass('status-error');
                     setTimeout(function() { $status.fadeOut(400, function() { $(this).remove(); }); }, 8000);
@@ -585,54 +465,6 @@ jQuery(document).ready(function($) {
                         .removeClass('status-info')
                         .addClass('status-error');
                     $downloadProductsButton.prop('disabled', false);
-                }
-            });
-        });
-
-        // Download Orders JSON Handler
-        $downloadOrdersButton.on('click', function() {
-            var $status = $('#orders_download_status');
-            $(this).prop('disabled', true);
-            $status.text('Generating JSON...')
-                .removeClass('status-success status-error')
-                .addClass('status-info');
-
-            $.ajax({
-                url: ajaxurl,
-                type: 'POST',
-                data: {
-                    action: 'download_orders_json',
-                    security: wpikoChatbotAdmin.nonce
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $status.text('JSON generated successfully. Downloading...')
-                            .removeClass('status-info')
-                            .addClass('status-success');
-                        
-                        var jsonString = JSON.stringify(response.data.orders, null, 2);
-                        var blob = new Blob([jsonString], {type: 'application/json'});
-                        var link = document.createElement('a');
-                        link.href = window.URL.createObjectURL(blob);
-                        link.download = 'woocommerce_orders.json';
-                        link.click();
-                        
-                        setTimeout(function() {
-                            $status.text('Download complete.');
-                            $downloadOrdersButton.prop('disabled', false);
-                        }, 2000);
-                    } else {
-                        $status.text('Error: ' + response.data.message)
-                            .removeClass('status-info')
-                            .addClass('status-error');
-                        $downloadOrdersButton.prop('disabled', false);
-                    }
-                },
-                error: function() {
-                    $status.text('An error occurred. Please try again.')
-                        .removeClass('status-info')
-                        .addClass('status-error');
-                    $downloadOrdersButton.prop('disabled', false);
                 }
             });
         });
@@ -760,16 +592,6 @@ jQuery(document).ready(function($) {
             }
         }
 
-        // Set initial Orders System Instructions visibility
-        var initialOrdersAutoSync = $ordersSync.val();
-        var $ordersInstructions = $('#responses_orders_system_instructions').closest('tr');
-        
-        if (initialOrdersAutoSync === 'disabled') {
-            $ordersInstructions.hide();
-        } else {
-            $ordersInstructions.show();
-        }
-        
         // Initialize tooltips if available
         if (typeof $.fn.tooltip === 'function') {
             $('.tooltip-icon').tooltip({
@@ -777,29 +599,6 @@ jQuery(document).ready(function($) {
             });
         }
     }
-
-    // Function to handle Products Instructions visibility
-    function handleProductsInstructions() {
-        var isEnabled;
-        // Use the initial state if available, otherwise check the checkbox
-        if (typeof wpikoWooIntegrationEnabled !== 'undefined') {
-            isEnabled = wpikoWooIntegrationEnabled;
-        } else {
-            isEnabled = $('#woocommerce_integration_enabled').is(':checked');
-        }
-        $('.products-instructions-row').toggle(isEnabled);
-    }
-
-    // Initialize on document ready
-    $(document).ready(function() {
-        handleProductsInstructions();
-    });
-
-    // Update visibility when integration state changes
-    $(document).on('change', '#woocommerce_integration_enabled', function() {
-        wpikoWooIntegrationEnabled = $(this).is(':checked');
-        handleProductsInstructions();
-    });
 
     // Initialize when modal content is loaded
     $(document).on('woocommerceIntegrationLoaded', initializeWooCommerceIntegration);
@@ -846,7 +645,6 @@ jQuery(document).ready(function($) {
 
     // Make functions available globally
     window.wpikoChatbotWooCommerce = {
-        initializeWooCommerceIntegration: initializeWooCommerceIntegration,
-        handleProductsInstructions: handleProductsInstructions
+        initializeWooCommerceIntegration: initializeWooCommerceIntegration
     };
 });
