@@ -67,7 +67,7 @@ if (!defined('ABSPATH')) {
         <div class="premium-feature-notice">
             <h3>🔒 Website Scanning Disabled</h3>
             <p>Your license has expired. Website scanning feature has been disabled.</p>
-            <p>Renew your license to regain access to these features:</p>
+            <p>Get a lifetime license to regain access to these features:</p>
             <ul>
                 <li>✨ Scan any page on your website</li>
                 <li>📝 Automatically generate relevant Q&A pairs</li>
@@ -75,7 +75,7 @@ if (!defined('ABSPATH')) {
                 <li>⚡ Save hours of manual Q&A creation</li>
                 <li>📈 Keep your chatbot's knowledge base up-to-date</li>
             </ul>
-            <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Renew License</a>
+            <a href="https://wpiko.com/chatbot-pricing/" target="_blank" rel="noopener" class="button button-primary">Get Lifetime License</a>
         </div>
         
     <?php else: ?>
@@ -99,7 +99,7 @@ if (!defined('ABSPATH')) {
         <div class="url-processing-files-section">
             <?php if (!wpiko_chatbot_is_license_active()): ?>
                 <div class="notice notice-warning inline">
-                    <p>Your premium license has expired. While you can view and manage existing scanned pages, you'll need to <a href="?page=ai-chatbot&tab=license_activation">renew your license</a> to scan new pages.</p>
+                    <p>Your premium license has expired. While you can view and manage existing scanned pages, you'll need to <a href="?page=ai-chatbot&tab=license_activation">get a lifetime license</a> to scan new pages.</p>
                 </div>
             <?php endif; ?>
             <h3>Website Pages List</h3>

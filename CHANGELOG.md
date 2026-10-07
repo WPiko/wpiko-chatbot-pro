@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.1
+
+* Licensing: WPiko Chatbot Pro licenses are now lifetime. When the license server converts a license to lifetime, Pro switches back to Active right away, including on sites that had expired.
+* Improve: Refresh License and the daily license check now ask the license server for the current license state, so a site that missed an update catches up by itself.
+* Fix: The daily license check was not scheduled for some dated licenses activated from the dashboard.
+* Update: Expired-license messages now point to lifetime licenses instead of renewals.
+
 ## 2.1.0
 
 * Compatibility: Requires WPiko Chatbot 2.1.0 or newer. Update both plugins together.

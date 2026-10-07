@@ -399,7 +399,7 @@ function wpiko_chatbot_analytics_section() {
                         <div class="premium-feature-notice">
                             <h3>🔒 Analytics Dashboard Disabled</h3>
                             <p>Your license has expired. Advanced analytics features have been disabled.</p>
-                            <p>Renew your license to regain access to:</p>
+                            <p>Get a lifetime license to regain access to:</p>
                             <ul>
                                 <li>📊 Detailed Message Activity Graphs</li>
                                 <li>📍 User Location Insights</li>
@@ -407,7 +407,7 @@ function wpiko_chatbot_analytics_section() {
                                 <li>⏰ Peak Activity Hours</li>
                                 <li>📈 Custom Date Range Analysis</li>
                             </ul>
-                            <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Renew License</a>
+                            <a href="https://wpiko.com/chatbot-pricing/" target="_blank" rel="noopener" class="button button-primary">Get Lifetime License</a>
                         </div>
                     <?php else: ?>
                         <div class="premium-feature-notice">

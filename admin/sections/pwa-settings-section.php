@@ -334,7 +334,7 @@ function wpiko_chatbot_pwa_settings_section() {
             <div class="premium-feature-notice pwa-settings-notice">
                 <h3>📱 Mobile App Disabled</h3>
                 <p>Your license has expired. The Mobile App (PWA) feature is currently unavailable.</p>
-                <p>Renew your license to regain access to these features:</p>
+                <p>Get a lifetime license to regain access to these features:</p>
                 <ul>
                     <li>📲 Install the chatbot as a mobile app on your phone</li>
                     <li>💬 Reply to conversations away from your desktop</li>
@@ -342,7 +342,7 @@ function wpiko_chatbot_pwa_settings_section() {
                     <li>🛠️ See live agent join and leave notices in conversations</li>
                     <li>🧪 Send test notifications to verify device setup</li>
                 </ul>
-                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Renew License</a>
+                <a href="https://wpiko.com/chatbot-pricing/" target="_blank" rel="noopener" class="button button-primary">Get Lifetime License</a>
             </div>
         <?php else: ?>
             <div class="premium-feature-notice pwa-settings-notice">

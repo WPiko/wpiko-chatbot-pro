@@ -473,13 +473,13 @@ function wpiko_chatbot_pro_add_auto_delete_settings() {
         <div class="premium-feature-notice auto-delete-notice">
             <h3>🔒 Auto Delete Disabled</h3>
             <p>Your license has expired. Auto-delete feature has been disabled.</p>
-            <p>Renew your license to continue using the auto-delete feature:</p>
+            <p>Get a lifetime license to continue using the auto-delete feature:</p>
             <ul>
                 <li>✨ Re-enable automatic conversation cleanup</li>
                 <li>⚙️ Restore your previous auto-delete settings</li>
                 <li>🔄 Resume automated maintenance</li>
             </ul>
-            <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Renew License</a>
+            <a href="https://wpiko.com/chatbot-pricing/" target="_blank" rel="noopener" class="button button-primary">Get Lifetime License</a>
         </div>
     <?php
     } else {
@@ -871,7 +871,7 @@ function wpiko_chatbot_pro_add_dashboard_config_status() {
     
     if ($license_status === 'expired') {
         $license_class = 'config-incomplete';
-        $license_action = 'Renew';
+        $license_action = 'Get Lifetime';
     } elseif ($license_active) {
         $license_class = 'config-complete';
         $license_action = 'Manage';
@@ -962,9 +962,9 @@ function wpiko_chatbot_pro_add_dashboard_attention_items($attention_items) {
             'severity' => 'critical',
             'icon' => 'dashicons-unlock',
             'title' => __('Your WPiko Chatbot Pro license has expired', 'wpiko-chatbot-pro'),
-            'description' => __('Renew the license to restore access to Pro features and updates.', 'wpiko-chatbot-pro'),
+            'description' => __('Get a lifetime license to restore access to Pro features and updates. If your license was converted to lifetime, open License and click Refresh License.', 'wpiko-chatbot-pro'),
             'url' => wp_nonce_url('?page=ai-chatbot&tab=license_activation', 'wpiko_chatbot_tab_nonce'),
-            'action_label' => __('Renew license', 'wpiko-chatbot-pro'),
+            'action_label' => __('Open License', 'wpiko-chatbot-pro'),
         );
     }
 

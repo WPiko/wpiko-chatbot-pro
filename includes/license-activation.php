@@ -317,13 +317,10 @@ function wpiko_chatbot_pro_activate_license() {
                 update_option('wpiko_chatbot_license_source_domain', $data['source_domain']);
             }
             
-            if (isset($data['expiration_date'])) {
-                update_option('wpiko_chatbot_license_expiration', wpiko_chatbot_pro_encrypt_data($data['expiration_date']));
-            }
-            
-            if (isset($data['is_lifetime'])) {
-                update_option('wpiko_chatbot_license_is_lifetime', wpiko_chatbot_pro_encrypt_data($data['is_lifetime'] ? '1' : '0'));
-            }
+            wpiko_chatbot_pro_store_license_state(
+                !empty($data['is_lifetime']),
+                isset($data['expiration_date']) ? $data['expiration_date'] : null
+            );
             
             if (isset($data['product_type'])) {
                 update_option('wpiko_chatbot_license_product_type', $data['product_type']);
@@ -452,20 +449,9 @@ function wpiko_chatbot_pro_handle_update_expiration($request) {
     }
 
     if (wpiko_chatbot_pro_license_key_matches($license_key)) {
-        // If expiration_date is null, it's a lifetime license
-        if ($expiration_date === null) {
-            $encrypted_lifetime = wpiko_chatbot_pro_encrypt_data('1');
-            update_option('wpiko_chatbot_license_is_lifetime', $encrypted_lifetime);
-            update_option('wpiko_chatbot_license_expiration', '');
-        } else {
-            // Regular license update
-            $encrypted_expiration = wpiko_chatbot_pro_encrypt_data($expiration_date);
-            update_option('wpiko_chatbot_license_expiration', $encrypted_expiration);
-            // Reset lifetime flag
-            $encrypted_lifetime = wpiko_chatbot_pro_encrypt_data('0');
-            update_option('wpiko_chatbot_license_is_lifetime', $encrypted_lifetime);
-        }
-        
+        // No expiration date means a lifetime license. The status (active/expired) follows the new date.
+        wpiko_chatbot_pro_store_license_state($expiration_date === null || $expiration_date === '', $expiration_date);
+
         return new WP_REST_Response('License updated successfully', 200);
     } else {
         return new WP_REST_Response('License key not found or not active', 404);
@@ -474,7 +460,8 @@ function wpiko_chatbot_pro_handle_update_expiration($request) {
 
 // Schedule our daily check
 function wpiko_chatbot_pro_schedule_license_check() {
-    $is_lifetime = get_option('wpiko_chatbot_license_is_lifetime', false);
+    // The option is stored encrypted, so it must be decrypted (an encrypted "0" is not empty).
+    $is_lifetime = wpiko_chatbot_pro_is_lifetime_license();
     $encrypted_expiration = get_option('wpiko_chatbot_license_expiration', '');
     $license_expiration = wpiko_chatbot_pro_decrypt_data($encrypted_expiration);
 
@@ -490,7 +477,13 @@ function wpiko_chatbot_pro_schedule_license_check() {
 add_action('wp', 'wpiko_chatbot_pro_schedule_license_check');
 
 // Function to perform the daily check
-function wpiko_chatbot_pro_check_license_expiration() {
+function wpiko_chatbot_pro_check_license_expiration($ask_server = true) {
+    // Ask the license server first, so a website that missed an update (for example
+    // a license changed to lifetime while this site was unreachable) catches up.
+    if ($ask_server) {
+        wpiko_chatbot_pro_refresh_license_from_server();
+    }
+
     $encrypted_status = get_option('wpiko_chatbot_license_status', '');
     $license_status = wpiko_chatbot_pro_decrypt_data($encrypted_status);
     $encrypted_expiration = get_option('wpiko_chatbot_license_expiration', '');
@@ -544,16 +537,23 @@ function wpiko_chatbot_pro_manual_license_check() {
         wp_send_json_error(array('message' => 'Unauthorized'));
     }
 
-    $result = wpiko_chatbot_pro_check_license_expiration();
+    $server = wpiko_chatbot_pro_refresh_license_from_server();
+    $result = wpiko_chatbot_pro_check_license_expiration(false);
 
-    if ($result === 'active') {
+    if ($server === 'not_activated' && $result === 'active') {
+        wp_send_json_success(array('message' => 'License is active here, but the license server does not list this website for the key. If Pro features stop working, delete the license and activate it again.', 'status' => 'active'));
+    } elseif ($result === 'active') {
         $encrypted_active = wpiko_chatbot_pro_encrypt_data('active');
         update_option('wpiko_chatbot_license_status', $encrypted_active);
-        wp_send_json_success(array('message' => 'License is valid and active.', 'status' => 'active'));
+        $message = wpiko_chatbot_pro_is_lifetime_license() ? 'License is valid and active (lifetime).' : 'License is valid and active.';
+        if ($server === 'unreachable') {
+            $message .= ' (Could not reach the license server, checked locally.)';
+        }
+        wp_send_json_success(array('message' => $message, 'status' => 'active'));
     } elseif ($result === 'expired') {
         $encrypted_expired = wpiko_chatbot_pro_encrypt_data('expired');
         update_option('wpiko_chatbot_license_status', $encrypted_expired);
-        wp_send_json_error(array('message' => 'Your license has expired. Please renew to continue using the plugin.', 'status' => 'expired'));
+        wp_send_json_error(array('message' => 'Your license has expired. Get a lifetime license to continue using Pro features.', 'status' => 'expired'));
     } else {
         $encrypted_inactive = wpiko_chatbot_pro_encrypt_data('inactive');
         update_option('wpiko_chatbot_license_status', $encrypted_inactive);
@@ -584,10 +584,11 @@ function wpiko_chatbot_pro_admin_expired_notice() {
             <p>
                 <strong>WPiko Chatbot License Expired!</strong> 
                 Your premium features are now disabled. 
-                <a href="<?php echo esc_url(admin_url('admin.php?page=ai-chatbot&tab=license_activation')); ?>">
-                    Renew your license
+                <a href="https://wpiko.com/chatbot-pricing/" target="_blank" rel="noopener">
+                    Get a lifetime license
                 </a> 
-                to continue using all features.
+                to continue using all features. Already converted to lifetime?
+                <a href="<?php echo esc_url(admin_url('admin.php?page=ai-chatbot&tab=license_activation')); ?>">Refresh your license</a>.
             </p>
         </div>
         <?php
@@ -629,6 +630,101 @@ function wpiko_chatbot_pro_reset_notice_on_activation() {
     delete_option('wpiko_chatbot_expired_notice_dismissed');
 }
 register_activation_hook(WPIKO_CHATBOT_PRO_FILE, 'wpiko_chatbot_pro_reset_notice_on_activation');
+
+/**
+ * Save the license expiration / lifetime flag and set the matching status.
+ *
+ * @param bool        $is_lifetime     Lifetime license.
+ * @param string|null $expiration_date Expiration date (ignored for lifetime).
+ * @return string New status: 'active' or 'expired'.
+ */
+function wpiko_chatbot_pro_store_license_state($is_lifetime, $expiration_date = null) {
+    if ($is_lifetime) {
+        update_option('wpiko_chatbot_license_is_lifetime', wpiko_chatbot_pro_encrypt_data('1'));
+        update_option('wpiko_chatbot_license_expiration', '');
+        $status = 'active';
+    } else {
+        update_option('wpiko_chatbot_license_is_lifetime', wpiko_chatbot_pro_encrypt_data('0'));
+        update_option('wpiko_chatbot_license_expiration', $expiration_date ? wpiko_chatbot_pro_encrypt_data((string) $expiration_date) : '');
+        $timestamp = $expiration_date ? strtotime((string) $expiration_date) : false;
+        $status = ($timestamp !== false && $timestamp < time()) ? 'expired' : 'active';
+    }
+
+    update_option('wpiko_chatbot_license_status', wpiko_chatbot_pro_encrypt_data($status));
+
+    if ($status === 'expired') {
+        delete_option('wpiko_chatbot_expired_notice_dismissed');
+    }
+
+    // Lifetime licenses need no daily expiration check; dated ones do.
+    if ($status === 'active' && $is_lifetime) {
+        wp_clear_scheduled_hook('wpiko_chatbot_daily_license_check');
+    } elseif (!wp_next_scheduled('wpiko_chatbot_daily_license_check')) {
+        wp_schedule_event(time() + DAY_IN_SECONDS, 'daily', 'wpiko_chatbot_daily_license_check');
+    }
+
+    return $status;
+}
+
+/**
+ * Ask the license server for this website's current license state and save it.
+ *
+ * Read-only on the server side: nothing is activated there. If the server cannot
+ * be reached, or does not know this website, the local license is left as it is.
+ *
+ * @return string 'active', 'expired', 'not_activated', 'not_found', 'unreachable' or 'no_key'.
+ */
+function wpiko_chatbot_pro_refresh_license_from_server() {
+    $license_key = wpiko_chatbot_pro_decrypt_data(get_option('wpiko_chatbot_license_key', ''));
+    if ($license_key === '') {
+        return 'no_key';
+    }
+
+    $domain = get_option('wpiko_chatbot_license_domain', '');
+    if ($domain === '') {
+        $domain = home_url();
+    }
+
+    $response = wp_remote_post('https://' . wpiko_chatbot_pro_license_server_host() . '/wp-json/wpiko-keymaster/v1/license-status', array(
+        'body' => array(
+            'license_key' => $license_key,
+            'domain' => $domain,
+            'product_type' => 'chatbot',
+        ),
+        'timeout' => 15,
+        'sslverify' => true,
+    ));
+
+    if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200) {
+        if (function_exists('wpiko_chatbot_log')) {
+            wpiko_chatbot_log('License refresh: could not reach the license server.', 'warning');
+        }
+        return 'unreachable';
+    }
+
+    $data = json_decode(wp_remote_retrieve_body($response), true);
+    if (!is_array($data) || empty($data['status'])) {
+        return 'unreachable';
+    }
+
+    update_option('wpiko_chatbot_license_last_server_check', time(), false);
+
+    if ($data['status'] === 'active' || $data['status'] === 'expired') {
+        if (isset($data['product_type']) && $data['product_type'] !== 'chatbot') {
+            return 'not_found';
+        }
+        $status = wpiko_chatbot_pro_store_license_state(
+            !empty($data['is_lifetime']),
+            isset($data['expiration_date']) ? $data['expiration_date'] : null
+        );
+        if (function_exists('wpiko_chatbot_log')) {
+            wpiko_chatbot_log('License refreshed from server: ' . $status . (!empty($data['is_lifetime']) ? ' (lifetime)' : ''), 'info');
+        }
+        return $status;
+    }
+
+    return in_array($data['status'], array('not_activated', 'not_found'), true) ? $data['status'] : 'unreachable';
+}
 
 // Provide backward compatibility functions for the main plugin
 if (!function_exists('wpiko_chatbot_encrypt_data')) {

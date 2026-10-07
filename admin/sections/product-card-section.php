@@ -180,7 +180,7 @@ function wpiko_chatbot_product_card_section() {
             <div class="premium-feature-notice">
                 <h3>🔒 Product Cards Disabled</h3>
                 <p>Your license has expired. Product card feature has been disabled.</p>
-                <p>Renew your license to regain access to these features:</p>
+                <p>Get a lifetime license to regain access to these features:</p>
                 <ul>
                     <li>✨ Show product cards in chat responses</li>
                     <li>📝 Display product images, titles, and descriptions</li>
@@ -188,7 +188,7 @@ function wpiko_chatbot_product_card_section() {
                     <li>🛍️ Enhance shopping experience</li>
                     <li>💼 Professional product presentation</li>
                 </ul>
-                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Renew License</a>
+                <a href="https://wpiko.com/chatbot-pricing/" target="_blank" rel="noopener" class="button button-primary">Get Lifetime License</a>
             </div>
         <?php else: ?>
             <div class="premium-feature-notice">

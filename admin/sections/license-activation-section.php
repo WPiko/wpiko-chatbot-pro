@@ -95,14 +95,10 @@ function wpiko_chatbot_license_activation_page() {
                                     update_option('wpiko_chatbot_license_product_type', 'chatbot');
                                     update_option('wpiko_chatbot_license_source_domain', wp_parse_url($verify_url, PHP_URL_HOST));
 
-                                    if (isset($activate_data['expiration_date'])) {
-                                        $encrypted_expiration = wpiko_chatbot_pro_encrypt_data($activate_data['expiration_date']);
-                                        update_option('wpiko_chatbot_license_expiration', $encrypted_expiration);
-                                    }
-                                    if (isset($activate_data['is_lifetime']) && $activate_data['is_lifetime']) {
-                                        $encrypted_lifetime = wpiko_chatbot_pro_encrypt_data('1');
-                                        update_option('wpiko_chatbot_license_is_lifetime', $encrypted_lifetime);
-                                    }
+                                    wpiko_chatbot_pro_store_license_state(
+                                        !empty($activate_data['is_lifetime']),
+                                        isset($activate_data['expiration_date']) ? $activate_data['expiration_date'] : null
+                                    );
                                     if (isset($activate_data['source_domain'])) {
                                         update_option('wpiko_chatbot_license_source_domain', $activate_data['source_domain']);
                                     }
@@ -174,7 +170,7 @@ function wpiko_chatbot_license_activation_page() {
         <?php endif; ?>
         <?php if ($license_status === 'expired'): ?>
             <div class="notice notice-error">
-                <p><?php esc_html_e('Your license has expired. Please renew to continue using all features of the plugin.', 'wpiko-chatbot-pro'); ?></p>
+                <p><?php esc_html_e('Your license has expired. If it was converted to lifetime, click Refresh License below. Otherwise get a lifetime license to continue using all Pro features.', 'wpiko-chatbot-pro'); ?></p>
             </div>
         <?php endif; ?>
         <form method="post" action="">
@@ -220,7 +216,7 @@ function wpiko_chatbot_license_activation_page() {
             <?php if ($license_status === 'inactive'): ?>
                 <?php submit_button('Activate License'); ?>
             <?php elseif ($license_status === 'expired'): ?>
-                <a href="https://wpiko.com/my-account/license-keys/" class="button button-secondary wpiko-chatbot-check-button" target="_blank">Renew License</a>
+                <a href="https://wpiko.com/chatbot-pricing/" class="button button-secondary wpiko-chatbot-check-button" target="_blank" rel="noopener">Get Lifetime License</a>
             <?php endif; ?>
         </form>
         <?php if (in_array($license_status, ['active', 'expired'])): ?>

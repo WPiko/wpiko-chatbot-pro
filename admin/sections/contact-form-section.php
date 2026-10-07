@@ -692,7 +692,7 @@ function wpiko_chatbot_contact_form_section()
                 <div class="premium-feature-notice">
                     <h3>🔒 Contact Form Disabled</h3>
                     <p>Your license has expired. Contact form feature has been disabled.</p>
-                    <p>Renew your license to regain access to these features:</p>
+                    <p>Get a lifetime license to regain access to these features:</p>
                     <ul>
                         <li>✨ Enable contact form in chatbot menu</li>
                         <li>📎 Allow file attachments</li>
@@ -700,7 +700,7 @@ function wpiko_chatbot_contact_form_section()
                         <li>🛡️ reCAPTCHA integration</li>
                         <li>📧 Direct email communication</li>
                     </ul>
-                    <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Renew License</a>
+                    <a href="https://wpiko.com/chatbot-pricing/" target="_blank" rel="noopener" class="button button-primary">Get Lifetime License</a>
                 </div>
             <?php else: ?>
                 <div class="premium-feature-notice">

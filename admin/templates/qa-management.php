@@ -102,13 +102,13 @@ if (!defined('ABSPATH')) {
                     <li>⚡ Add up to 30 custom Q&A pairs</li>
                     <li>📥 Download Q&A pairs for backup</li>
                 </ul>
-                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary"><?php echo $is_license_expired ? 'Renew License' : 'Activate Pro'; ?></a>
+                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary"><?php echo $is_license_expired ? 'Get Lifetime License' : 'Activate Pro'; ?></a>
             </div>
             
             <?php if ($has_qa_pairs || $has_qa_files): ?>
                 <div class="qa-management-view-only">
                     <div class="notice notice-warning inline">
-                        <p>Your premium license has expired. While you can view your existing Q&A pairs, you'll need to <a href="?page=ai-chatbot&tab=license_activation">renew your license</a> to add, edit, or manage them.</p>
+                        <p>Your premium license has expired. While you can view your existing Q&A pairs, you'll need to <a href="?page=ai-chatbot&tab=license_activation">get a lifetime license</a> to add, edit, or manage them.</p>
                     </div>
                     <div id="qa-management-container">
                         <?php if ($has_qa_pairs): ?>

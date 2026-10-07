@@ -246,7 +246,7 @@ if (!defined('ABSPATH')) {
             <div class="premium-feature-notice">
                 <h3>🔒 WooCommerce Integration Disabled</h3>
                 <p>Your license has expired. WooCommerce integration has been disabled.</p>
-                <p>Renew your license to regain access to these features:</p>
+                <p>Get a lifetime license to regain access to these features:</p>
                 <ul>
                     <li>✨ Sync product catalog with the chatbot</li>
                     <li>📦 Track order status and provide updates</li>
@@ -254,13 +254,13 @@ if (!defined('ABSPATH')) {
                     <li>🔄 Automatic product updates</li>
                     <li>📊 Controlled order status lookup</li>
                 </ul>
-                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Renew License</a>
+                <a href="https://wpiko.com/chatbot-pricing/" target="_blank" rel="noopener" class="button button-primary">Get Lifetime License</a>
             </div>
                 
             <?php if ($has_woo_files): ?>
                 <div class="woocommerce-files-view-only">
                     <div class="notice notice-warning inline">
-                        <p>Your premium license has expired. While you can view your existing WooCommerce files, you'll need to <a href="?page=ai-chatbot&tab=license_activation">renew your license</a> to sync new data or manage existing files.</p>
+                        <p>Your premium license has expired. While you can view your existing WooCommerce files, you'll need to <a href="?page=ai-chatbot&tab=license_activation">get a lifetime license</a> to sync new data or manage existing files.</p>
                     </div>
                     
                     <!-- Show WooCommerce Integration Toggle when files exist -->
@@ -288,7 +288,7 @@ if (!defined('ABSPATH')) {
             
             <?php if (wpiko_chatbot_is_woocommerce_integration_enabled() && !$has_woo_files): ?>
                 <div class="notice notice-warning inline">
-                    <p>Your previous WooCommerce integration settings have been disabled. Renew your license to reactivate them.</p>
+                    <p>Your previous WooCommerce integration settings have been disabled. Get a lifetime license to reactivate them.</p>
                 </div>
             <?php endif; ?>
             
@@ -310,7 +310,7 @@ if (!defined('ABSPATH')) {
             <?php if ($has_woo_files): ?>
                 <div class="woocommerce-files-view-only">
                     <div class="notice notice-warning inline">
-                        <p>Your premium license has expired. While you can view your existing WooCommerce files, you'll need to <a href="?page=ai-chatbot&tab=license_activation">renew your license</a> to sync new data or manage existing files.</p>
+                        <p>Your premium license has expired. While you can view your existing WooCommerce files, you'll need to <a href="?page=ai-chatbot&tab=license_activation">get a lifetime license</a> to sync new data or manage existing files.</p>
                     </div>
                     
                     <!-- Show WooCommerce Integration Toggle when files exist -->
