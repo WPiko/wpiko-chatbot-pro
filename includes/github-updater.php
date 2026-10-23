@@ -2,7 +2,7 @@
 /**
  * GitHub Plugin Updater
  * 
- * Handles automatic updates for the WPiko Chatbot Pro plugin via GitHub Releases.
+ * Handles automatic updates for the WPiko AI Chatbot Pro plugin via GitHub Releases.
  * 
  * @package WPiko_Chatbot_Pro
  */
@@ -244,7 +244,7 @@ class WPiko_Chatbot_Pro_GitHub_Updater {
         }
         
         $info = new stdClass();
-        $info->name = 'WPiko Chatbot Pro';
+        $info->name = 'WPiko AI Chatbot Pro';
         $info->slug = $this->plugin_slug;
         $info->plugin = $this->plugin_basename;
         $info->version = ltrim($data['tag_name'], 'v');
@@ -263,7 +263,7 @@ class WPiko_Chatbot_Pro_GitHub_Updater {
         $info->requires_php = $headers['requires_php'];
         $info->last_updated = $data['published_at'];
         $info->sections = array(
-            'description' => 'Premium add-on for WPiko Chatbot with advanced features.',
+            'description' => 'Pro add-on for WPiko AI Chatbot: mobile app with live takeover and push notifications, WooCommerce product answers, website scanning, analytics and lead capture.',
             'changelog' => $this->parse_changelog($data['body'])
         );
         
@@ -325,7 +325,8 @@ class WPiko_Chatbot_Pro_GitHub_Updater {
         
         // Method 2: Check by plugin name
         if (!$is_our_plugin && isset($upgrader->skin->plugin_info['Name']) && 
-            $upgrader->skin->plugin_info['Name'] === 'WPiko Chatbot Pro') {
+            // The installed copy may still carry the name used before 2.1.2.
+            in_array($upgrader->skin->plugin_info['Name'], array('WPiko AI Chatbot Pro', 'WPiko Chatbot Pro'), true)) {
             $is_our_plugin = true;
         }
         

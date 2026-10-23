@@ -10,75 +10,84 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Add tabs to the base plugin's tab list
+ * Add tabs to the base plugin's tab list.
+ *
+ * Each Pro screen sits in the core group it belongs to and carries a PRO
+ * badge. License Activation is a small link at the bottom of the sidebar.
  */
 function wpiko_chatbot_pro_add_tab($tabs) {
-   
+
+    // Add Analytics tab
+    $tabs['analytics'] = array(
+        'label' => 'Analytics',
+        'icon' => 'dashicons-chart-bar',
+        'group' => 'monitor',
+        'order' => 20,
+        'pro' => true,
+    );
+
+    // Add Mobile App (PWA) tab
+    $tabs['pwa_settings'] = array(
+        'label' => 'Mobile App',
+        'icon' => 'dashicons-smartphone',
+        'group' => 'monitor',
+        'order' => 30,
+        'pro' => true,
+    );
+
     // Add Email Capture tab
     $tabs['email_capture'] = array(
         'label' => 'Email Capture',
         'icon' => 'dashicons-email',
-        'group' => 'pro_features',
+        'group' => 'leads_sales',
         'order' => 10,
+        'pro' => true,
     );
-   
+
     // Add Contact Form tab
     $tabs['contact_form'] = array(
         'label' => 'Contact Form',
         'icon' => 'dashicons-email-alt',
-        'group' => 'pro_features',
+        'group' => 'leads_sales',
         'order' => 20,
+        'pro' => true,
     );
-    
+
     // Add Product Card tabs only if WooCommerce is active
     if (class_exists('WooCommerce')) {
         $tabs['product_card'] = array(
             'label' => 'Product Card',
             'icon' => 'dashicons-align-full-width',
-            'group' => 'pro_features',
+            'group' => 'leads_sales',
             'order' => 30,
+            'pro' => true,
         );
     }
-    
-    // Add Analytics tab
-    $tabs['analytics'] = array(
-        'label' => 'Analytics',
-        'icon' => 'dashicons-chart-bar',
-        'group' => 'pro_features',
-        'order' => 40,
-    );
-    
-    // Add Mobile App (PWA) tab
-    $tabs['pwa_settings'] = array(
-        'label' => 'Mobile App',
-        'icon' => 'dashicons-smartphone',
-        'group' => 'pro_features',
-        'order' => 50,
-    );
 
-    // Add License Activation tabs
+    // Add License Activation tab (shown as a sidebar footer link)
     $tabs['license_activation'] = array(
         'label' => 'License Activation',
+        'nav_label' => 'License',
         'icon' => 'dashicons-unlock',
-        'group' => 'pro_features',
-        'order' => 60,
-        'separator_before' => true,
+        'group' => 'more',
+        'order' => 90,
+        'nav' => 'footer',
     );
-    
+
     return $tabs;
 }
 add_filter('wpiko_chatbot_admin_tabs', 'wpiko_chatbot_pro_add_tab');
 
 /**
- * Keep Pro tools together as the final navigation group.
+ * Make sure the groups Pro screens use exist on older core versions.
  */
 function wpiko_chatbot_pro_add_tab_group($groups) {
-    $groups['pro_features'] = array(
-        'label' => 'Pro Features',
-        'badge' => 'PRO',
-        'class' => 'wpiko-nav-group-pro',
-        'order' => 100,
-    );
+    if (!isset($groups['monitor'])) {
+        $groups['monitor'] = array('label' => 'Monitor', 'order' => 15);
+    }
+    if (!isset($groups['leads_sales'])) {
+        $groups['leads_sales'] = array('label' => 'Leads & Sales', 'order' => 40);
+    }
 
     return $groups;
 }
@@ -178,72 +187,72 @@ function wpiko_chatbot_pro_enqueue_styles($hook) {
     wp_enqueue_style(
         'wpiko-chatbot-email-capture-css', 
         WPIKO_CHATBOT_PRO_URL . 'admin/css/email-capture.css', 
-        array(), 
-        $version
+        array('wpiko-chatbot-settings-controls'),
+        $version . '.' . filemtime(WPIKO_CHATBOT_PRO_PATH . 'admin/css/email-capture.css')
     );
     
     // Add Premium feature styles CSS
     wp_enqueue_style(
         'wpiko-chatbot-premium-feature-style-css', 
         WPIKO_CHATBOT_PRO_URL . 'admin/css/premium-feature-style.css', 
-        array(), 
-        $version
+        array('wpiko-chatbot-settings-controls'),
+        $version . '.' . filemtime(WPIKO_CHATBOT_PRO_PATH . 'admin/css/premium-feature-style.css')
     );
     
     // Add scan website CSS
     wp_enqueue_style(
         'wpiko-chatbot-scan-website-css', 
         WPIKO_CHATBOT_PRO_URL . 'admin/css/scan-website.css', 
-        array(), 
-        $version
+        array('wpiko-chatbot-settings-controls'),
+        $version . '.' . filemtime(WPIKO_CHATBOT_PRO_PATH . 'admin/css/scan-website.css')
     );
     
     // Add qa management CSS
     wp_enqueue_style(
         'wpiko-chatbot-qa-management-css', 
         WPIKO_CHATBOT_PRO_URL . 'admin/css/qa-management.css', 
-        array(), 
-        $version
+        array('wpiko-chatbot-settings-controls'),
+        $version . '.' . filemtime(WPIKO_CHATBOT_PRO_PATH . 'admin/css/qa-management.css')
     );
     
     // Add woocommerce integration CSS
     wp_enqueue_style(
         'wpiko-chatbot-woocommerce-integration-css', 
         WPIKO_CHATBOT_PRO_URL . 'admin/css/woocommerce-integration.css', 
-        array(), 
-        $version
+        array('wpiko-chatbot-settings-controls'),
+        $version . '.' . filemtime(WPIKO_CHATBOT_PRO_PATH . 'admin/css/woocommerce-integration.css')
     );
     
     // Add product card CSS
     wp_enqueue_style(
         'wpiko-chatbot-product-card-css', 
         WPIKO_CHATBOT_PRO_URL . 'admin/css/product-card.css', 
-        array(), 
-        $version
+        array('wpiko-chatbot-settings-controls'),
+        $version . '.' . filemtime(WPIKO_CHATBOT_PRO_PATH . 'admin/css/product-card.css')
     );
     
     // Add contact form CSS
     wp_enqueue_style(
         'wpiko-chatbot-contact-form-css', 
         WPIKO_CHATBOT_PRO_URL . 'admin/css/contact-form.css', 
-        array(), 
-        $version
+        array('wpiko-chatbot-settings-controls'),
+        $version . '.' . filemtime(WPIKO_CHATBOT_PRO_PATH . 'admin/css/contact-form.css')
     );
     
     // Add license activation CSS
     wp_enqueue_style(
         'wpiko-chatbot-license-activation-css', 
         WPIKO_CHATBOT_PRO_URL . 'admin/css/license-activation.css', 
-        array(), 
-        $version
+        array('wpiko-chatbot-settings-controls'),
+        $version . '.' . filemtime(WPIKO_CHATBOT_PRO_PATH . 'admin/css/license-activation.css')
     );
     
     // Add mobile app (PWA) CSS
     wp_enqueue_style(
         'wpiko-chatbot-mobile-app-css', 
         WPIKO_CHATBOT_PRO_URL . 'admin/css/mobile-app.css', 
-        array(), 
-        $version
+        array('wpiko-chatbot-settings-controls'),
+        $version . '.' . filemtime(WPIKO_CHATBOT_PRO_PATH . 'admin/css/mobile-app.css')
     );
     
     // Enqueue JS files for premium features
@@ -251,7 +260,7 @@ function wpiko_chatbot_pro_enqueue_styles($hook) {
         'wpiko-chatbot-license-management',
         WPIKO_CHATBOT_PRO_URL . 'admin/js/license-management.js',
         array('jquery'),
-        $version,
+        $version . '.' . filemtime(WPIKO_CHATBOT_PRO_PATH . 'admin/js/license-management.js'),
         true
     );
     
@@ -259,7 +268,7 @@ function wpiko_chatbot_pro_enqueue_styles($hook) {
         'wpiko-chatbot-scan-website-js', 
         WPIKO_CHATBOT_PRO_URL . 'admin/js/scan-website.js', 
         array('jquery'), 
-        $version, 
+        $version . '.' . filemtime(WPIKO_CHATBOT_PRO_PATH . 'admin/js/scan-website.js'), 
         true
     );
     
@@ -267,7 +276,7 @@ function wpiko_chatbot_pro_enqueue_styles($hook) {
         'wpiko-chatbot-qa-management-js', 
         WPIKO_CHATBOT_PRO_URL . 'admin/js/qa-management.js', 
         array('jquery'), 
-        $version, 
+        $version . '.' . filemtime(WPIKO_CHATBOT_PRO_PATH . 'admin/js/qa-management.js'), 
         true
     );
     
@@ -275,7 +284,7 @@ function wpiko_chatbot_pro_enqueue_styles($hook) {
         'wpiko-chatbot-woocommerce-integration-js', 
         WPIKO_CHATBOT_PRO_URL . 'admin/js/woocommerce-integration.js', 
         array('jquery'), 
-        $version, 
+        $version . '.' . filemtime(WPIKO_CHATBOT_PRO_PATH . 'admin/js/woocommerce-integration.js'), 
         true
     );
     
@@ -290,9 +299,32 @@ function wpiko_chatbot_pro_enqueue_styles($hook) {
 add_action('admin_enqueue_scripts', 'wpiko_chatbot_pro_enqueue_styles');
 
 /**
- * Add section content to the switch statement in the base plugin
+ * Print the Pro screens for the base plugin's admin page.
+ *
+ * `wpiko_chatbot_admin_tab_content` is a filter: it starts with the active tab
+ * ID, and a callback returns true once it has printed that tab. To let other
+ * add-ons see the tab ID too, this callback passes the value on unchanged when
+ * the tab isn't a Pro screen, and keeps true when another callback already
+ * printed the tab. wpiko_chatbot_pro_finish_tab_content() turns the result back
+ * into true or false at the end.
+ *
+ * @param string|bool $active_tab Active tab ID, or true/false from an earlier callback.
+ * @return string|bool True when a Pro screen was printed, otherwise the value received.
  */
 function wpiko_chatbot_pro_add_tab_content($active_tab) {
+    if ($active_tab === true) {
+        return true;
+    }
+    if (!is_string($active_tab) || $active_tab === '') {
+        // An older add-on returned false instead of passing the tab ID on.
+        // Read it the same way the base plugin does, so Pro screens still load.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only selects which screen to show; each screen checks its own nonces.
+        $active_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
+        if ($active_tab === '') {
+            return false;
+        }
+    }
+
     if ($active_tab === 'email_capture') {
         require_once WPIKO_CHATBOT_PRO_PATH . 'admin/sections/email-capture-section.php';
         wpiko_chatbot_email_capture_section();
@@ -323,9 +355,25 @@ function wpiko_chatbot_pro_add_tab_content($active_tab) {
         wpiko_chatbot_license_activation_page();
         return true;
     }
-    return false;
+    return $active_tab;
 }
-add_action('wpiko_chatbot_admin_tab_content', 'wpiko_chatbot_pro_add_tab_content');
+add_filter('wpiko_chatbot_admin_tab_content', 'wpiko_chatbot_pro_add_tab_content');
+
+/**
+ * Turn the tab content result into true or false for the base plugin.
+ *
+ * The base plugin shows the Dashboard when no callback printed the tab, but it
+ * treats any non-empty value as printed. A tab ID that is still unhandled after
+ * every other callback becomes false here, so unknown tabs (for example
+ * Product Card while WooCommerce is inactive) still fall back to the Dashboard.
+ *
+ * @param string|bool $handled Result of the earlier callbacks.
+ * @return bool True only when a callback printed the tab.
+ */
+function wpiko_chatbot_pro_finish_tab_content($handled) {
+    return $handled === true;
+}
+add_filter('wpiko_chatbot_admin_tab_content', 'wpiko_chatbot_pro_finish_tab_content', PHP_INT_MAX);
 
 /**
  * Add user location to conversation details
@@ -426,29 +474,24 @@ function wpiko_chatbot_pro_add_auto_delete_settings() {
     
     if (wpiko_chatbot_pro_is_license_active()) {
         ?>
-        <div class="auto-delete-section">
+        <div class="auto-delete-section wpiko-chatbot-settings-card">
             <div class="wpiko-settings-card-header">
-                <span class="wpiko-settings-card-icon"><span class="dashicons dashicons-clock"></span></span>
                 <div class="wpiko-settings-card-heading">
-                    <h3>Auto Delete Settings</h3>
-                    <span class="wpiko-settings-card-subtitle">Schedule automatic cleanup of old conversations</span>
+                    <h2 class="wpiko-chatbot-settings-card-title">Automatic cleanup</h2>
                 </div>
             </div>
-            <form method="post" action="" class="auto-delete-form">
+            <form method="post" action="" class="auto-delete-form wpiko-chatbot-settings-form">
                 <?php wp_nonce_field('save_auto_delete_settings', 'auto_delete_nonce'); ?>
                 <div class="auto-delete-toggle-row">
-                    <label class="wpiko-switch">
-                        <input type="checkbox" name="enable_auto_delete"
+                    <label class="wpiko-chatbot-settings-switch" for="wpiko-enable-auto-delete">
+                        <input type="checkbox" role="switch" name="enable_auto_delete" id="wpiko-enable-auto-delete" aria-describedby="wpiko-auto-delete-help"
                                <?php checked(get_option('wpiko_chatbot_enable_auto_delete', false)); ?>>
-                        <span class="wpiko-slider round"></span>
+                        <span class="wpiko-chatbot-settings-switch__track" aria-hidden="true"></span>
+                        <span class="wpiko-chatbot-settings-switch__label">Enable automatic cleanup</span>
                     </label>
-                    <div class="auto-delete-toggle-text">
-                        <span class="auto-delete-toggle-title">Enable Auto Delete</span>
-                        <span class="auto-delete-toggle-hint">Turn on scheduled maintenance</span>
-                    </div>
                 </div>
                 <div class="auto-delete-field">
-                    <label for="wpiko_auto_delete_days" class="auto-delete-field-label">Delete conversations older than</label>
+                    <label for="wpiko_auto_delete_days" class="auto-delete-field-label wpiko-chatbot-settings-field-label">Delete conversations older than</label>
                     <div class="wpiko-select-wrap">
                         <select id="wpiko_auto_delete_days" name="auto_delete_days" <?php disabled(!get_option('wpiko_chatbot_enable_auto_delete', false)); ?>>
                             <option value="7" <?php selected(get_option('wpiko_chatbot_auto_delete_days', 90), 7); ?>>7 days</option>
@@ -460,10 +503,9 @@ function wpiko_chatbot_pro_add_auto_delete_settings() {
                         </select>
                     </div>
                 </div>
-                <input type="submit" class="button auto-delete-save" value="Save Settings">
+                <input type="submit" class="button auto-delete-save wpiko-chatbot-settings-save" value="Save Settings">
             </form>
-            <p class="auto-delete-description">
-                <span class="dashicons dashicons-warning"></span>
+            <p class="auto-delete-description" id="wpiko-auto-delete-help">
                 <span>Conversations older than the selected period are <strong>permanently deleted</strong>, checked once daily. For example, at 7 days, any conversation older than a week is removed.</span>
             </p>
         </div>
@@ -471,13 +513,13 @@ function wpiko_chatbot_pro_add_auto_delete_settings() {
     } elseif ($is_license_expired) {
         ?>
         <div class="premium-feature-notice auto-delete-notice">
-            <h3>🔒 Auto Delete Disabled</h3>
+            <h3>Auto Delete Disabled</h3>
             <p>Your license has expired. Auto-delete feature has been disabled.</p>
             <p>Get a lifetime license to continue using the auto-delete feature:</p>
             <ul>
-                <li>✨ Re-enable automatic conversation cleanup</li>
-                <li>⚙️ Restore your previous auto-delete settings</li>
-                <li>🔄 Resume automated maintenance</li>
+                <li>Re-enable automatic conversation cleanup</li>
+                <li>Restore your previous auto-delete settings</li>
+                <li>Resume automated maintenance</li>
             </ul>
             <a href="https://wpiko.com/chatbot-pricing/" target="_blank" rel="noopener" class="button button-primary">Get Lifetime License</a>
         </div>
@@ -485,14 +527,14 @@ function wpiko_chatbot_pro_add_auto_delete_settings() {
     } else {
         ?>
         <div class="premium-feature-notice auto-delete-notice">
-            <h3>🗑️ Unlock Auto Delete <span class="premium-feature-badge" style="margin-left: 5px;">PRO</span></h3>
+            <h3>Unlock Auto Delete <span class="premium-feature-badge">PRO</span></h3>
             <p>Activate Pro to automatically clean up old conversations:</p>
             <ul>
-                <li>✨ Automatically delete old conversations</li>
-                <li>⚙️ Configure deletion timeframe</li>
-                <li>🔄 Set it and forget it maintenance</li>
-                <li>💾 Optimize database storage</li>
-                <li>🚀 Improve site performance</li>
+                <li>Automatically delete old conversations</li>
+                <li>Configure deletion timeframe</li>
+                <li>Set it and forget it maintenance</li>
+                <li>Optimize database storage</li>
+                <li>Improve site performance</li>
             </ul>
             <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Activate Pro</a>
         </div>
@@ -501,48 +543,6 @@ function wpiko_chatbot_pro_add_auto_delete_settings() {
 }
 add_action('wpiko_chatbot_conversation_auto_delete_settings', 'wpiko_chatbot_pro_add_auto_delete_settings');
 
-/**
- * Add email capture option to the chatbot menu
- * NOTE: This function is no longer used as Email Capture has been moved to its own section
- * Keeping for backward compatibility but not hooking it to the action
- */
-function wpiko_chatbot_pro_add_email_capture_to_menu() {
-    // Handle email capture setting save
-    if (isset($_POST['action']) && $_POST['action'] == 'save_chatbot_menu') {
-        // Verify nonce before processing form data
-        if (isset($_POST['chatbot_menu_nonce']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['chatbot_menu_nonce'])), 'save_chatbot_menu')) {
-            $enable_email_capture = isset($_POST['wpiko_chatbot_enable_email_capture']) ? '1' : '0';
-            update_option('wpiko_chatbot_enable_email_capture', $enable_email_capture);
-        }
-    }
-    
-    // Get current setting
-    $enable_email_capture = get_option('wpiko_chatbot_enable_email_capture', '0');
-    ?>
-    <tr valign="top">
-        <th scope="row"><label for="wpiko_chatbot_enable_email_capture">Enable Email Capture</label></th>
-        <td>
-            <?php if (wpiko_chatbot_pro_is_license_active()): ?>
-                <label class="wpiko-switch">
-                    <input type="checkbox" name="wpiko_chatbot_enable_email_capture" id="wpiko_chatbot_enable_email_capture" value="1" <?php checked($enable_email_capture, '1'); ?>>
-                    <span class="wpiko-slider round"></span>
-                </label>
-                <p class="description">When enabled, users will be asked to provide their name and email before starting the chat.</p>
-            <?php else: ?>
-                <label class="wpiko-switch disabled">
-                    <input type="checkbox" disabled>
-                    <span class="wpiko-slider round"></span>
-                </label>
-                <p class="description">
-                    <span class="premium-feature-badge">PRO</span>
-                    This feature requires a premium license. 
-                    <a href="?page=ai-chatbot&tab=license_activation">Activate Pro</a> to collect user information before chat starts.
-                </p>
-            <?php endif; ?>
-        </td>
-    </tr>
-    <?php
-}
 
 /**
  * Add Scan Website button to Responses API Configuration section
@@ -566,14 +566,33 @@ add_action('wpiko_chatbot_responses_scan_website_button', 'wpiko_chatbot_pro_add
  * Add Scan Website modal to Responses API Configuration section
  */
 function wpiko_chatbot_pro_add_scan_website_modal() {
+    wpiko_chatbot_pro_render_training_modal(array(
+        'id'           => 'responses-scan-website-modal',
+        'container_id' => 'responses-scan-website-container',
+        'title'        => __('Scan Website', 'wpiko-chatbot-pro'),
+        'description'  => __('Train your chatbot on your pages, posts and docs.', 'wpiko-chatbot-pro'),
+        'icon'         => 'dashicons-admin-site-alt3',
+        'size'         => 'wide',
+    ));
+}
+
+/**
+ * Print a Train AI popup with the core plugin's shared shell.
+ * Falls back to the previous markup when an older core version is active.
+ */
+function wpiko_chatbot_pro_render_training_modal($args) {
+    if (!wpiko_chatbot_pro_is_license_active()) {
+        $args['badge'] = 'PRO';
+    }
+    if (function_exists('wpiko_chatbot_render_modal')) {
+        wpiko_chatbot_render_modal($args);
+        return;
+    }
     ?>
-    <!-- Modal container for website scanning -->
-    <div id="responses-scan-website-modal" class="wpiko-modal">
+    <div id="<?php echo esc_attr($args['id']); ?>" class="wpiko-modal">
         <div class="wpiko-modal-content">
             <span class="wpiko-modal-close">&times;</span>
-            <div id="responses-scan-website-container">
-                <!-- Content will be loaded here -->
-            </div>
+            <div id="<?php echo esc_attr($args['container_id']); ?>"></div>
         </div>
     </div>
     <?php
@@ -620,17 +639,15 @@ add_action('wpiko_chatbot_qa_builder_modal', 'wpiko_chatbot_pro_add_qa_builder_m
  * Add Q&A Builder modal to Responses API Configuration section
  */
 function wpiko_chatbot_pro_add_responses_qa_builder_modal() {
-    ?>
-    <!-- Modal container for responses QA management -->
-    <div id="responses-qa-management-modal" class="wpiko-modal">
-        <div class="wpiko-modal-content">
-            <span class="wpiko-modal-close">&times;</span>
-            <div id="responses-qa-management-container">
-                <!-- Content will be loaded here -->
-            </div>
-        </div>
-    </div>
-    <?php
+    wpiko_chatbot_pro_render_training_modal(array(
+        'id'           => 'responses-qa-management-modal',
+        'container_id' => 'responses-qa-management-container',
+        'title'        => __('Q&A Builder', 'wpiko-chatbot-pro'),
+        /* translators: %d: maximum number of Q&A pairs. */
+        'description'  => sprintf(__('Write exact answers to the questions visitors ask most. Up to %d pairs.', 'wpiko-chatbot-pro'), function_exists('wpiko_chatbot_pro_qa_max_pairs') ? wpiko_chatbot_pro_qa_max_pairs() : 50),
+        'icon'         => 'dashicons-insert',
+        'size'         => 'wide',
+    ));
 }
 add_action('wpiko_chatbot_responses_qa_builder_modal', 'wpiko_chatbot_pro_add_responses_qa_builder_modal');
 
@@ -643,7 +660,7 @@ function wpiko_chatbot_pro_add_woocommerce_integration_button() {
     
     ?>
     <button type="button" id="woocommerce-integration-button" class="button button-secondary premium-feature <?php echo !$is_license_valid ? 'premium-locked' : ''; ?>">
-        <span class="dashicons dashicons-update-alt"></span> Woocommerce Integration
+        <span class="dashicons dashicons-cart"></span> WooCommerce Integration
         <?php if (!wpiko_chatbot_pro_is_license_active()): ?>
             <span class="premium-feature-badge">PRO</span>
         <?php endif; ?>
@@ -661,7 +678,7 @@ function wpiko_chatbot_pro_add_responses_woocommerce_integration_button() {
     
     ?>
     <button type="button" id="responses-woocommerce-integration-button" class="button button-secondary premium-feature <?php echo !$is_license_valid ? 'premium-locked' : ''; ?>">
-        <span class="dashicons dashicons-update-alt"></span> Woocommerce Integration
+        <span class="dashicons dashicons-cart"></span> WooCommerce Integration
         <?php if (!wpiko_chatbot_pro_is_license_active()): ?>
             <span class="premium-feature-badge">PRO</span>
         <?php endif; ?>
@@ -692,17 +709,13 @@ add_action('wpiko_chatbot_woocommerce_integration_modal', 'wpiko_chatbot_pro_add
  * Add WooCommerce Integration modal to Responses API Configuration section
  */
 function wpiko_chatbot_pro_add_responses_woocommerce_integration_modal() {
-    ?>
-    <!-- Modal container for responses Woocommerce integration -->
-    <div id="responses-woocommerce-integration-modal" class="wpiko-modal">
-        <div class="wpiko-modal-content">
-            <span class="wpiko-modal-close">&times;</span>
-            <div id="responses-woocommerce-integration-container">
-                <!-- Content will be loaded here -->
-            </div>
-        </div>
-    </div>
-    <?php
+    wpiko_chatbot_pro_render_training_modal(array(
+        'id'           => 'responses-woocommerce-integration-modal',
+        'container_id' => 'responses-woocommerce-integration-container',
+        'title'        => __('WooCommerce Integration', 'wpiko-chatbot-pro'),
+        'description'  => __('Sync your product catalog and let the chatbot look up orders.', 'wpiko-chatbot-pro'),
+        'icon'         => 'dashicons-cart',
+    ));
 }
 add_action('wpiko_chatbot_responses_woocommerce_integration_modal', 'wpiko_chatbot_pro_add_responses_woocommerce_integration_modal');
 
@@ -832,7 +845,7 @@ function wpiko_chatbot_pro_email_capture_footer_script() {
         // Initialize email capture if the script is loaded
         if (typeof window.wpikoEmailCapture !== 'undefined') {
             // Email capture is ready
-            console.log('WPiko Chatbot Pro: Email capture functionality loaded');
+            console.log('WPiko AI Chatbot Pro: Email capture functionality loaded');
         }
     </script>
     <?php
@@ -857,87 +870,54 @@ function wpiko_chatbot_pro_add_woocommerce_script_data() {
 add_action('wpiko_chatbot_enqueue_frontend_assets', 'wpiko_chatbot_pro_add_woocommerce_script_data', 30);
 
 /**
- * Add Pro Plugin Configuration Status Items to Dashboard
+ * Pro features on the dashboard's Configuration status (On/Off chips).
+ *
+ * @param array[] $features Features from the base plugin.
+ * @return array[]
  */
-function wpiko_chatbot_pro_add_dashboard_config_status() {
-    // Check if pro plugin functions are available
+function wpiko_chatbot_pro_dashboard_features($features) {
     if (!function_exists('wpiko_chatbot_pro_is_license_active')) {
-        return;
+        return $features;
     }
-    
-    // Pro Plugin License Status
+    $features = is_array($features) ? $features : array();
+    $tab = function ($slug) {
+        return wp_nonce_url('?page=ai-chatbot&tab=' . $slug, 'wpiko_chatbot_tab_nonce');
+    };
+
     $license_active = wpiko_chatbot_pro_is_license_active();
     $license_status = wpiko_chatbot_pro_decrypt_data(get_option('wpiko_chatbot_license_status', ''));
-    
-    if ($license_status === 'expired') {
-        $license_class = 'config-incomplete';
-        $license_action = 'Get Lifetime';
-    } elseif ($license_active) {
-        $license_class = 'config-complete';
-        $license_action = 'Manage';
-    } else {
-        $license_class = 'config-optional';
-        $license_action = 'Activate';
+
+    $features['pro_license'] = array(
+        'label' => __('Pro license', 'wpiko-chatbot-pro'),
+        'on' => $license_active,
+        'state' => $license_status === 'expired' ? 'warn' : '',
+        'state_label' => $license_status === 'expired' ? __('Expired', 'wpiko-chatbot-pro') : ($license_active ? __('Active', 'wpiko-chatbot-pro') : __('Inactive', 'wpiko-chatbot-pro')),
+        'url' => $tab('license_activation'),
+    );
+
+    $pro_features = array(
+        'email_capture' => array(__('Email capture', 'wpiko-chatbot-pro'), get_option('wpiko_chatbot_enable_email_capture', '0') === '1', 'email_capture'),
+        'contact_form' => array(__('Contact form', 'wpiko-chatbot-pro'), get_option('wpiko_chatbot_enable_contact_form', '0') === '1', 'contact_form'),
+        'mobile_app' => array(__('Mobile app', 'wpiko-chatbot-pro'), get_option('wpiko_chatbot_enable_pwa', '0') === '1', 'pwa_settings'),
+        'auto_delete' => array(__('Automatic cleanup', 'wpiko-chatbot-pro'), (bool) get_option('wpiko_chatbot_enable_auto_delete', false), 'conversations'),
+    );
+    if (class_exists('WooCommerce')) {
+        $pro_features['product_card'] = array(__('Product cards', 'wpiko-chatbot-pro'), get_option('wpiko_chatbot_enable_product_cards', '0') === '1', 'product_card');
     }
-    ?>
-    
-    <!-- Pro License Status -->
-    <div class="config-item <?php echo esc_attr($license_class); ?>">
-        <span class="config-indicator"></span>
-        <span class="config-label">Pro License</span>
-        <a href="<?php echo esc_url(wp_nonce_url('?page=ai-chatbot&tab=license_activation', 'wpiko_chatbot_tab_nonce')); ?>" class="config-action"><?php echo esc_html($license_action); ?></a>
-    </div>
-    
-    <?php
-    // Only show other pro features if license is active
-    if ($license_active) {
-        // Auto Delete Conversations Status
-        $auto_delete_enabled = get_option('wpiko_chatbot_enable_auto_delete', false);
-        ?>
-        <div class="config-item <?php echo ($auto_delete_enabled) ? 'config-complete' : 'config-optional'; ?>">
-            <span class="config-indicator"></span>
-            <span class="config-label">Auto Delete Conversations</span>
-            <a href="<?php echo esc_url(wp_nonce_url('?page=ai-chatbot&tab=conversations', 'wpiko_chatbot_tab_nonce')); ?>" class="config-action"><?php echo ($auto_delete_enabled) ? 'Configure' : 'Enable'; ?></a>
-        </div>
-        
-        <?php
-        // Email Capture Status
-        $email_capture_enabled = get_option('wpiko_chatbot_enable_email_capture', '0');
-        ?>
-        <div class="config-item <?php echo ($email_capture_enabled === '1') ? 'config-complete' : 'config-optional'; ?>">
-            <span class="config-indicator"></span>
-            <span class="config-label">Email Capture</span>
-            <a href="<?php echo esc_url(wp_nonce_url('?page=ai-chatbot&tab=email_capture', 'wpiko_chatbot_tab_nonce')); ?>" class="config-action"><?php echo ($email_capture_enabled === '1') ? 'Configure' : 'Enable'; ?></a>
-        </div>
-        
-        <?php
-        
-        // Contact Form Status
-        $contact_form_enabled = get_option('wpiko_chatbot_enable_contact_form', '0');
-        ?>
-        <div class="config-item <?php echo ($contact_form_enabled === '1') ? 'config-complete' : 'config-optional'; ?>">
-            <span class="config-indicator"></span>
-            <span class="config-label">Contact Form</span>
-            <a href="<?php echo esc_url(wp_nonce_url('?page=ai-chatbot&tab=contact_form', 'wpiko_chatbot_tab_nonce')); ?>" class="config-action"><?php echo ($contact_form_enabled === '1') ? 'Configure' : 'Enable'; ?></a>
-        </div>
-        
-        <?php
-        // Product Card Status (only if WooCommerce is active)
-        if (class_exists('WooCommerce')) {
-            $product_card_enabled = get_option('wpiko_chatbot_enable_product_cards', '0');
-            ?>
-            <div class="config-item <?php echo ($product_card_enabled === '1') ? 'config-complete' : 'config-optional'; ?>">
-                <span class="config-indicator"></span>
-                <span class="config-label">Product Card</span>
-                <a href="<?php echo esc_url(wp_nonce_url('?page=ai-chatbot&tab=product_card', 'wpiko_chatbot_tab_nonce')); ?>" class="config-action"><?php echo ($product_card_enabled === '1') ? 'Configure' : 'Enable'; ?></a>
-            </div>
-            <?php
-        }
-        ?>
-    <?php
+
+    foreach ($pro_features as $key => $item) {
+        $features[$key] = array(
+            'label' => $item[0],
+            'on' => $license_active && $item[1],
+            'url' => $tab($item[2]),
+            'pro' => true,
+            'locked' => !$license_active,
+        );
     }
+
+    return $features;
 }
-add_action('wpiko_chatbot_dashboard_config_status', 'wpiko_chatbot_pro_add_dashboard_config_status');
+add_filter('wpiko_chatbot_dashboard_features', 'wpiko_chatbot_pro_dashboard_features');
 
 /**
  * Add actionable Pro issues to the core dashboard.
@@ -961,7 +941,7 @@ function wpiko_chatbot_pro_add_dashboard_attention_items($attention_items) {
         $attention_items[] = array(
             'severity' => 'critical',
             'icon' => 'dashicons-unlock',
-            'title' => __('Your WPiko Chatbot Pro license has expired', 'wpiko-chatbot-pro'),
+            'title' => __('Your WPiko AI Chatbot Pro license has expired', 'wpiko-chatbot-pro'),
             'description' => __('Get a lifetime license to restore access to Pro features and updates. If your license was converted to lifetime, open License and click Refresh License.', 'wpiko-chatbot-pro'),
             'url' => wp_nonce_url('?page=ai-chatbot&tab=license_activation', 'wpiko_chatbot_tab_nonce'),
             'action_label' => __('Open License', 'wpiko-chatbot-pro'),

@@ -1,4 +1,14 @@
 jQuery(document).ready(function($) {
+
+    // In-page message in the wpiko notice style; falls back to a browser
+    // message on older core versions without the notices helper.
+    function wpikoNotify(message, type, options) {
+        if (window.wpikoChatbotNotices) {
+            return window.wpikoChatbotNotices.show(message, type, options);
+        }
+        window.alert(message);
+        return null;
+    }
     function initializeWooCommerceIntegration() {
         var $container = $('#responses-woocommerce-integration-container');
         
@@ -9,8 +19,6 @@ jQuery(document).ready(function($) {
                 if (typeof wpikoChatbotFileManagement !== 'undefined' && 
                     typeof wpikoChatbotFileManagement.refreshWooCommerceFileList === 'function') {
                     wpikoChatbotFileManagement.refreshWooCommerceFileList();
-                } else {
-                    console.log('WooCommerce files list refresh function not available');
                 }
             }
             return; // Exit if main container doesn't exist
@@ -53,36 +61,28 @@ jQuery(document).ready(function($) {
             $productFieldsContent.hide();
             $orderFieldsContent.hide();
             
-            // Elements to hide/show
-            const elementsToToggle = [
-                // Product Data Fields
-                $('#product-fields-toggle').closest('tr'),
-                $('#product-fields-summary'),
-                
-                // Sync Products Manually
-                $('#sync_existing_products').closest('tr'),
-                
-                // Product Catalog Auto-Sync
-                $('#products_auto_sync').closest('tr'),
-                
-                // Order Data Fields
-                $('#order-fields-toggle').closest('tr'),
-                $('#order-fields-summary'),
-                
-                // Order Assistance
-                $('#order_lookup_enabled').closest('tr'),
-                
-                // Download Files
-                $('.download-files-option')
-            ];
-            
-            // Show/Hide elements
-            elementsToToggle.forEach(element => {
-                if (element.length) {
-                    element.toggle(isEnabled);
-                }
-            });
-            
+            // Sections that only make sense while the integration is on.
+            var $dependent = $('#woocommerce-integration-section .wpiko-woo-requires-enabled');
+            if ($dependent.length) {
+                $dependent.toggle(isEnabled);
+            } else {
+                // Older markup (table rows).
+                [
+                    $('#product-fields-toggle').closest('tr'),
+                    $('#sync_existing_products').closest('tr'),
+                    $('#products_auto_sync').closest('tr'),
+                    $('#order-fields-toggle').closest('tr'),
+                    $('#order_lookup_enabled').closest('tr'),
+                    $('#woocommerce-integration-section .download-files-option')
+                ].forEach(function(element) {
+                    if (element.length) {
+                        element.toggle(isEnabled);
+                    }
+                });
+            }
+            $productFieldsToggle.attr('aria-expanded', 'false').removeClass('active');
+            $orderFieldsToggle.attr('aria-expanded', 'false').removeClass('active');
+
             // WooCommerce Files list should always be visible if there are files
             // So we don't toggle it here
             
@@ -123,8 +123,8 @@ jQuery(document).ready(function($) {
         // Product Fields Toggle Handler
         $productFieldsToggle.on('click', function() {
             if ($wooCommerceIntegration.is(':checked')) {
-                $(this).toggleClass('active');
-                $productFieldsContent.slideToggle(300);
+                $(this).toggleClass('active').attr('aria-expanded', $(this).hasClass('active') ? 'true' : 'false');
+                $productFieldsContent.slideToggle(200);
                 updateProductFieldsSummary();
             }
         });
@@ -132,8 +132,8 @@ jQuery(document).ready(function($) {
         // Order Fields Toggle Handler
         $orderFieldsToggle.on('click', function() {
             if ($wooCommerceIntegration.is(':checked')) {
-                $(this).toggleClass('active');
-                $orderFieldsContent.slideToggle(300);
+                $(this).toggleClass('active').attr('aria-expanded', $(this).hasClass('active') ? 'true' : 'false');
+                $orderFieldsContent.slideToggle(200);
                 updateOrderFieldsSummary();
             }
         });
@@ -141,7 +141,7 @@ jQuery(document).ready(function($) {
         // Function to update integration status display
         function updateWooCommerceIntegrationStatus(isEnabled) {
             if (isEnabled) {
-                $statusDiv.html('<p><strong class="woocommerce-integration-active">Enabled:</strong> You can sync products and enable controlled order assistance.</p>').show();
+                $statusDiv.empty().hide();
             } else {
                 $statusDiv.hide();
             }
@@ -227,6 +227,11 @@ jQuery(document).ready(function($) {
                                 statusClass = 'status-warning';
                             }
                         }
+
+                        // The sync has finished (the product file may have been
+                        // uploaded in the background), so let the AI Configuration
+                        // page refresh its Vector Store information.
+                        $(document).trigger('wpiko:knowledgeChanged');
                         
                         $('#sync_status')
                             .text(statusText)
@@ -262,7 +267,7 @@ jQuery(document).ready(function($) {
         // WooCommerce Integration Toggle Handler
         $wooCommerceIntegration.on('change', function() {
             var isEnabled = $(this).is(':checked');
-            $statusDiv.html('<p><strong class="woocommerce-integration-loading">Loading...</strong></p>').show();
+            $statusDiv.html('<p class="wpiko-inline-status">Saving…</p>').show();
 
             $.ajax({
                 url: ajaxurl,
@@ -276,7 +281,7 @@ jQuery(document).ready(function($) {
                     if (response.success) {
                         var newState = response.data.enabled;
                         $wooCommerceIntegration.prop('checked', newState);
-                        alert(response.data.message);
+                        wpikoNotify(response.data.message, 'success', { after: $statusDiv });
 
                         setTimeout(function() {
                             updateWooCommerceIntegrationStatus(newState);
@@ -289,14 +294,14 @@ jQuery(document).ready(function($) {
                             $ordersSync.val('0').trigger('change');
                         }
                     } else {
-                        alert('Error: ' + (response.data ? response.data.message : 'Unknown error'));
+                        wpikoNotify('Error: ' + (response.data ? response.data.message : 'Unknown error'), 'error', { after: $statusDiv });
                         $wooCommerceIntegration.prop('checked', !isEnabled);
                         $statusDiv.hide();
                     }
                 },
                 error: function(xhr, status, error) {
                     console.error('AJAX Error:', status, error);
-                    alert('An error occurred. Please try again.');
+                    wpikoNotify('An error occurred. Please try again.', 'error', { after: $statusDiv });
                     $wooCommerceIntegration.prop('checked', !isEnabled);
                     $statusDiv.hide();
                 },
@@ -369,17 +374,17 @@ jQuery(document).ready(function($) {
                 success: function(response) {
                     $status.remove();
                     if (response.success) {
-                        alert('Products auto-update setting updated successfully.');
+                        wpikoNotify('Products auto-update setting updated successfully.', 'success', { after: $productsAutoUpdate });
                         if (typeof wpikoChatbotFileManagement !== 'undefined') {
                             wpikoChatbotFileManagement.refreshWooCommerceFileList();
                         }
                     } else {
-                        alert('Failed to update products auto-update setting.');
+                        wpikoNotify('Failed to update products auto-update setting.', 'error', { after: $productsAutoUpdate });
                     }
                 },
                 error: function() {
                     $status.remove();
-                    alert('An error occurred while updating products auto-update setting.');
+                    wpikoNotify('An error occurred while updating products auto-update setting.', 'error', { after: $productsAutoUpdate });
                 }
             });
         });
@@ -472,9 +477,7 @@ jQuery(document).ready(function($) {
         // Product Fields Options Handler
         $saveProductFieldsButton.on('click', function() {
             var $status = $('#product_fields_status');
-            $status.text('Saving field preferences...')
-                .removeClass('status-success status-error')
-                .addClass('status-info');
+            $status.text('Saving…').removeClass('is-ok is-error');
 
             var fields = {};
             $('.product-field-option input').each(function() {
@@ -492,26 +495,20 @@ jQuery(document).ready(function($) {
                 },
                 success: function(response) {
                     if (response.success) {
-                        $status.text('Field preferences saved successfully.')
-                            .removeClass('status-info')
-                            .addClass('status-success');
+                        $status.text('Saved').addClass('is-ok');
                         
                         // Update summary count
                         updateProductFieldsSummary();
                             
                         setTimeout(function() {
-                            $status.text('');
-                        }, 3000);
+                            $status.text('').removeClass('is-ok');
+                        }, 2500);
                     } else {
-                        $status.text('Error: ' + response.data.message)
-                            .removeClass('status-info')
-                            .addClass('status-error');
+                        $status.text('Error: ' + response.data.message).addClass('is-error');
                     }
                 },
                 error: function() {
-                    $status.text('An error occurred. Please try again.')
-                        .removeClass('status-info')
-                        .addClass('status-error');
+                    $status.text('Could not save. Please try again.').addClass('is-error');
                 }
             });
         });
@@ -519,9 +516,7 @@ jQuery(document).ready(function($) {
         // Order Fields Options Handler
         $saveOrderFieldsButton.on('click', function() {
             var $status = $('#order_fields_status');
-            $status.text('Saving field preferences...')
-                .removeClass('status-success status-error')
-                .addClass('status-info');
+            $status.text('Saving…').removeClass('is-ok is-error');
 
             var fields = {};
             $('.order-field-option input').each(function() {
@@ -539,43 +534,41 @@ jQuery(document).ready(function($) {
                 },
                 success: function(response) {
                     if (response.success) {
-                        $status.text('Field preferences saved successfully.')
-                            .removeClass('status-info')
-                            .addClass('status-success');
+                        $status.text('Saved').addClass('is-ok');
                         
                         // Update summary count
                         updateOrderFieldsSummary();
                             
                         setTimeout(function() {
-                            $status.text('');
-                        }, 3000);
+                            $status.text('').removeClass('is-ok');
+                        }, 2500);
                         
                         // Refresh files list
                         if (typeof wpikoChatbotFileManagement !== 'undefined') {
                             wpikoChatbotFileManagement.refreshWooCommerceFileList();
                         }
                     } else {
-                        $status.text('Error: ' + response.data.message)
-                            .removeClass('status-info')
-                            .addClass('status-error');
+                        $status.text('Error: ' + response.data.message).addClass('is-error');
                     }
                 },
                 error: function() {
-                    $status.text('An error occurred. Please try again.')
-                        .removeClass('status-info')
-                        .addClass('status-error');
+                    $status.text('Could not save. Please try again.').addClass('is-error');
                 }
             });
         });
 
-        // Update checkbox count when changed
-        $('.product-field-option input').on('change', function() {
+        // Field choices save right away (debounced), like the other settings here.
+        var productFieldsTimer = null;
+        var orderFieldsTimer = null;
+        $('.product-field-option input').off('change').on('change', function() {
             updateProductFieldsSummary();
+            clearTimeout(productFieldsTimer);
+            productFieldsTimer = setTimeout(function() { $saveProductFieldsButton.trigger('click'); }, 400);
         });
-
-        // Update checkbox count when changed
-        $('.order-field-option input').on('change', function() {
+        $('.order-field-option input').off('change').on('change', function() {
             updateOrderFieldsSummary();
+            clearTimeout(orderFieldsTimer);
+            orderFieldsTimer = setTimeout(function() { $saveOrderFieldsButton.trigger('click'); }, 400);
         });
 
         // Initialize the state on load
@@ -608,7 +601,7 @@ jQuery(document).ready(function($) {
     $(document).on('click', '#woocommerce-integration-button', function() {
         // Check if WooCommerce is active
         if (typeof wpikoChatbot !== 'undefined' && wpikoChatbot.is_woocommerce_active === false) {
-            alert('WooCommerce is not active. Please install and activate WooCommerce to use this feature.');
+            wpikoNotify('WooCommerce is not active. Please install and activate WooCommerce to use this feature.', 'warning');
             return;
         }
         

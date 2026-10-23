@@ -4,6 +4,9 @@ if (!defined('ABSPATH')) {
 }
 
 function wpiko_chatbot_email_capture_section() {
+    $settings_saved = false;
+    $license_error = false;
+
     // Handle form submission
     if (isset($_POST['action']) && $_POST['action'] == 'save_email_capture_settings') {
         check_admin_referer('save_email_capture_settings', 'email_capture_nonce');
@@ -49,9 +52,9 @@ function wpiko_chatbot_email_capture_section() {
                 update_option('wpiko_chatbot_email_capture_change_email_text', sanitize_text_field(wp_unslash($_POST['email_capture_change_email_text'])));
             }
             
-            echo '<div class="updated"><p>Email Capture settings updated successfully.</p></div>';
+            $settings_saved = true;
         } else {
-            echo '<div class="notice notice-error"><p>Email Capture settings cannot be saved without an active license.</p></div>';
+            $license_error = true;
         }
     }
     
@@ -68,145 +71,114 @@ function wpiko_chatbot_email_capture_section() {
     // Check if license is active
     $is_license_active = wpiko_chatbot_pro_is_license_active();
     ?>
-    
-    <div class="email-capture-section">
-        <div class="email-capture-section-header">
-            <h2>
-                <span class="dashicons dashicons-email"></span> 
-                Email Capture
-                <?php if (!wpiko_chatbot_is_license_active()): ?>
-                    <span class="premium-feature-badge">PRO</span>
-                <?php endif; ?>
-            </h2>
-            <p class="description">Configure email capture settings to collect user information before starting chat sessions.</p>
-        </div>
+    <div class="wpiko-chatbot-settings-page wpiko-email-capture-page">
+        <header class="wpiko-chatbot-settings-header">
+            <h1>Email Capture<?php if (!wpiko_chatbot_is_license_active()): ?> <span class="email-capture-pro-badge">PRO</span><?php endif; ?></h1>
+            <p class="wpiko-chatbot-settings-subtitle">Collect guest names and email addresses before chat sessions and customize the capture form text.</p>
+        </header>
+        <?php if ($settings_saved): ?>
+            <div class="wpiko-chatbot-settings-notice is-success" role="status"><p>Email Capture settings updated successfully.</p></div>
+        <?php endif; ?>
+        <?php if ($license_error): ?>
+            <div class="wpiko-chatbot-settings-notice is-error" role="alert"><p>Email Capture settings cannot be saved without an active license.</p></div>
+        <?php endif; ?>
         <?php if ($is_license_active): ?>
-            <form method="post" action="">
+            <form method="post" action="" class="wpiko-chatbot-settings-form">
                 <?php wp_nonce_field('save_email_capture_settings', 'email_capture_nonce'); ?>
-                
-                <table class="form-table">
-                    <tr valign="top">
-                        <th scope="row">Enable Email Capture</th>
-                        <td>
-                            <label class="wpiko-switch">
-                                <input type="checkbox" name="wpiko_chatbot_enable_email_capture" id="wpiko_chatbot_enable_email_capture" value="1" <?php checked($enable_email_capture, '1'); ?>>
-                                <span class="wpiko-slider round"></span>
+                <section class="wpiko-chatbot-settings-card" aria-labelledby="email-capture-settings-title">
+                    <h2 class="wpiko-chatbot-settings-card-title" id="email-capture-settings-title">Capture settings</h2>
+                    <div class="wpiko-chatbot-settings-field-row">
+                        <div class="wpiko-chatbot-settings-field-label">Email capture</div>
+                        <div class="wpiko-chatbot-settings-field-control">
+                            <label class="wpiko-chatbot-settings-switch" for="wpiko_chatbot_enable_email_capture">
+                                <input type="checkbox" role="switch" name="wpiko_chatbot_enable_email_capture" id="wpiko_chatbot_enable_email_capture" value="1" aria-controls="email-capture-customization" aria-describedby="email-capture-enabled-description" <?php checked($enable_email_capture, '1'); ?>>
+                                <span class="wpiko-chatbot-settings-switch__track" aria-hidden="true"></span>
+                                <span class="wpiko-chatbot-settings-switch__label">Enable email capture</span>
                             </label>
-                            <label for="wpiko_chatbot_enable_email_capture">Enable the email capture feature in the chatbot</label>
-                            <p class="description">When enabled, guest users will be asked to provide their name and email before starting the chat.</p>
-                        </td>
-                    </tr>
-                </table>
-
-                <div class="email-capture-settings-collapsible <?php echo $enable_email_capture ? 'active' : ''; ?>">
-                    <div class="wpiko-accordion-item">
-                        <h3 class="collapsible-header">
-                            <span><span class="dashicons dashicons-edit"></span> Customizable Text</span>
-                            <span class="dashicons dashicons-arrow-down-alt2"></span>
-                        </h3>
-                        <div class="collapsible-content">
-                            <table class="form-table">
-                                <tr valign="top">
-                                    <th scope="row"><label for="email_capture_title">Email Capture Title</label></th>
-                                    <td>
-                                        <input type="text" name="email_capture_title" id="email_capture_title" value="<?php echo esc_attr($email_capture_title); ?>" class="regular-text">
-                                        <p class="description">The title text displayed in the email capture popup.</p>
-                                    </td>
-                                </tr>
-                                
-                                <tr valign="top">
-                                    <th scope="row"><label for="email_capture_description">Email Capture Description</label></th>
-                                    <td>
-                                        <textarea name="email_capture_description" id="email_capture_description" rows="3" class="large-text"><?php echo esc_textarea($email_capture_description); ?></textarea>
-                                        <p class="description">The description text displayed in the email capture popup.</p>
-                                    </td>
-                                </tr>
-
-                                <tr valign="top">
-                                    <th scope="row"><label for="email_capture_name_placeholder">Name Field Placeholder</label></th>
-                                    <td>
-                                        <input type="text" name="email_capture_name_placeholder" id="email_capture_name_placeholder" value="<?php echo esc_attr($email_capture_name_placeholder); ?>" class="regular-text">
-                                        <p class="description">The placeholder text for the name input field.</p>
-                                    </td>
-                                </tr>
-
-                                <tr valign="top">
-                                    <th scope="row"><label for="email_capture_email_placeholder">Email Field Placeholder</label></th>
-                                    <td>
-                                        <input type="text" name="email_capture_email_placeholder" id="email_capture_email_placeholder" value="<?php echo esc_attr($email_capture_email_placeholder); ?>" class="regular-text">
-                                        <p class="description">The placeholder text for the email input field.</p>
-                                    </td>
-                                </tr>
-                                
-                                <tr valign="top">
-                                    <th scope="row"><label for="email_capture_button_text">Button Text</label></th>
-                                    <td>
-                                        <input type="text" name="email_capture_button_text" id="email_capture_button_text" value="<?php echo esc_attr($email_capture_button_text); ?>" class="regular-text">
-                                        <p class="description">The text displayed on the submit button in the email capture popup.</p>
-                                    </td>
-                                </tr>
-
-                                <tr valign="top">
-                                    <th scope="row"><label for="email_capture_validation_error">Validation Error Message</label></th>
-                                    <td>
-                                        <input type="text" name="email_capture_validation_error" id="email_capture_validation_error" value="<?php echo esc_attr($email_capture_validation_error); ?>" class="regular-text">
-                                        <p class="description">Error message shown when the user submits invalid or incomplete information.</p>
-                                    </td>
-                                </tr>
-
-                                <tr valign="top">
-                                    <th scope="row"><label for="email_capture_change_email_text">Change Email Menu Text</label></th>
-                                    <td>
-                                        <input type="text" name="email_capture_change_email_text" id="email_capture_change_email_text" value="<?php echo esc_attr($email_capture_change_email_text); ?>" class="regular-text">
-                                        <p class="description">Text shown in the chatbot menu for changing email. Default: <em>Change Email</em></p>
-                                    </td>
-                                </tr>
-                            </table>
+                            <p class="wpiko-chatbot-settings-field-description" id="email-capture-enabled-description">Guest users will be asked to provide their name and email before starting the chat.</p>
                         </div>
                     </div>
-                </div>
-                
+                </section>
+                <details class="wpiko-chatbot-settings-card wpiko-chatbot-settings-disclosure" id="email-capture-customization" <?php if (!$enable_email_capture): ?>hidden<?php endif; ?>>
+                    <summary class="wpiko-chatbot-settings-disclosure-title">Customizable text</summary>
+                    <div class="wpiko-chatbot-settings-disclosure-content">
+                        <p class="wpiko-chatbot-settings-field-description">Set the messages, field placeholders, and button labels shown to visitors.</p>
+                        <div class="wpiko-chatbot-settings-field-row">
+                            <label class="wpiko-chatbot-settings-field-label" for="email_capture_title">Email capture title</label>
+                            <div class="wpiko-chatbot-settings-field-control">
+                                <input type="text" name="email_capture_title" id="email_capture_title" value="<?php echo esc_attr($email_capture_title); ?>" aria-describedby="email_capture_title-description">
+                                <p class="wpiko-chatbot-settings-field-description" id="email_capture_title-description">The title displayed in the email capture popup.</p>
+                            </div>
+                        </div>
+                        <div class="wpiko-chatbot-settings-field-row">
+                            <label class="wpiko-chatbot-settings-field-label" for="email_capture_description">Email capture description</label>
+                            <div class="wpiko-chatbot-settings-field-control">
+                                <textarea name="email_capture_description" id="email_capture_description" rows="3" aria-describedby="email_capture_description-description"><?php echo esc_textarea($email_capture_description); ?></textarea>
+                                <p class="wpiko-chatbot-settings-field-description" id="email_capture_description-description">The description displayed below the popup title.</p>
+                            </div>
+                        </div>
+                        <div class="wpiko-chatbot-settings-field-row">
+                            <label class="wpiko-chatbot-settings-field-label" for="email_capture_name_placeholder">Name field placeholder</label>
+                            <div class="wpiko-chatbot-settings-field-control">
+                                <input type="text" name="email_capture_name_placeholder" id="email_capture_name_placeholder" value="<?php echo esc_attr($email_capture_name_placeholder); ?>" aria-describedby="email_capture_name_placeholder-description">
+                                <p class="wpiko-chatbot-settings-field-description" id="email_capture_name_placeholder-description">The placeholder text for the name input field.</p>
+                            </div>
+                        </div>
+                        <div class="wpiko-chatbot-settings-field-row">
+                            <label class="wpiko-chatbot-settings-field-label" for="email_capture_email_placeholder">Email field placeholder</label>
+                            <div class="wpiko-chatbot-settings-field-control">
+                                <input type="text" name="email_capture_email_placeholder" id="email_capture_email_placeholder" value="<?php echo esc_attr($email_capture_email_placeholder); ?>" aria-describedby="email_capture_email_placeholder-description">
+                                <p class="wpiko-chatbot-settings-field-description" id="email_capture_email_placeholder-description">The placeholder text for the email input field.</p>
+                            </div>
+                        </div>
+                        <div class="wpiko-chatbot-settings-field-row">
+                            <label class="wpiko-chatbot-settings-field-label" for="email_capture_button_text">Button text</label>
+                            <div class="wpiko-chatbot-settings-field-control">
+                                <input type="text" name="email_capture_button_text" id="email_capture_button_text" value="<?php echo esc_attr($email_capture_button_text); ?>" aria-describedby="email_capture_button_text-description">
+                                <p class="wpiko-chatbot-settings-field-description" id="email_capture_button_text-description">The text on the submit button in the email capture popup.</p>
+                            </div>
+                        </div>
+                        <div class="wpiko-chatbot-settings-field-row">
+                            <label class="wpiko-chatbot-settings-field-label" for="email_capture_validation_error">Validation error message</label>
+                            <div class="wpiko-chatbot-settings-field-control">
+                                <input type="text" name="email_capture_validation_error" id="email_capture_validation_error" value="<?php echo esc_attr($email_capture_validation_error); ?>" aria-describedby="email_capture_validation_error-description">
+                                <p class="wpiko-chatbot-settings-field-description" id="email_capture_validation_error-description">Shown when a visitor submits invalid or incomplete information.</p>
+                            </div>
+                        </div>
+                        <div class="wpiko-chatbot-settings-field-row">
+                            <label class="wpiko-chatbot-settings-field-label" for="email_capture_change_email_text">Change email menu text</label>
+                            <div class="wpiko-chatbot-settings-field-control">
+                                <input type="text" name="email_capture_change_email_text" id="email_capture_change_email_text" value="<?php echo esc_attr($email_capture_change_email_text); ?>" aria-describedby="email_capture_change_email_text-description">
+                                <p class="wpiko-chatbot-settings-field-description" id="email_capture_change_email_text-description">The chatbot menu label for changing an email address. Default: Change Email.</p>
+                            </div>
+                        </div>
+                    </div>
+                </details>
                 <input type="hidden" name="action" value="save_email_capture_settings">
-                <?php submit_button('Save Email Capture Settings'); ?>
+                <div class="wpiko-chatbot-settings-actions">
+                    <button type="submit" name="submit" id="submit" class="button wpiko-chatbot-settings-save">Save Email Capture Settings</button>
+                </div>
             </form>
-
             <script>
-                jQuery(document).ready(function($) {
-                    // Toggle email capture settings visibility based on checkbox state
-                    $('#wpiko_chatbot_enable_email_capture').change(function() {
-                        if ($(this).is(':checked')) {
-                            $('.email-capture-settings-collapsible').addClass('active');
-                        } else {
-                            $('.email-capture-settings-collapsible').removeClass('active');
-                        }
-                    });
-
-                    // Accordion toggle
-                    $('.collapsible-header').click(function () {
-                        // Toggle active class on header for arrow rotation
-                        $(this).toggleClass('active');
-                        // Toggle active class on next sibling content
-                        $(this).next('.collapsible-content').toggleClass('active');
+                jQuery(function($) {
+                    $('#wpiko_chatbot_enable_email_capture').on('change', function() {
+                        $('#email-capture-customization').prop('hidden', !this.checked);
                     });
                 });
             </script>
-            
         <?php else: ?>
-            <div class="premium-feature-notice email-capture-notice">
-                <h3>📧 Unlock Email Capture</h3>
-                <p>Activate Pro to collect user information before chat sessions:</p>
-                <ul>
-                    <li>✨ Capture user names and email addresses</li>
-                    <li>📧 Build your email list automatically</li>
-                    <li>🎯 Improve lead generation</li>
-                    <li>📊 Track user engagement</li>
-                    <li>🔧 Customize popup appearance</li>
+            <section class="wpiko-chatbot-settings-card wpiko-chatbot-settings-upgrade" aria-labelledby="email-capture-unlock-title">
+                <h2 class="wpiko-chatbot-settings-card-title" id="email-capture-unlock-title">Unlock Email Capture</h2>
+                <p class="wpiko-chatbot-settings-field-description">Activate Pro to collect user information before chat sessions.</p>
+                <ul class="wpiko-chatbot-settings-benefits">
+                    <li>Capture guest names and email addresses</li>
+                    <li>Build your email list automatically</li>
+                    <li>Improve lead generation and track engagement</li>
+                    <li>Customize the capture form text</li>
                 </ul>
-                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Activate Pro</a>
-            </div>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=ai-chatbot&tab=license_activation')); ?>" class="button wpiko-chatbot-settings-save">Activate Pro</a>
+            </section>
         <?php endif; ?>
     </div>
-    
-    
     <?php
 }

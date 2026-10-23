@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Cache Management Integration for WPiko Chatbot Pro
+ * Cache Management Integration for WPiko AI Chatbot Pro
  * 
  * This file extends the cache management system to include Pro plugin features
  */

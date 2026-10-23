@@ -307,17 +307,6 @@ function wpiko_chatbot_pro_filter_check_new_messages_response($response_data, $t
 }
 add_filter('wpiko_chatbot_check_new_messages_response', 'wpiko_chatbot_pro_filter_check_new_messages_response', 10, 4);
 
-/**
- * Override email capture setting for pro users
- */
-function wpiko_chatbot_pro_enable_email_capture($enable_email_capture)
-{
-    // Enable email capture if license is active and feature is enabled
-    if (wpiko_chatbot_is_license_active() && get_option('wpiko_chatbot_enable_email_capture', false)) {
-        return true;
-    }
-    return $enable_email_capture;
-}
 
 /**
  * Enable email capture for pro users

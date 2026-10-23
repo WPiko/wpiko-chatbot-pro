@@ -142,7 +142,7 @@ function wpiko_chatbot_pro_enhance_text() {
 
     if (!function_exists('wpiko_chatbot_openai_feature_text_request')) {
         wpiko_chatbot_log('The base plugin does not provide the utility Responses API helper', 'error');
-        wp_send_json_error('WPiko Chatbot must be updated before this feature can use AI.');
+        wp_send_json_error('WPiko AI Chatbot must be updated before this feature can use AI.');
         return;
     }
 

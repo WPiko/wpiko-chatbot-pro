@@ -3,52 +3,105 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-// Function to search pages
-if (!function_exists('wpiko_chatbot_pro_search_pages')) {
-    add_action('wp_ajax_wpiko_chatbot_search_pages', 'wpiko_chatbot_pro_search_pages');
+// Docs, posts and other article types are uploaded as Markdown, not Q&A.
+require_once __DIR__ . '/scan-markdown.php';
+// Optional automatic re-sync of scanned posts and docs after they are edited.
+require_once __DIR__ . '/scan-auto-sync.php';
 
-    function wpiko_chatbot_pro_search_pages() {
-        check_ajax_referer('wpiko_chatbot_nonce', 'security');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => 'You do not have permission to do this.'), 403);
-        }
-        
-        // Check for premium license
-        if (!wpiko_chatbot_is_license_active()) {
-            wp_send_json_error(['message' => 'This feature requires a premium license']);
-        }
-
-        // Validate, unslash and sanitize the query
-        $query = isset($_POST['query']) ? sanitize_text_field(wp_unslash($_POST['query'])) : '';
-        $args = array(
-            'post_type' => 'page',
-            'post_status' => array('publish', 'private', 'draft', 'pending'),
-            's' => $query,
-            'posts_per_page' => 10,
-        );
-
-        $pages = get_posts($args);
-        $results = array();
-
-        foreach ($pages as $page) {
-            // Add status indicator for non-published pages
-            $status_label = '';
-            if ($page->post_status !== 'publish') {
-                $status_label = ' [' . ucfirst($page->post_status) . ']';
-            } elseif (!empty($page->post_password)) {
-                $status_label = ' [Password Protected]';
-            }
-            
-            $results[] = array(
-                'ID' => $page->ID,
-                'title' => $page->post_title . $status_label,
-                'status' => $page->post_status,
-            );
-        }
-
-        wp_send_json_success($results);
+/**
+ * Content types Scan Website can turn into Q&A.
+ *
+ * Every public type that has an editor in wp-admin: pages, posts, and the types
+ * registered by documentation or knowledge-base plugins. No plugin-specific
+ * code is needed, because those plugins store articles as normal posts.
+ * WooCommerce products have their own integration, and media files belong in
+ * File Management, so both are left out.
+ *
+ * @return string[] Post type names.
+ */
+function wpiko_chatbot_pro_scan_post_types() {
+    static $types = null;
+    if ($types !== null) {
+        return $types;
     }
+
+    $excluded = array(
+        'attachment',
+        'product',
+        'product_variation',
+        // Page builder and theme template types: layout, not content.
+        'elementor_library',
+        'e-landing-page',
+        'et_pb_layout',
+        'fl-builder-template',
+        'oxy_user_library',
+        'ct_template',
+        'brizy_template',
+        'wp_block',
+        'wp_template',
+        'wp_template_part',
+        'wp_navigation',
+    );
+
+    $types = array();
+    foreach (get_post_types(array('public' => true), 'objects') as $name => $object) {
+        if (in_array($name, $excluded, true) || empty($object->show_ui)) {
+            continue;
+        }
+        // The text must live in the editor content to be read.
+        if (!post_type_supports($name, 'editor') && $name !== 'page') {
+            continue;
+        }
+        $types[] = $name;
+    }
+
+    /**
+     * Filter the content types Scan Website lists and processes.
+     *
+     * @param string[] $types Post type names.
+     */
+    $types = array_values(array_unique(array_filter((array) apply_filters('wpiko_chatbot_pro_scan_post_types', $types), 'post_type_exists')));
+    if (!$types) {
+        $types = array('page');
+    }
+    // Pages first, then docs and other custom types, then blog posts.
+    usort($types, function ($a, $b) {
+        $rank = function ($type) {
+            return $type === 'page' ? 0 : ($type === 'post' ? 2 : 1);
+        };
+        return $rank($a) - $rank($b);
+    });
+    return $types;
+}
+
+/**
+ * Items Scan Website never lists.
+ *
+ * WooCommerce's Cart, Checkout and My account pages only show each visitor's
+ * own cart, form or account, so they have no text to learn from. The Shop page
+ * lists products, which the WooCommerce integration already keeps in sync.
+ *
+ * @return int[] Post IDs.
+ */
+function wpiko_chatbot_pro_scan_excluded_ids() {
+    $ids = array();
+    foreach (array('cart', 'checkout', 'myaccount', 'shop') as $woo_page) {
+        $id = function_exists('wc_get_page_id')
+            ? (int) wc_get_page_id($woo_page)
+            : (int) get_option('woocommerce_' . $woo_page . '_page_id');
+        if ($id > 0) {
+            $ids[] = $id;
+        }
+    }
+
+    /**
+     * Filter the items Scan Website hides, for example other plugins'
+     * account or checkout pages.
+     *
+     * @param int[] $ids Post IDs. Default: WooCommerce Cart, Checkout, My account and Shop pages.
+     */
+    $ids = (array) apply_filters('wpiko_chatbot_pro_scan_excluded_ids', $ids);
+    return array_values(array_unique(array_filter(array_map('absint', $ids))));
 }
 
 /**
@@ -61,7 +114,7 @@ if (!function_exists('wpiko_chatbot_pro_search_pages')) {
 function wpiko_chatbot_pro_fetch_page_content($post_id) {
     $post = get_post($post_id);
     
-    if (!$post || $post->post_type !== 'page') {
+    if (!$post || !in_array($post->post_type, wpiko_chatbot_pro_scan_post_types(), true)) {
         return false;
     }
     
@@ -381,26 +434,6 @@ function wpiko_chatbot_pro_get_filename_from_title($title) {
     return 'page_' . $filename;
 }
 
-/**
- * Process a page by ID and return Q&A content
- * 
- * @param int $page_id The WordPress page ID
- * @return string|false The processed Q&A content or false on failure
- */
-function wpiko_chatbot_pro_process_page_for_download($page_id) {
-    $page_data = wpiko_chatbot_pro_fetch_page_content($page_id);
-    if (!$page_data) {
-        return false;
-    }
-
-    $json = wpiko_chatbot_pro_page_to_json($page_data);
-    $processed_content = wpiko_chatbot_process_with_wpiko($json);
-    if (!$processed_content) {
-        return false;
-    }
-
-    return $processed_content;
-}
 
 // AJAX handler save downloadable content
 function wpiko_chatbot_pro_save_qa_download_setting() {
@@ -444,6 +477,27 @@ function wpiko_chatbot_pro_ajax_process_page() {
         wp_send_json_error(['message' => 'Invalid page ID']);
     }
 
+    $enable_qa_download = get_option('wpiko_chatbot_enable_qa_download', '0');
+
+    // Docs, posts and other articles: clean Markdown, no AI request.
+    if (wpiko_chatbot_pro_scan_mode($page_id) === 'markdown') {
+        $markdown = wpiko_chatbot_pro_build_markdown($page_id);
+        if (!$markdown) {
+            wp_send_json_error(['message' => 'Failed to fetch the content. Please ensure it exists.']);
+        }
+        if ($markdown['content'] === '') {
+            wp_send_json_error(['message' => 'This item has no text to add.']);
+        }
+        wp_send_json_success([
+            'content' => $markdown['content'],
+            'filename' => wpiko_chatbot_pro_get_filename_from_title($markdown['title']) . '-' . $page_id,
+            'page_id' => $page_id,
+            'mode' => 'markdown',
+            'extension' => 'md',
+            'enable_download' => $enable_qa_download === '1'
+        ]);
+    }
+
     // Step 1: Fetch page content directly from database
     $page_data = wpiko_chatbot_pro_fetch_page_content($page_id);
     if (!$page_data) {
@@ -462,16 +516,23 @@ function wpiko_chatbot_pro_ajax_process_page() {
         wp_send_json_error(['message' => 'Failed to process content with OpenAI']);
     }
 
-    // Generate filename from page title
-    $filename = wpiko_chatbot_pro_get_filename_from_title($page_data['title']);
+    // Generate filename from page title. The page ID keeps it unique when
+    // two pages share a title (older scans used the title only).
+    $filename = wpiko_chatbot_pro_get_filename_from_title($page_data['title']) . '-' . $page_id;
 
-    // Enable or disable the download function
-    $enable_qa_download = get_option('wpiko_chatbot_enable_qa_download', '0');
-    
+    // Keep the generated Q&A on the server for the upload step, so it is
+    // uploaded exactly as written instead of round-tripping through the browser.
+    set_transient(wpiko_chatbot_pro_scan_qa_key($page_id), array(
+        'content' => $processed_content,
+        'filename' => $filename,
+    ), HOUR_IN_SECONDS);
+
     wp_send_json_success([
         'content' => $processed_content,
         'filename' => $filename,
         'page_id' => $page_id,
+        'mode' => 'qa',
+        'extension' => 'txt',
         'enable_download' => $enable_qa_download === '1'
     ]);
 }
@@ -486,44 +547,158 @@ function wpiko_chatbot_pro_upload_qa_to_assistant() {
     }
 
     // Validate, unslash, and sanitize the input data
-    $content = isset($_POST['content']) ? sanitize_textarea_field(wp_unslash($_POST['content'])) : '';
+    // Plain-text clean-up only: sanitize_textarea_field() would remove
+    // percent-encoded characters from links (e.g. non-Latin URLs) and any
+    // text that looks like an HTML tag. The file is never rendered as HTML.
+    $content = isset($_POST['content']) ? wpiko_chatbot_pro_clean_scan_text(wp_unslash($_POST['content'])) : '';
     $filename = isset($_POST['filename']) ? sanitize_file_name(wp_unslash($_POST['filename'])) : '';
     $page_id = isset($_POST['page_id']) ? absint($_POST['page_id']) : 0;
+    $mode = $page_id ? wpiko_chatbot_pro_scan_mode($page_id) : 'qa';
 
-    // Upload to Responses API
-    $file_id = wpiko_chatbot_upload_qa_file_to_responses($filename, $content);
-    $success_message = 'File uploaded successfully to the AI Assistant';
-    
-    if (!$file_id) {
-        wp_send_json_error(['message' => 'Failed to upload file to the AI Assistant']);
-    }
-
-    if ($page_id) {
-        // Remember which page this Q&A file covers.
-        wpiko_chatbot_pro_remember_scanned_page($page_id, $filename, $file_id);
-
-        // The page is now in the knowledge base as Q&A: take it out of the free
-        // "Quick learn from your pages" file so it is not stored twice.
-        if (function_exists('wpiko_chatbot_site_knowledge_remove_pages')) {
-            $cleanup = wpiko_chatbot_site_knowledge_remove_pages(array($page_id));
-            if (is_array($cleanup) && !empty($cleanup['success'])) {
-                $success_message .= '. This page was also removed from "Quick learn from your pages" so it is not stored twice.';
-            } elseif (is_array($cleanup)) {
-                wpiko_chatbot_log('Could not remove scanned page ' . $page_id . ' from quick learn: ' . (isset($cleanup['message']) ? $cleanup['message'] : 'unknown error'), 'warning');
-            }
+    if ($mode === 'markdown') {
+        // Rebuilt here rather than taken from the browser: text sanitising
+        // would strip code samples and encoded characters from the Markdown.
+        $markdown = wpiko_chatbot_pro_build_markdown($page_id);
+        if (!$markdown || $markdown['content'] === '') {
+            wp_send_json_error(['message' => 'This item has no text to add.']);
+        }
+        $content = $markdown['content'];
+        $filename = wpiko_chatbot_pro_get_filename_from_title($markdown['title']) . '-' . $page_id;
+    } elseif ($page_id) {
+        // Q&A generated by the process step for this user and page.
+        $stored = get_transient(wpiko_chatbot_pro_scan_qa_key($page_id));
+        if (is_array($stored) && !empty($stored['content']) && !empty($stored['filename'])) {
+            $content = (string) $stored['content'];
+            $filename = sanitize_file_name($stored['filename']);
         }
     }
 
+    if ($content === '' || $filename === '') {
+        wp_send_json_error(['message' => 'Nothing to upload.']);
+    }
+
+    $stored = wpiko_chatbot_pro_store_scan_file($page_id, $filename, $content, $mode);
+    if (empty($stored['success'])) {
+        wp_send_json_error(['message' => 'Failed to upload file to the AI Assistant']);
+    }
+    if ($page_id) {
+        delete_transient(wpiko_chatbot_pro_scan_qa_key($page_id));
+    }
+
+    $success_message = 'File uploaded successfully to the AI Assistant';
+    if (!empty($stored['quick_learn_removed'])) {
+        $success_message .= '. This page was also removed from "Quick learn from your pages" so it is not stored twice.';
+    }
+
     wp_send_json_success([
-        'file_id' => $file_id,
+        'file_id' => $stored['file_id'],
         'message' => $success_message,
         'cache_cleared' => true // Indicate that cache management was handled
     ]);
 }
 add_action('wp_ajax_wpiko_chatbot_upload_qa_to_assistant', 'wpiko_chatbot_pro_upload_qa_to_assistant');
 
-// Function to upload the Q&A file to Responses API
-function wpiko_chatbot_upload_qa_file_to_responses($filename, $content) {
+/**
+ * Upload a scanned item's file and record it.
+ *
+ * Shared by manual scans and automatic sync: replaces the item's previous
+ * file (also when it had another name), remembers which item the file covers
+ * and takes the item out of the free "Quick learn" file.
+ *
+ * @param int    $page_id  Post ID (0 for a file that is not tied to an item).
+ * @param string $filename File name without extension.
+ * @param string $content  File content.
+ * @param string $mode     'qa' or 'markdown'.
+ * @return array{success: bool, file_id?: string, quick_learn_removed?: bool}
+ */
+function wpiko_chatbot_pro_store_scan_file($page_id, $filename, $content, $mode) {
+    $page_id = absint($page_id);
+    $file_id = wpiko_chatbot_upload_qa_file_to_responses($filename, $content, $mode);
+    if (!$file_id) {
+        return array('success' => false);
+    }
+
+    $quick_learn_removed = false;
+    if ($page_id) {
+        // Rescan: if the previous file for this page had another name (the page
+        // was renamed, or it was scanned by an older version), remove it so the
+        // page is not stored twice. Skip it if another page still uses that file.
+        $previous_scans = get_option('wpiko_chatbot_pro_scanned_pages', array());
+        $previous = (is_array($previous_scans) && isset($previous_scans[$page_id])) ? $previous_scans[$page_id] : null;
+        if ($previous && !empty($previous['file_id']) && $previous['file_id'] !== $file_id) {
+            $shared = false;
+            foreach ($previous_scans as $other_page_id => $other_entry) {
+                if ((int) $other_page_id !== $page_id && isset($other_entry['file_id']) && $other_entry['file_id'] === $previous['file_id']) {
+                    $shared = true;
+                    break;
+                }
+            }
+            if (!$shared) {
+                $removed = wpiko_chatbot_delete_responses_file($previous['file_id']);
+                if (is_array($removed) && empty($removed['success'])) {
+                    wpiko_chatbot_log('Rescan of page ' . $page_id . ' could not remove its previous scan file: ' . (isset($removed['message']) ? $removed['message'] : 'unknown error'), 'warning');
+                }
+                if (!empty($previous['filename']) && get_option('wpiko_chatbot_responses_qa_file_' . md5($previous['filename']), '') === $previous['file_id']) {
+                    delete_option('wpiko_chatbot_responses_qa_file_' . md5($previous['filename']));
+                }
+            }
+        }
+
+        // Remember which page this file covers, how it was made and what it held.
+        wpiko_chatbot_pro_remember_scanned_page($page_id, $filename, $file_id, $mode, md5($content));
+
+        // The page is now in the knowledge base: take it out of the free
+        // "Quick learn from your pages" file so it is not stored twice.
+        if (function_exists('wpiko_chatbot_site_knowledge_remove_pages')) {
+            $cleanup = wpiko_chatbot_site_knowledge_remove_pages(array($page_id));
+            if (is_array($cleanup) && !empty($cleanup['success'])) {
+                $quick_learn_removed = true;
+            } elseif (is_array($cleanup)) {
+                wpiko_chatbot_log('Could not remove scanned page ' . $page_id . ' from quick learn: ' . (isset($cleanup['message']) ? $cleanup['message'] : 'unknown error'), 'warning');
+            }
+        }
+    }
+
+    return array('success' => true, 'file_id' => $file_id, 'quick_learn_removed' => $quick_learn_removed);
+}
+
+/**
+ * Transient key holding the Q&A generated for a page, per admin user.
+ *
+ * @param int $page_id Page ID.
+ * @return string
+ */
+function wpiko_chatbot_pro_scan_qa_key($page_id) {
+    return 'wpiko_chatbot_pro_scan_qa_' . get_current_user_id() . '_' . absint($page_id);
+}
+
+/**
+ * Clean plain text for a knowledge file without changing its wording.
+ *
+ * Keeps links (including percent-encoded ones), code and angle brackets;
+ * removes invalid UTF-8 and control characters and normalises line endings.
+ *
+ * @param string $text Text.
+ * @return string
+ */
+function wpiko_chatbot_pro_clean_scan_text($text) {
+    $text = wp_check_invalid_utf8((string) $text, true);
+    $text = str_replace(array("\r\n", "\r"), "\n", $text);
+    $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text);
+    return trim($text);
+}
+
+/**
+ * Upload a Scan Website file to the Responses API vector store.
+ *
+ * Replaces the previous file stored under the same name.
+ *
+ * @param string $filename File name without extension.
+ * @param string $content  File content.
+ * @param string $mode     'qa' (plain-text Q&A) or 'markdown'.
+ * @return string|false New file ID, or false on failure.
+ */
+function wpiko_chatbot_upload_qa_file_to_responses($filename, $content, $mode = 'qa') {
     $api_key = wpiko_chatbot_decrypt_api_key(get_option('wpiko_chatbot_api_key', ''));
 
     if (!$api_key) {
@@ -545,10 +720,11 @@ function wpiko_chatbot_upload_qa_file_to_responses($filename, $content) {
     $wp_filesystem->put_contents($temp_file_path, $content);
 
     // Prepare file data for upload
+    $is_markdown = $mode === 'markdown';
     $file_data = [
         'tmp_name' => $temp_file_path,
-        'name' => $filename . '.txt',
-        'type' => 'text/plain',
+        'name' => $filename . ($is_markdown ? '.md' : '.txt'),
+        'type' => $is_markdown ? 'text/markdown' : 'text/plain',
     ];
 
     // Upload the file to Responses API vector store
@@ -576,7 +752,7 @@ function wpiko_chatbot_upload_qa_file_to_responses($filename, $content) {
 
         return $new_file_id;
     } else {
-        wpiko_chatbot_log_error("Failed to upload Q&A file to Responses API: " . $result['message']);
+        wpiko_chatbot_log_error("Failed to upload scanned file to Responses API: " . $result['message']);
         return false;
     }
 }
@@ -585,17 +761,21 @@ function wpiko_chatbot_upload_qa_file_to_responses($filename, $content) {
  * Remember which WordPress page a Scan Website Q&A file was generated from.
  *
  * @param int    $page_id  Page ID.
- * @param string $filename Q&A file name (without extension).
+ * @param string $filename File name (without extension).
  * @param string $file_id  OpenAI file ID.
+ * @param string $mode     'qa' or 'markdown'.
+ * @param string $hash     md5 of the uploaded content, so unchanged items can be skipped.
  * @return void
  */
-function wpiko_chatbot_pro_remember_scanned_page($page_id, $filename, $file_id) {
+function wpiko_chatbot_pro_remember_scanned_page($page_id, $filename, $file_id, $mode = 'qa', $hash = '') {
     $scanned = get_option('wpiko_chatbot_pro_scanned_pages', array());
     $scanned = is_array($scanned) ? $scanned : array();
     $scanned[(int) $page_id] = array(
         'filename' => $filename,
         'file_id' => $file_id,
         'time' => time(),
+        'mode' => $mode === 'markdown' ? 'markdown' : 'qa',
+        'hash' => (string) $hash,
     );
     update_option('wpiko_chatbot_pro_scanned_pages', $scanned, false);
 }
@@ -777,3 +957,190 @@ function wpiko_chatbot_pro_forget_all_scanned_pages() {
     delete_transient('wpiko_chatbot_pro_scan_coverage_retry');
 }
 add_action('wpiko_chatbot_responses_vector_store_deleted', 'wpiko_chatbot_pro_forget_all_scanned_pages');
+
+/**
+ * Dashicon for a content type: the plugin's own menu icon when it uses one.
+ *
+ * @param WP_Post_Type $type_object Post type object.
+ * @return string Dashicons class.
+ */
+function wpiko_chatbot_pro_scan_type_icon($type_object) {
+    if ($type_object->name === 'page') {
+        return 'dashicons-admin-page';
+    }
+    if ($type_object->name === 'post') {
+        return 'dashicons-admin-post';
+    }
+    $icon = is_string($type_object->menu_icon) ? $type_object->menu_icon : '';
+    // Image URLs and inline SVGs cannot be shown as a font icon.
+    return strpos($icon, 'dashicons-') === 0 ? sanitize_html_class($icon) : 'dashicons-media-document';
+}
+
+/**
+ * AJAX: every page the Scan Website tool can process, with its scan state,
+ * plus scanned Q&A files that are no longer linked to a page.
+ *
+ * Response: {
+ *   types:   [{name, label, singular, icon, count}],
+ *   pages:   [{id, type, title, status, protected, url, edit_url, modified, scanned, scanned_at,
+ *             file_id, mode, scanned_mode, format_changed, changed}],
+ *   orphans: [{id, filename, bytes, created_at}],
+ *   truncated: bool
+ * }
+ */
+function wpiko_chatbot_pro_ajax_get_scan_pages() {
+    check_ajax_referer('wpiko_chatbot_nonce', 'security');
+
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(array('message' => 'You do not have permission to do this.'), 403);
+    }
+    if (!wpiko_chatbot_is_license_active()) {
+        wp_send_json_error(array('message' => 'This feature requires a premium license'));
+    }
+
+    $limit = (int) apply_filters('wpiko_chatbot_pro_scan_pages_limit', 500);
+
+    wpiko_chatbot_pro_migrate_scan_coverage();
+    $scanned = get_option('wpiko_chatbot_pro_scanned_pages', array());
+    $scanned = is_array($scanned) ? $scanned : array();
+
+    // Files currently in the knowledge base (cached by core). When the list
+    // cannot be read, trust the stored records instead of hiding every scan.
+    $files_result = function_exists('wpiko_chatbot_list_responses_files') ? wpiko_chatbot_list_responses_files() : array('success' => false);
+    $active_files = null;
+    $page_files = array();
+    if (!empty($files_result['success']) && isset($files_result['files'])) {
+        $active_files = array();
+        foreach ($files_result['files'] as $file) {
+            $active_files[$file['id']] = true;
+            if (isset($file['filename']) && strpos($file['filename'], 'page_') === 0) {
+                $page_files[$file['id']] = $file;
+            }
+        }
+    }
+
+    $types = array();
+    $posts = array();
+    $truncated = false;
+    $excluded = wpiko_chatbot_pro_scan_excluded_ids();
+    foreach (wpiko_chatbot_pro_scan_post_types() as $type_name) {
+        $type_object = get_post_type_object($type_name);
+        if (!$type_object) {
+            continue;
+        }
+        // The limit applies per type so a big blog cannot hide the docs.
+        $query = new WP_Query(array(
+            'post_type' => $type_name,
+            'post_status' => array('publish', 'private', 'draft', 'pending'),
+            'posts_per_page' => $limit,
+            'post__not_in' => $excluded,
+            'orderby' => 'title',
+            'order' => 'ASC',
+            'no_found_rows' => true,
+            'update_post_meta_cache' => false,
+            'update_post_term_cache' => false,
+            'ignore_sticky_posts' => true,
+            'suppress_filters' => true,
+        ));
+        if (!$query->posts) {
+            continue;
+        }
+        if (count($query->posts) >= $limit) {
+            $truncated = true;
+        }
+        $types[] = array(
+            'name' => $type_name,
+            'label' => $type_object->labels->name,
+            'singular' => $type_object->labels->singular_name,
+            'icon' => wpiko_chatbot_pro_scan_type_icon($type_object),
+            'count' => count($query->posts),
+        );
+        $posts = array_merge($posts, $query->posts);
+    }
+
+    $pages = array();
+    $linked_file_ids = array();
+    foreach ($posts as $post) {
+        $entry = isset($scanned[$post->ID]) ? $scanned[$post->ID] : null;
+        $file_id = '';
+        if ($entry && !empty($entry['file_id']) && !empty($entry['filename'])) {
+            $current = get_option('wpiko_chatbot_responses_qa_file_' . md5($entry['filename']), '');
+            $in_store = ($active_files === null) || isset($active_files[$entry['file_id']]);
+            if ($current === $entry['file_id'] && $in_store) {
+                $file_id = $entry['file_id'];
+                $linked_file_ids[$file_id] = true;
+            }
+        }
+
+        // Some pages (e.g. created by plugins) have an empty GMT date; fall back to local time.
+        $modified_gmt = $post->post_modified_gmt;
+        if (empty($modified_gmt) || strpos($modified_gmt, '0000-00-00') === 0) {
+            $modified_gmt = get_gmt_from_date($post->post_modified);
+        }
+        $modified = max(0, (int) mysql2date('U', $modified_gmt, false));
+        $scanned_at = $file_id !== '' ? (int) $entry['time'] : 0;
+
+        // Scans made before Markdown support were all Q&A. An item whose file
+        // was made the other way is offered for a rescan.
+        $mode = wpiko_chatbot_pro_scan_mode($post);
+        $scanned_mode = ($file_id !== '' && isset($entry['mode']) && $entry['mode'] === 'markdown') ? 'markdown' : 'qa';
+        $format_changed = $file_id !== '' && $scanned_mode !== $mode;
+
+        $pages[] = array(
+            'id' => (int) $post->ID,
+            'type' => $post->post_type,
+            'title' => $post->post_title !== '' ? $post->post_title : '(no title)',
+            'status' => $post->post_status,
+            'protected' => $post->post_password !== '',
+            'url' => get_permalink($post),
+            'edit_url' => get_edit_post_link($post->ID, 'raw'),
+            'modified' => $modified,
+            'scanned' => $file_id !== '',
+            'scanned_at' => $scanned_at,
+            'file_id' => $file_id,
+            'mode' => $mode,
+            'scanned_mode' => $file_id !== '' ? $scanned_mode : '',
+            'format_changed' => $format_changed,
+            // Unknown scan dates (older versions) are never flagged for edits.
+            'changed' => $format_changed || ($file_id !== '' && $scanned_at > 0 && $modified > $scanned_at),
+        );
+    }
+
+    // Pages beyond the list limit still own their files. Files of deleted or
+    // trashed pages are listed as "other scanned files" so they can be removed.
+    foreach ($scanned as $scanned_page_id => $entry) {
+        if (empty($entry['file_id']) || isset($linked_file_ids[$entry['file_id']])) {
+            continue;
+        }
+        // Hidden items (e.g. WooCommerce Cart) scanned before they were hidden
+        // are listed under "Other scanned files" so they can still be removed.
+        if (in_array((int) $scanned_page_id, $excluded, true)) {
+            continue;
+        }
+        $status = get_post_status((int) $scanned_page_id);
+        if ($status && $status !== 'trash') {
+            $linked_file_ids[$entry['file_id']] = true;
+        }
+    }
+
+    $orphans = array();
+    foreach ($page_files as $file_id => $file) {
+        if (!isset($linked_file_ids[$file_id])) {
+            $orphans[] = array(
+                'id' => $file_id,
+                'filename' => $file['filename'],
+                'bytes' => isset($file['bytes']) ? (int) $file['bytes'] : 0,
+                'created_at' => isset($file['created_at']) ? (int) $file['created_at'] : 0,
+            );
+        }
+    }
+
+    wp_send_json_success(array(
+        'types' => $types,
+        'pages' => $pages,
+        'orphans' => $orphans,
+        'truncated' => $truncated,
+        'limit' => $limit,
+    ));
+}
+add_action('wp_ajax_wpiko_chatbot_get_scan_pages', 'wpiko_chatbot_pro_ajax_get_scan_pages');

@@ -18,11 +18,8 @@ function wpiko_chatbot_pro_github_status_widget() {
     $status = wpiko_chatbot_pro_get_github_status();
     $connection_ok = $status['config_valid'] && $status['connection_valid'];
     ?>
-    <div class="wpiko-github-status-widget">
-        <h3>
-            <span class="dashicons dashicons-update"></span>
-            GitHub Update System
-        </h3>
+    <div class="wpiko-chatbot-settings-card wpiko-github-status-widget">
+        <h2 class="wpiko-chatbot-settings-card-title">Plugin updates</h2>
 
         <?php if (!$status['config_valid']): ?>
             <div class="github-status-banner is-error">

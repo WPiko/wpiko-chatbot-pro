@@ -1,52 +1,13 @@
-/* TAB - PRODUCT CARD */
-
-.product-card-section {
-    background: var(--wpiko-surface);
-    padding: 20px;
-    border-radius: var(--wpiko-radius-lg);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-    border: none;
-}
-
-.enable-product-cards-row {
-    background: transparent;
-    border: none;
-}
-
-.product-card-section .description {
-    margin-bottom: 10px;
-    color: var(--wpiko-text-muted);
-}
-
-/* Clean up table styles to match other sections */
-.product-card-section form .form-table {
-    border: none;
-    background: transparent;
-}
-
-.product-card-section form .form-table th,
-.product-card-section form .form-table td {
-    padding-top: 20px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--wpiko-bg-subtle);
-}
-
-.product-card-section form .form-table tr:last-child th,
-.product-card-section form .form-table tr:last-child td {
-    border-bottom: 1px solid var(--wpiko-bg-subtle);
-    /* Keep separation if needed, or none if it's the absolute last */
-}
-
-/* Product Card Collapsible Settings */
-.product-card-settings-collapsible {
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-    max-height: 0;
-    opacity: 0;
-}
-
-.product-card-settings-collapsible.active {
-    max-height: 1500px;
-    opacity: 1;
-    transition: max-height 0.5s ease-in, opacity 0.3s ease-in;
+/* Product Card uses the shared root tokens and settings controls. */
+.wpiko-product-card-page .product-card-pro-badge {
+    display: inline-block;
+    padding: 2px 5px;
+    vertical-align: middle;
+    color: var(--wpiko-ui-text-secondary);
+    background: var(--wpiko-ui-sunken);
+    border: 1px solid var(--wpiko-ui-line);
+    border-radius: var(--wpiko-ui-radius-sm);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.4;
 }

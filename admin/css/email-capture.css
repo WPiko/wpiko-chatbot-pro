@@ -1,54 +1,13 @@
-/* TAB - EMAIL CAPTURE SETTINGS */
-.email-capture-section {
-    background: var(--wpiko-surface);
-    padding: 24px;
-    border-radius: var(--wpiko-radius-lg);
-    box-shadow: var(--wpiko-shadow-xs);
-    border: 1px solid var(--wpiko-border);
-}
-
-.email-capture-section .description {
-    margin-bottom: 15px;
-    color: var(--wpiko-text-muted);
-}
-
-.email-capture-section form>.form-table {
-    border: none;
-    background: transparent;
-    margin-bottom: 20px;
-}
-
-.email-capture-section form>.form-table th,
-.email-capture-section form>.form-table td {
-    padding-top: 20px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--wpiko-bg-subtle);
-}
-
-.email-capture-section form>.form-table tr:last-child th,
-.email-capture-section form>.form-table tr:last-child td {
-    border-bottom: none;
-}
-
-/* Email Capture Collapsible Settings (Master Toggle Wrapper) */
-.email-capture-settings-collapsible {
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-    max-height: 0;
-    opacity: 0;
-}
-
-.email-capture-settings-collapsible.active {
-    max-height: 5000px;
-    opacity: 1;
-    transition: max-height 0.5s ease-in, opacity 0.3s ease-in;
-}
-
-/* Ensure global accordion items inside have proper spacing */
-.email-capture-settings-collapsible .wpiko-accordion-item {
-    margin-top: 0;
-    /* Remove top margin for the first item inside the collapsible wrapper if needed, 
-       but global style has margin-top: 30px. 
-       In contact form it's fine. content expands.
-    */
+/* Email Capture uses the shared tokens and settings controls. */
+.wpiko-email-capture-page .email-capture-pro-badge {
+    display: inline-block;
+    padding: 2px 5px;
+    vertical-align: middle;
+    color: var(--wpiko-ui-text-secondary);
+    background: var(--wpiko-ui-sunken);
+    border: 1px solid var(--wpiko-ui-line);
+    border-radius: var(--wpiko-ui-radius-sm);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.4;
 }

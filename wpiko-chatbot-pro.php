@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: WPiko Chatbot Pro
+ * Plugin Name: WPiko AI Chatbot Pro
  * Plugin URI: https://wpiko.com/chatbot
- * Description: Premium add-on for WPiko Chatbot with advanced features.
- * Version: 2.1.1
+ * Description: Pro add-on for WPiko AI Chatbot: mobile app with live takeover and push notifications, WooCommerce product answers, website scanning, analytics and lead capture.
+ * Version: 2.1.2
  * Requires at least: 6.0
  * Tested up to: 7.1
  * Requires PHP: 7.0
@@ -23,8 +23,8 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('WPIKO_CHATBOT_PRO_VERSION', '2.1.1');
-define('WPIKO_CHATBOT_PRO_MIN_BASE_VERSION', '2.1.0');
+define('WPIKO_CHATBOT_PRO_VERSION', '2.1.2');
+define('WPIKO_CHATBOT_PRO_MIN_BASE_VERSION', '2.1.2');
 define('WPIKO_CHATBOT_PRO_FILE', __FILE__);
 define('WPIKO_CHATBOT_PRO_PATH', plugin_dir_path(__FILE__));
 define('WPIKO_CHATBOT_PRO_URL', plugin_dir_url(__FILE__));
@@ -69,7 +69,7 @@ if (defined('WP_CLI') && WP_CLI) {
 global $wpiko_chatbot_pro_github_updater;
 
 /**
- * Check whether the required WPiko Chatbot base version is active.
+ * Check whether the required WPiko AI Chatbot base version is active.
  *
  * @return bool True when the base plugin is active and meets the minimum version.
  */
@@ -106,14 +106,14 @@ function wpiko_chatbot_pro_missing_base_plugin_notice()
 {
     ?>
     <div class="notice notice-error is-dismissible">
-        <p><?php esc_html_e('WPiko Chatbot Pro requires the free WPiko Chatbot plugin to be installed and activated.', 'wpiko-chatbot-pro'); ?>
+        <p><?php esc_html_e('WPiko AI Chatbot Pro requires the free WPiko AI Chatbot plugin to be installed and activated.', 'wpiko-chatbot-pro'); ?>
         </p>
         <p>
             <?php
             if (file_exists(WP_PLUGIN_DIR . '/wpiko-chatbot/wpiko-chatbot.php')) {
-                echo '<a href="' . esc_url(wp_nonce_url('plugins.php?action=activate&plugin=wpiko-chatbot/wpiko-chatbot.php', 'activate-plugin_wpiko-chatbot/wpiko-chatbot.php')) . '" class="button button-primary">' . esc_html__('Activate WPiko Chatbot', 'wpiko-chatbot-pro') . '</a>';
+                echo '<a href="' . esc_url(wp_nonce_url('plugins.php?action=activate&plugin=wpiko-chatbot/wpiko-chatbot.php', 'activate-plugin_wpiko-chatbot/wpiko-chatbot.php')) . '" class="button button-primary">' . esc_html__('Activate WPiko AI Chatbot', 'wpiko-chatbot-pro') . '</a>';
             } else {
-                echo '<a href="' . esc_url(wp_nonce_url(self_admin_url('update.php?action=install-plugin&plugin=wpiko-chatbot'), 'install-plugin_wpiko-chatbot')) . '" class="button button-primary">' . esc_html__('Install WPiko Chatbot', 'wpiko-chatbot-pro') . '</a>';
+                echo '<a href="' . esc_url(wp_nonce_url(self_admin_url('update.php?action=install-plugin&plugin=wpiko-chatbot'), 'install-plugin_wpiko-chatbot')) . '" class="button button-primary">' . esc_html__('Install WPiko AI Chatbot', 'wpiko-chatbot-pro') . '</a>';
             }
             ?>
         </p>
@@ -139,7 +139,7 @@ function wpiko_chatbot_pro_outdated_base_plugin_notice()
             echo esc_html(
                 sprintf(
                     /* translators: 1: required base-plugin version, 2: installed base-plugin version */
-                    __('WPiko Chatbot Pro requires WPiko Chatbot %1$s or newer. The installed version is %2$s.', 'wpiko-chatbot-pro'),
+                    __('WPiko AI Chatbot Pro requires WPiko AI Chatbot %1$s or newer. The installed version is %2$s.', 'wpiko-chatbot-pro'),
                     WPIKO_CHATBOT_PRO_MIN_BASE_VERSION,
                     $base_version
                 )
@@ -148,7 +148,7 @@ function wpiko_chatbot_pro_outdated_base_plugin_notice()
         </p>
         <p>
             <a href="<?php echo esc_url($update_url); ?>" class="button button-primary">
-                <?php esc_html_e('Update WPiko Chatbot', 'wpiko-chatbot-pro'); ?>
+                <?php esc_html_e('Update WPiko AI Chatbot', 'wpiko-chatbot-pro'); ?>
             </a>
         </p>
     </div>
@@ -248,8 +248,8 @@ function wpiko_chatbot_pro_fallback_admin_menu()
     // Add when the base plugin is missing, inactive, or below the minimum version.
     if (!wpiko_chatbot_pro_check_base_plugin()) {
         add_menu_page(
-            'WPiko Chatbot Pro',
-            'WPiko Chatbot Pro',
+            'WPiko AI Chatbot Pro',
+            'WPiko AI Chatbot Pro',
             'manage_options',
             'wpiko-chatbot-pro',
             'wpiko_chatbot_pro_fallback_admin_page',
@@ -266,7 +266,7 @@ function wpiko_chatbot_pro_fallback_admin_page()
 {
     ?>
     <div class="wrap">
-        <h1>WPiko Chatbot Pro</h1>
+        <h1>WPiko AI Chatbot Pro</h1>
 
         <?php
         $base_version = defined('WPIKO_CHATBOT_VERSION') ? WPIKO_CHATBOT_VERSION : '0';
@@ -379,7 +379,7 @@ function wpiko_chatbot_pro_deactivate_license_on_plugin_deactivation()
 
         // Log the deactivation
         if (function_exists('wpiko_chatbot_log')) {
-            wpiko_chatbot_log('WPiko Chatbot Pro plugin deactivated - license has been deactivated', 'info');
+            wpiko_chatbot_log('WPiko AI Chatbot Pro plugin deactivated - license has been deactivated', 'info');
         }
     }
 

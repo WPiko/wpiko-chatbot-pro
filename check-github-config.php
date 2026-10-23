@@ -31,7 +31,7 @@ require_once __DIR__ . '/includes/github-config.php';
 <!DOCTYPE html>
 <html>
 <head>
-    <title>GitHub Configuration Checker - WPiko Chatbot Pro</title>
+    <title>GitHub Configuration Checker - WPiko AI Chatbot Pro</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
         .status { padding: 15px; margin: 10px 0; border-radius: 5px; }
@@ -50,7 +50,7 @@ require_once __DIR__ . '/includes/github-config.php';
 </head>
 <body>
     <h1>🚀 GitHub Configuration Checker</h1>
-    <p>This tool validates your GitHub update configuration for WPiko Chatbot Pro.</p>
+    <p>This tool validates your GitHub update configuration for WPiko AI Chatbot Pro.</p>
 
     <?php
     
@@ -230,7 +230,7 @@ require_once __DIR__ . '/includes/github-config.php';
     </div>
     
     <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 12px;">
-        <p>WPiko Chatbot Pro - GitHub Update System | Last checked: <?php echo date('Y-m-d H:i:s'); ?></p>
+        <p>WPiko AI Chatbot Pro - GitHub Update System | Last checked: <?php echo date('Y-m-d H:i:s'); ?></p>
     </div>
 </body>
 </html>

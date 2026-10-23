@@ -4,20 +4,12 @@ if (!defined('ABSPATH')) {
 }
 ?>
 
-<!-- WooCommerce Integration - Section -->
+<!-- WooCommerce Integration content (loaded into the shared popup shell) -->
 <?php if (wpiko_chatbot_is_woocommerce_active()): ?>
 <div id="woocommerce-integration-section">
-    <h3>
-        <span class="dashicons dashicons-update-alt"></span> 
-        WooCommerce Integration 
-        <?php if (!wpiko_chatbot_is_license_active()): ?>
-            <span class="premium-feature-badge">PRO</span>
-        <?php endif; ?>
-    </h3>
-    <div id="woocommerce-integration-content">
+    <div id="woocommerce-integration-content" class="wpiko-modal-stack">
         <?php 
-        $api_display_name = 'AI Assistant';
-        // Get current license status
+                // Get current license status
         $license_status = wpiko_chatbot_decrypt_data(get_option('wpiko_chatbot_license_status', ''));
         $is_license_expired = $license_status === 'expired';
         
@@ -37,251 +29,222 @@ if (!defined('ABSPATH')) {
         }
         ?>
 
-        <?php if (wpiko_chatbot_is_license_active()): ?>
-            <p class="description">Sync your product catalog and enable controlled order assistance.</p>
-        <table class="form-table">
-        
-        <tr valign="top">
-            <th scope="row">
-                Enable WooCommerce Integration 
-                <?php if (!wpiko_chatbot_is_license_active()): ?>
-                    <span class="premium-feature-badge">PRO</span>
-                <?php endif; ?>
-            </th>
-            <td>
-                <?php if (wpiko_chatbot_is_license_active()): ?>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="woocommerce_integration_enabled" name="woocommerce_integration_enabled" value="1" <?php checked(wpiko_chatbot_is_woocommerce_integration_enabled()); ?>>
-                        <span class="slider"></span>
-                    </label>
-                    <label for="woocommerce_integration_enabled">Enable integration with WooCommerce</label>
-                    <div id="woocommerce-integration-status"></div>
-                <?php else: ?>
-                    <input type="checkbox" disabled>
-                    <label>Enable integration with WooCommerce</label>
-                    <p class="description">This feature requires a premium license. <a href="?page=ai-chatbot&tab=license_activation">Activate Pro</a> to enable WooCommerce integration.</p>
-                <?php endif; ?>
-            </td>
-        </tr>
-        
-        <!-- Product Data Fields Selection - Collapsible Tab -->
-        <tr valign="top">
-            <th scope="row">
-                <div class="collapsible-header" id="product-fields-toggle">
-                    Product Data Fields 
-                    <span class="dashicons dashicons-arrow-down-alt2"></span>
+        <?php if (wpiko_chatbot_is_license_active()):
+            $integration_enabled = wpiko_chatbot_is_woocommerce_integration_enabled();
+            $product_field_options = wpiko_chatbot_get_product_fields_options();
+            $product_fields = array(
+                'name' => 'Product name',
+                'id' => 'Product ID',
+                'sku' => 'SKU',
+                'link' => 'Product URL',
+                'price' => 'Price',
+                'regular_price' => 'Regular price',
+                'sale_price' => 'Sale price',
+                'stock_status' => 'Stock status',
+                'short_description' => 'Short description',
+                'description' => 'Full description',
+                'categories' => 'Categories',
+                'tags' => 'Tags',
+                'attributes' => 'Attributes',
+            );
+            $product_enabled_count = 0;
+            foreach ($product_fields as $key => $label) {
+                if (isset($product_field_options[$key]) ? $product_field_options[$key] : true) {
+                    $product_enabled_count++;
+                }
+            }
+
+            $order_field_options = wpiko_chatbot_get_order_fields_options();
+            $order_fields = array(
+                'date_created' => 'Date created',
+                'date_paid' => 'Date paid',
+                'date_completed' => 'Date completed',
+                'total' => 'Order total',
+                'items' => 'Order items',
+                'tracking_number' => 'Tracking number',
+                'tracking_link' => 'Tracking link',
+            );
+            $order_enabled_count = 0;
+            foreach ($order_fields as $key => $label) {
+                if (isset($order_field_options[$key]) ? $order_field_options[$key] : true) {
+                    $order_enabled_count++;
+                }
+            }
+
+            $auto_sync = get_option('wpiko_chatbot_products_auto_sync', 'disabled');
+            $order_lookup = (bool) get_option('wpiko_chatbot_order_lookup_enabled', false);
+        ?>
+            <section class="wpiko-modal-section wpiko-woo-enable" aria-label="Integration">
+                <label class="wpiko-chatbot-settings-switch" for="woocommerce_integration_enabled">
+                    <input type="checkbox" id="woocommerce_integration_enabled" name="woocommerce_integration_enabled" value="1" <?php checked($integration_enabled); ?>>
+                    <span class="wpiko-chatbot-settings-switch__track" aria-hidden="true"></span>
+                    <span class="wpiko-chatbot-settings-switch__label"><strong>Use WooCommerce data in the chatbot</strong></span>
+                </label>
+                <p class="description">The chatbot can recommend products, show product cards and answer questions about orders.</p>
+                <div id="woocommerce-integration-status"></div>
+            </section>
+
+            <section class="wpiko-modal-section wpiko-woo-requires-enabled" aria-labelledby="wpiko-woo-catalog-title">
+                <div class="wpiko-modal-section-header">
+                    <h3 id="wpiko-woo-catalog-title" class="wpiko-modal-section-title">Product catalog</h3>
                 </div>
-            </th>
-            <td>
-                <div class="collapsible-content" id="product-fields-content" style="display:none;">
-                    <p class="description">Choose which product data fields to include when syncing with the <?php echo esc_html($api_display_name); ?>.</p>
-                    
-                    <?php 
-                    $field_options = wpiko_chatbot_get_product_fields_options(); 
-                    $fields = array(
-                        'id' => 'Product ID',
-                        'name' => 'Product Name',
-                        'description' => 'Full Description',
-                        'short_description' => 'Short Description',
-                        'price' => 'Price',
-                        'regular_price' => 'Regular Price',
-                        'sale_price' => 'Sale Price',
-                        'sku' => 'SKU',
-                        'stock_status' => 'Stock Status',
-                        'categories' => 'Categories',
-                        'tags' => 'Tags',
-                        'attributes' => 'Attributes',
-                        'link' => 'Product URL'
-                    );
-                    ?>
-                    
-                    <div class="product-fields-grid">
-                        <?php foreach ($fields as $field_key => $field_label): ?>
-                            <div class="product-field-option">
-                                <input type="checkbox" 
-                                       id="product_field_<?php echo esc_attr($field_key); ?>" 
-                                       name="product_fields[<?php echo esc_attr($field_key); ?>]" 
-                                       value="1" 
-                                       <?php checked(isset($field_options[$field_key]) ? $field_options[$field_key] : true); ?>>
-                                <label for="product_field_<?php echo esc_attr($field_key); ?>"><?php echo esc_html($field_label); ?></label>
-                            </div>
-                        <?php endforeach; ?>
+
+                <div class="wpiko-chatbot-settings-field-row">
+                    <p class="wpiko-chatbot-settings-field-label">Sync products</p>
+                    <div class="wpiko-chatbot-settings-field-control">
+                        <button type="button" id="sync_existing_products" class="button wpiko-chatbot-settings-save">
+                            <span class="dashicons dashicons-update" aria-hidden="true"></span>
+                            Sync now
+                        </button>
+                        <p class="wpiko-chatbot-settings-field-description">Sends your current catalog to the AI assistant's knowledge base.</p>
+                        <span id="sync_status" role="status" aria-live="polite"></span>
                     </div>
-                    
-                    <button type="button" id="save_product_fields" class="button button-secondary">Save Field Options</button>
-                    <span id="product_fields_status" class="status-message"></span>
                 </div>
-                <div class="collapsible-summary" id="product-fields-summary">
-                    <?php
-                    $enabled_count = 0;
-                    $total_fields = count($fields);
-                    foreach ($fields as $key => $label) {
-                        if (!empty($field_options[$key])) $enabled_count++;
-                    }
-                    ?>
-                    <span><?php echo sprintf('%d of %d fields selected', esc_html($enabled_count), esc_html($total_fields)); ?></span>
-                </div>
-                
-            </td>
-        </tr>
-        
-        <tr valign="top">
-            <th scope="row"><label for="sync_existing_products">Sync Products Manually</label></th>
-            <td>
-                <button type="button" id="sync_existing_products" class="button button-secondary">Sync Existing Products</button>
-                <p class="description">Click to manually synchronize all existing WooCommerce products with the <?php echo esc_html($api_display_name); ?>.</p>
-                <span id="sync_status"></span>
-            </td>
-        </tr>
 
-        <tr valign="top">
-            <th scope="row">Product Catalog Auto-Sync</th>
-            <td>
-                <select name="products_auto_sync" id="products_auto_sync">
-                    <option value="disabled" <?php selected(get_option('wpiko_chatbot_products_auto_sync', 'disabled'), 'disabled'); ?>>Disabled</option>
-                    <option value="hourly" <?php selected(get_option('wpiko_chatbot_products_auto_sync', 'disabled'), 'hourly'); ?>>Hourly</option>
-                    <option value="twicedaily" <?php selected(get_option('wpiko_chatbot_products_auto_sync', 'disabled'), 'twicedaily'); ?>>Twice Daily</option>
-                    <option value="daily" <?php selected(get_option('wpiko_chatbot_products_auto_sync', 'disabled'), 'daily'); ?>>Daily</option>
-                    <option value="weekly" <?php selected(get_option('wpiko_chatbot_products_auto_sync', 'disabled'), 'weekly'); ?>>Weekly</option>
-                </select>
-                <p class="description">Select how often the product sync should occur. For large catalogs (500+ products), we recommend using weekly frequent syncs to optimize performance. More frequent syncs are suitable for smaller catalogs or when rapid product updates are necessary.</p>
-            </td>
-        </tr>
-
-        <tr valign="top" class="download-files-option">
-            <th scope="row">Download Product Data</th>
-            <td>
-                <button type="button" id="download_products_json" class="button button-secondary" <?php disabled(!wpiko_chatbot_is_woocommerce_integration_enabled()); ?>>Download Products JSON</button>
-                <p class="description">
-                    Click to download and preview WooCommerce products file without uploading to <?php echo esc_html($api_display_name); ?>. 
-                    This is for preview purposes only and does not affect the AI Assistant's knowledge.
-                </p>
-                <span id="download_status" class="status-message"></span>
-            </td>
-        </tr>
-
-        <tr valign="top">
-            <th scope="row">
-                <div class="collapsible-header" id="order-fields-toggle">
-                    Signed-in Order Details 
-                    <span class="dashicons dashicons-arrow-down-alt2"></span>
-                </div>
-            </th>
-            <td>
-                <div class="collapsible-content" id="order-fields-content" style="display:none;">
-                    <p class="description">Choose the additional details a signed-in customer can receive about their own order. Order number and status are always included. Guests receive basic status only after matching the order number and checkout email.</p>
-                    
-                    <?php 
-                    $field_options = wpiko_chatbot_get_order_fields_options(); 
-                    $fields = array(
-                        'date_created' => 'Date Created',
-                        'date_paid' => 'Date Paid',
-                        'date_completed' => 'Date Completed',
-                        'total' => 'Order Total',
-                        'tracking_number' => 'Tracking Number',
-                        'tracking_link' => 'Tracking Link',
-                        'items' => 'Order Items'
-                    );
-                    ?>
-                    
-                    <div class="order-fields-grid">
-                        <?php foreach ($fields as $field_key => $field_label): ?>
-                            <div class="order-field-option">
-                                <input type="checkbox" 
-                                       id="order_field_<?php echo esc_attr($field_key); ?>" 
-                                       name="order_fields[<?php echo esc_attr($field_key); ?>]" 
-                                       value="1" 
-                                       <?php checked(isset($field_options[$field_key]) ? $field_options[$field_key] : true); ?>>
-                                <label for="order_field_<?php echo esc_attr($field_key); ?>"><?php echo esc_html($field_label); ?></label>
-                                <?php 
-                                if ($field_key === 'tracking_number') {
-                                    echo '<span class="info-icon tracking-number-info dashicons dashicons-info-outline"></span>';
-
-                                }
-                                ?>
-                            </div>
-                        <?php endforeach; ?>
+                <div class="wpiko-chatbot-settings-field-row">
+                    <label class="wpiko-chatbot-settings-field-label" for="products_auto_sync">Auto-sync</label>
+                    <div class="wpiko-chatbot-settings-field-control">
+                        <select name="products_auto_sync" id="products_auto_sync">
+                            <option value="disabled" <?php selected($auto_sync, 'disabled'); ?>>Off</option>
+                            <option value="hourly" <?php selected($auto_sync, 'hourly'); ?>>Hourly</option>
+                            <option value="twicedaily" <?php selected($auto_sync, 'twicedaily'); ?>>Twice daily</option>
+                            <option value="daily" <?php selected($auto_sync, 'daily'); ?>>Daily</option>
+                            <option value="weekly" <?php selected($auto_sync, 'weekly'); ?>>Weekly</option>
+                        </select>
+                        <p class="wpiko-chatbot-settings-field-description">For catalogs with 500+ products, weekly is recommended.</p>
                     </div>
-                    
-                    <button type="button" id="save_order_fields" class="button button-secondary">Save Field Options</button>
-                    <span id="order_fields_status" class="status-message"></span>
                 </div>
-                <div class="collapsible-summary" id="order-fields-summary">
-                    <?php
-                    $enabled_count = 0;
-                    $total_fields = count($fields);
-                    foreach ($fields as $key => $label) {
-                        if (!empty($field_options[$key])) $enabled_count++;
-                    }
-                    ?>
-                    <span><?php echo sprintf('%d of %d fields selected', esc_html($enabled_count), esc_html($total_fields)); ?></span>
+
+                <div class="wpiko-chatbot-settings-field-row">
+                    <p class="wpiko-chatbot-settings-field-label">Product data</p>
+                    <div class="wpiko-chatbot-settings-field-control">
+                        <div class="wpiko-woo-disclosure-row">
+                            <span class="collapsible-summary" id="product-fields-summary"><span><?php echo esc_html(sprintf('%d of %d fields selected', $product_enabled_count, count($product_fields))); ?></span></span>
+                            <button type="button" class="wpiko-disclosure-button collapsible-header" id="product-fields-toggle" aria-expanded="false" aria-controls="product-fields-content">Choose fields</button>
+                        </div>
+                        <div class="collapsible-content" id="product-fields-content" style="display:none;">
+                            <div class="wpiko-chatbot-settings-checkbox-group product-fields-grid">
+                                <?php foreach ($product_fields as $field_key => $field_label): ?>
+                                    <label class="product-field-option" for="product_field_<?php echo esc_attr($field_key); ?>">
+                                        <input type="checkbox"
+                                               id="product_field_<?php echo esc_attr($field_key); ?>"
+                                               name="product_fields[<?php echo esc_attr($field_key); ?>]"
+                                               value="1"
+                                               <?php checked(isset($product_field_options[$field_key]) ? $product_field_options[$field_key] : true); ?>>
+                                        <?php echo esc_html($field_label); ?>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                            <p class="wpiko-chatbot-settings-field-description">Changes save right away and apply on the next sync. Full descriptions make the product file much larger.</p>
+                            <button type="button" id="save_product_fields" class="button" hidden>Save Field Options</button>
+                        </div>
+                        <span id="product_fields_status" class="wpiko-inline-status" role="status" aria-live="polite"></span>
+                    </div>
                 </div>
-            </td>
-        </tr>
-        
-        <tr valign="top">
-            <th scope="row">
-                Order Assistance
-            </th>
-            <td>
-                <select name="order_lookup_enabled" id="order_lookup_enabled">
-                    <option value="0" <?php selected((bool) get_option('wpiko_chatbot_order_lookup_enabled', false), false); ?>>Disabled</option>
-                    <option value="1" <?php selected((bool) get_option('wpiko_chatbot_order_lookup_enabled', false), true); ?>>Enabled</option>
-                </select>
-                <p class="description">Look up orders directly in WooCommerce when a visitor asks. Signed-in owners can receive the selected details. Guests must provide the order number and checkout email and receive only basic status. Orders are never uploaded to the knowledge base. Guest matching does not verify identity; lookup attempts are limited.</p>
-            </td>
-        </tr>
 
+                <div class="wpiko-chatbot-settings-field-row download-files-option">
+                    <p class="wpiko-chatbot-settings-field-label">Preview</p>
+                    <div class="wpiko-chatbot-settings-field-control">
+                        <button type="button" id="download_products_json" class="button" <?php disabled(!$integration_enabled); ?>>
+                            <span class="dashicons dashicons-download" aria-hidden="true"></span>
+                            Download products JSON
+                        </button>
+                        <p class="wpiko-chatbot-settings-field-description">See exactly what is sent. This does not change the assistant's knowledge.</p>
+                        <span id="download_status" class="status-message" role="status" aria-live="polite"></span>
+                    </div>
+                </div>
+            </section>
 
-        </table>
-        
-            <div class="woocommerce-files-section">
-                <h3>WooCommerce List</h3>
-                <p class="description">View and manage the WooCommerce product files you’ve synced with the AI Assistant.</p>
-                <ul id="woocommerce-files-list"></ul>
-            </div>
-            
+            <section class="wpiko-modal-section wpiko-woo-requires-enabled" aria-labelledby="wpiko-woo-orders-title">
+                <div class="wpiko-modal-section-header">
+                    <h3 id="wpiko-woo-orders-title" class="wpiko-modal-section-title">Order assistance</h3>
+                </div>
+
+                <div class="wpiko-chatbot-settings-field-row">
+                    <label class="wpiko-chatbot-settings-field-label" for="order_lookup_enabled">Order lookup</label>
+                    <div class="wpiko-chatbot-settings-field-control">
+                        <select name="order_lookup_enabled" id="order_lookup_enabled">
+                            <option value="0" <?php selected($order_lookup, false); ?>>Off</option>
+                            <option value="1" <?php selected($order_lookup, true); ?>>On</option>
+                        </select>
+                        <ul class="wpiko-woo-facts">
+                            <li>Orders are looked up live in WooCommerce and are never uploaded to the knowledge base.</li>
+                            <li>Signed-in customers can see the details you choose below for their own orders.</li>
+                            <li>Guests must give the order number and checkout email, and only see the order status.</li>
+                        </ul>
+                        <p class="wpiko-woo-warning"><span class="dashicons dashicons-warning" aria-hidden="true"></span> Guest matching does not verify identity. Lookup attempts are rate limited.</p>
+                    </div>
+                </div>
+
+                <div class="wpiko-chatbot-settings-field-row">
+                    <p class="wpiko-chatbot-settings-field-label">Signed-in order details</p>
+                    <div class="wpiko-chatbot-settings-field-control">
+                        <div class="wpiko-woo-disclosure-row">
+                            <span class="collapsible-summary" id="order-fields-summary"><span><?php echo esc_html(sprintf('%d of %d fields selected', $order_enabled_count, count($order_fields))); ?></span></span>
+                            <button type="button" class="wpiko-disclosure-button collapsible-header" id="order-fields-toggle" aria-expanded="false" aria-controls="order-fields-content">Choose fields</button>
+                        </div>
+                        <div class="collapsible-content" id="order-fields-content" style="display:none;">
+                            <div class="wpiko-chatbot-settings-checkbox-group order-fields-grid">
+                                <?php foreach ($order_fields as $field_key => $field_label): ?>
+                                    <label class="order-field-option" for="order_field_<?php echo esc_attr($field_key); ?>">
+                                        <input type="checkbox"
+                                               id="order_field_<?php echo esc_attr($field_key); ?>"
+                                               name="order_fields[<?php echo esc_attr($field_key); ?>]"
+                                               value="1"
+                                               <?php checked(isset($order_field_options[$field_key]) ? $order_field_options[$field_key] : true); ?>>
+                                        <?php echo esc_html($field_label); ?>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                            <p class="wpiko-chatbot-settings-field-description">Order number and status are always included. Tracking numbers are read from AfterShip, Advanced Shipment Tracking, WooCommerce Shipment Tracking, or a custom field named <code>tracking_number</code>.</p>
+                            <button type="button" id="save_order_fields" class="button" hidden>Save Field Options</button>
+                        </div>
+                        <span id="order_fields_status" class="wpiko-inline-status" role="status" aria-live="polite"></span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="wpiko-modal-section woocommerce-files-section" aria-labelledby="wpiko-woo-files-title">
+                <div class="wpiko-modal-section-header">
+                    <h3 id="wpiko-woo-files-title" class="wpiko-modal-section-title">Synced product files <span class="wpiko-count" id="woocommerce-files-count" hidden></span></h3>
+                </div>
+                <ul id="woocommerce-files-list" class="wpiko-file-list"></ul>
+            </section>
+
         <?php elseif ($is_license_expired): ?>
             <!-- Notice for Expired License -->
             <div class="premium-feature-notice">
-                <h3>🔒 WooCommerce Integration Disabled</h3>
+                <h3>WooCommerce Integration Disabled</h3>
                 <p>Your license has expired. WooCommerce integration has been disabled.</p>
                 <p>Get a lifetime license to regain access to these features:</p>
                 <ul>
-                    <li>✨ Sync product catalog with the chatbot</li>
-                    <li>📦 Track order status and provide updates</li>
-                    <li>💬 Answer product-specific questions</li>
-                    <li>🔄 Automatic product updates</li>
-                    <li>📊 Controlled order status lookup</li>
+                    <li>Sync product catalog with the chatbot</li>
+                    <li>Track order status and provide updates</li>
+                    <li>Answer product-specific questions</li>
+                    <li>Automatic product updates</li>
+                    <li>Controlled order status lookup</li>
                 </ul>
                 <a href="https://wpiko.com/chatbot-pricing/" target="_blank" rel="noopener" class="button button-primary">Get Lifetime License</a>
             </div>
                 
             <?php if ($has_woo_files): ?>
-                <div class="woocommerce-files-view-only">
+                <div class="woocommerce-files-view-only wpiko-modal-section">
                     <div class="notice notice-warning inline">
                         <p>Your premium license has expired. While you can view your existing WooCommerce files, you'll need to <a href="?page=ai-chatbot&tab=license_activation">get a lifetime license</a> to sync new data or manage existing files.</p>
                     </div>
                     
-                    <!-- Show WooCommerce Integration Toggle when files exist -->
-                    <table class="form-table">
-                        <tr valign="top">
-                            <th scope="row">Enable WooCommerce Integration</th>
-                            <td>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="woocommerce_integration_enabled" name="woocommerce_integration_enabled" value="1" <?php checked(wpiko_chatbot_is_woocommerce_integration_enabled()); ?>>
-                                    <span class="slider"></span>
-                                </label>
-                                <label for="woocommerce_integration_enabled">Enable integration with WooCommerce</label>
-                                <div id="woocommerce-integration-status"></div>
-                            </td>
-                        </tr>
-                    </table>
+                    <div class="wpiko-woo-enable">
+                        <label class="wpiko-chatbot-settings-switch" for="woocommerce_integration_enabled">
+                            <input type="checkbox" id="woocommerce_integration_enabled" name="woocommerce_integration_enabled" value="1" <?php checked(wpiko_chatbot_is_woocommerce_integration_enabled()); ?>>
+                            <span class="wpiko-chatbot-settings-switch__track" aria-hidden="true"></span>
+                            <span class="wpiko-chatbot-settings-switch__label">Use WooCommerce data in the chatbot</span>
+                        </label>
+                        <div id="woocommerce-integration-status"></div>
+                    </div>
                     
                     <div class="woocommerce-files-section">
-                        <h3>WooCommerce List</h3>
-                        <p class="description">View the WooCommerce product files previously synced with the AI Assistant.</p>
-                        <ul id="woocommerce-files-list"></ul>
+                        <h3 class="wpiko-modal-section-title">Synced product files</h3>
+                        <ul id="woocommerce-files-list" class="wpiko-file-list"></ul>
                     </div>
                 </div>
             <?php endif; ?>
@@ -295,43 +258,36 @@ if (!defined('ABSPATH')) {
         <?php else: ?>
             <!-- Notice for No License -->
             <div class="premium-feature-notice">
-                <h3>🛍️ Unlock WooCommerce Integration</h3>
+                <h3>Unlock WooCommerce Integration</h3>
                 <p>Activate Pro to enable powerful WooCommerce integration features:</p>
                 <ul>
-                    <li>✨ Sync product catalog with the chatbot</li>
-                    <li>📦 Track order status and provide updates</li>
-                    <li>💬 Answer product-specific questions</li>
-                    <li>🔄 Automatic product updates</li>
-                    <li>📊 Controlled order status lookup</li>
+                    <li>Sync product catalog with the chatbot</li>
+                    <li>Track order status and provide updates</li>
+                    <li>Answer product-specific questions</li>
+                    <li>Automatic product updates</li>
+                    <li>Controlled order status lookup</li>
                 </ul>
                 <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Activate Pro</a>
             </div>
                 
             <?php if ($has_woo_files): ?>
-                <div class="woocommerce-files-view-only">
+                <div class="woocommerce-files-view-only wpiko-modal-section">
                     <div class="notice notice-warning inline">
                         <p>Your premium license has expired. While you can view your existing WooCommerce files, you'll need to <a href="?page=ai-chatbot&tab=license_activation">get a lifetime license</a> to sync new data or manage existing files.</p>
                     </div>
                     
-                    <!-- Show WooCommerce Integration Toggle when files exist -->
-                    <table class="form-table">
-                        <tr valign="top">
-                            <th scope="row">Enable WooCommerce Integration</th>
-                            <td>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="woocommerce_integration_enabled" name="woocommerce_integration_enabled" value="1" <?php checked(wpiko_chatbot_is_woocommerce_integration_enabled()); ?>>
-                                    <span class="slider"></span>
-                                </label>
-                                <label for="woocommerce_integration_enabled">Enable integration with WooCommerce</label>
-                                <div id="woocommerce-integration-status"></div>
-                            </td>
-                        </tr>
-                    </table>
+                    <div class="wpiko-woo-enable">
+                        <label class="wpiko-chatbot-settings-switch" for="woocommerce_integration_enabled">
+                            <input type="checkbox" id="woocommerce_integration_enabled" name="woocommerce_integration_enabled" value="1" <?php checked(wpiko_chatbot_is_woocommerce_integration_enabled()); ?>>
+                            <span class="wpiko-chatbot-settings-switch__track" aria-hidden="true"></span>
+                            <span class="wpiko-chatbot-settings-switch__label">Use WooCommerce data in the chatbot</span>
+                        </label>
+                        <div id="woocommerce-integration-status"></div>
+                    </div>
                     
                     <div class="woocommerce-files-section">
-                        <h3>WooCommerce List</h3>
-                        <p class="description">View the WooCommerce product files previously synced with the AI Assistant.</p>
-                        <ul id="woocommerce-files-list"></ul>
+                        <h3 class="wpiko-modal-section-title">Synced product files</h3>
+                        <ul id="woocommerce-files-list" class="wpiko-file-list"></ul>
                     </div>
                 </div>
             <?php endif; ?>

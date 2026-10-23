@@ -303,7 +303,7 @@ function wpiko_chatbot_pro_activate_license() {
     if (isset($data['valid']) && $data['valid']) {
         // Check product type
         if (isset($data['product_type']) && $data['product_type'] !== 'chatbot') {
-            wp_send_json_error('This license key is not valid for the WPiko Chatbot plugin.');
+            wp_send_json_error('This license key is not valid for the WPiko AI Chatbot plugin.');
             return;
         }
         
@@ -582,7 +582,7 @@ function wpiko_chatbot_pro_admin_expired_notice() {
         ?>
         <div class="notice notice-error is-dismissible wpiko-chatbot-expired-notice">
             <p>
-                <strong>WPiko Chatbot License Expired!</strong> 
+                <strong>WPiko AI Chatbot License Expired!</strong> 
                 Your premium features are now disabled. 
                 <a href="https://wpiko.com/chatbot-pricing/" target="_blank" rel="noopener">
                     Get a lifetime license

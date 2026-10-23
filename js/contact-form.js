@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     window.wpikoOpenChatbotWithContactForm();
                 }, 500);
             } else {
-                console.warn('WPiko Chatbot contact form feature is disabled. Enable it in the admin settings.');
+                console.warn('WPiko AI Chatbot contact form feature is disabled. Enable it in the admin settings.');
             }
         }
     }
@@ -636,12 +636,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // Check if this is a nonce expiration error and we haven't retried yet
                 if (error.isNonceError && !isRetry) {
-                    console.log('WPiko Chatbot: Contact form nonce may be expired, attempting to refresh...');
 
                     // Try to refresh the nonce and retry
                     refreshContactFormNonce()
                         .then(function () {
-                            console.log('WPiko Chatbot: Retrying contact form with new nonce...');
                             // Remove the old hidden fields before retrying
                             const oldAction = form.querySelector('input[name="action"]');
                             const oldSecurity = form.querySelector('input[name="security"]');
@@ -696,14 +694,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         if (response.data.contact_form_nonce) {
                             wpikoChatbot.contact_form_nonce = response.data.contact_form_nonce;
                         }
-                        console.log('WPiko Chatbot: Contact form nonce refreshed successfully');
                         resolve(response.data.nonce);
                     } else {
                         reject(new Error('Invalid nonce refresh response'));
                     }
                 },
                 error: function (xhr, status, error) {
-                    console.error('WPiko Chatbot: Failed to refresh contact form nonce:', error);
+                    console.error('WPiko AI Chatbot: Failed to refresh contact form nonce:', error);
                     reject(error);
                 }
             });
@@ -721,7 +718,7 @@ document.addEventListener('DOMContentLoaded', function () {
             storedMessages.push({ type: 'bot', content: messageText, errorType: 'general_error' });
             sessionStorage.setItem('wpiko_chatbot_messages', JSON.stringify(storedMessages));
         } catch (e) {
-            console.error('WPiko Chatbot: Failed to store contact form message', e);
+            console.error('WPiko AI Chatbot: Failed to store contact form message', e);
         }
     }
 

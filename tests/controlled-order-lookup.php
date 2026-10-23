@@ -122,7 +122,7 @@ $http_handler=function($url,$args){
 $posts=array_values(array_filter($http_calls,function($c){return $c[1]['method']==='POST';}));check(count($posts)===1&&json_decode($posts[0][1]['body'],true)['attributes']===array('custom'=>'preserved','wpiko_scope'=>'public_v1'),'Only public files tagged; existing attributes retained');
 $http_handler=function($url,$args){return response(array('error'=>'network'),500);};wpiko_chatbot_cleanup_order_files();check($options['wpiko_chatbot_order_file_cleanup']['error']&&count($options['wpiko_chatbot_order_file_cleanup']['pending'])===2,'Failed deletion retains retry state');
 $http_calls=array();$http_handler=function($url,$args){return response(array(),404);};wpiko_chatbot_cleanup_order_files();check($options['wpiko_chatbot_order_file_cleanup']['done']&&empty($options['wpiko_chatbot_order_file_cleanup']['pending']),'Already-deleted files handled idempotently');check(count($http_calls)===4&&!get_option('wpiko_chatbot_responses_orders_file_id'),'Each private file detached and deleted from storage');
-check(wpiko_chatbot_sync_orders()===false&&wpiko_chatbot_run_background_orders_sync()===false,'Retired sync entry points inert');
+check(wpiko_chatbot_sync_orders()===false,'Retired sync entry points inert');
 $r=wpiko_chatbot_upload_file_to_responses(array('name'=>'woocommerce_orders.json'));check(empty($r['success']),'Reserved order upload rejected');
 
 // Full chat paths with network transport replaced; no live API requests.

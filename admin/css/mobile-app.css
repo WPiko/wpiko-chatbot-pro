@@ -1,367 +1,52 @@
-/* Mobile App (PWA) Page Styles */
-.pwa-settings-section {
-    background: var(--wpiko-surface);
-    padding: 24px;
-    border-radius: var(--wpiko-radius-lg);
-    box-shadow: var(--wpiko-shadow-xs);
-    border: 1px solid var(--wpiko-border);
-}
-
-.pwa-settings-section .description {
-    margin-bottom: 10px;
-    color: var(--wpiko-text-muted);
-}
-
-.pwa-settings-section form>.form-table {
-    border: none;
-    background: transparent;
-    margin-bottom: 20px;
-}
-
-.pwa-settings-section form>.form-table th,
-.pwa-settings-section form>.form-table td {
-    padding-top: 20px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--wpiko-bg-subtle);
-}
-
-.pwa-settings-section form>.form-table tr:last-child th,
-.pwa-settings-section form>.form-table tr:last-child td {
-    border-bottom: none;
-}
-
-.pwa-settings-collapsible {
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-    max-height: 0;
-    opacity: 0;
-}
-
-.pwa-settings-collapsible.active {
-    max-height: 4000px;
-    opacity: 1;
-    transition: max-height 0.5s ease-in, opacity 0.3s ease-in;
-}
-
-.pwa-settings-section .collapsible-content {
-    display: none;
-    padding: 0 20px 20px;
-}
-
-.pwa-settings-section .collapsible-content.active {
-    display: block;
-}
-
-.pwa-settings-section .collapsible-content .form-table {
-    margin-top: 0;
-}
-
-.pwa-settings-section .collapsible-content .form-table th,
-.pwa-settings-section .collapsible-content .form-table td {
-    border-bottom: 1px solid var(--wpiko-bg-subtle);
-}
-
-.pwa-settings-section .collapsible-content .form-table tr:last-child th,
-.pwa-settings-section .collapsible-content .form-table tr:last-child td {
-    border-bottom: none;
-}
-
-.pwa-setup-guide {
-    padding-top: 18px;
-}
-
-.pwa-setup-guide p {
-    max-width: 920px;
-    color: var(--wpiko-text);
-}
-
-.pwa-setup-guide ol {
-    margin: 0;
-    padding-left: 20px;
-    color: var(--wpiko-text);
-    list-style: decimal;
-}
-
-.pwa-setup-guide li {
-    margin-bottom: 12px;
-    line-height: 1.6;
-}
-
-.wpiko-pwa-install-guide {
-    padding-top: 18px;
-}
-
-.wpiko-pwa-install-guide p {
-    max-width: 920px;
-    color: var(--wpiko-text);
-}
-
-.wpiko-pwa-guide-block {
-    padding: 18px 0;
-    border-top: 1px solid var(--wpiko-border);
-}
-
-.wpiko-pwa-guide-block:first-of-type {
-    margin-top: 18px;
-}
-
-.wpiko-pwa-install-guide h4 {
-    margin-top: 0;
-}
-
-.wpiko-pwa-install-guide ol,
-.wpiko-pwa-install-guide ul {
-    margin: 0 0 14px;
-    padding-left: 20px;
-    color: var(--wpiko-text);
-}
-
-.wpiko-pwa-install-guide ol {
-    list-style: decimal;
-}
-
-.wpiko-pwa-install-guide ul,
-.wpiko-pwa-requirements-list {
-    list-style: disc;
-    list-style-position: outside;
-}
-
-.wpiko-pwa-install-guide li {
-    margin-bottom: 10px;
-    line-height: 1.6;
-    color: var(--wpiko-text);
-}
-
-.wpiko-pwa-install-guide li:last-child {
-    margin-bottom: 0;
-}
-
-.wpiko-pwa-requirements-list {
-    margin-bottom: 0;
-    padding-left: 20px;
-}
-
-.pwa-settings-section .notice.inline {
-    margin: 20px 0 0;
-}
-
-.wpiko-test-push-cell {
-    max-width: 760px;
-}
-
-.wpiko-test-push-controls {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-}
-
-#wpiko-send-test-push {
-    min-height: 40px;
-    padding: 8px 16px;
-    border: 1px solid var(--wpiko-primary);
-    border-radius: var(--wpiko-radius-sm);
-    background: var(--wpiko-primary);
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.2;
-    transition: all 0.2s ease;
-}
-
-#wpiko-send-test-push:hover:not(:disabled),
-#wpiko-send-test-push:focus-visible:not(:disabled) {
-    background: var(--wpiko-primary-hover);
-    border-color: var(--wpiko-primary-hover);
-    color: #ffffff;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px var(--wpiko-primary-glow-strong);
-}
-
-#wpiko-send-test-push:focus-visible {
-    outline: none;
-}
-
-#wpiko-send-test-push:disabled {
-    background: var(--wpiko-border);
-    border-color: var(--wpiko-border);
-    color: var(--wpiko-text-muted);
-    cursor: not-allowed;
-    box-shadow: none;
-    transform: none;
-}
-
-.wpiko-test-push-description {
-    margin: 0;
-}
-
-#wpiko-test-push-status {
-    display: none;
-    width: min(100%, 760px);
-    font-weight: 500;
-    margin: 4px 0 0;
-    padding: 14px 16px;
-    border-radius: var(--wpiko-radius);
-    font-size: 14px;
-    line-height: 1.4;
-    box-sizing: border-box;
-    border: 1px solid transparent;
-}
-
-#wpiko-test-push-status.success,
-#wpiko-test-push-status.error,
-#wpiko-test-push-status.info {
-    display: block;
-}
-
-#wpiko-test-push-status.success {
-    color: var(--wpiko-accent);
-    background-color: rgba(3, 181, 170, 0.1);
-    border-color: rgba(3, 181, 170, 0.18);
-}
-
-#wpiko-test-push-status.error {
-    color: var(--wpiko-danger);
-    background-color: rgba(220, 53, 69, 0.1);
-    border-color: rgba(220, 53, 69, 0.18);
-}
-
-#wpiko-test-push-status.info {
-    color: var(--wpiko-primary);
-    background-color: var(--wpiko-primary-glow);
-    border-color: var(--wpiko-primary-glow-strong);
-}
-
-/* ── Registered Devices Table ── */
-#wpiko-registered-device-count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 34px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: rgba(3, 181, 170, 0.1);
-    color: var(--wpiko-accent-hover);
-    font-size: 14px;
-    font-weight: 700;
-    line-height: 1.2;
-}
-
-.wpiko-registered-devices-wrap .description {
-    text-align: center;
-}
-
-.wpiko-registered-devices-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    border: 1px solid var(--wpiko-border);
-    border-radius: var(--wpiko-radius-lg);
-    box-shadow: var(--wpiko-shadow-xs);
-    margin-top: 12px;
-    max-width: 980px;
-}
-
-#wpiko-registered-devices-table {
-    border: none;
-    border-radius: var(--wpiko-radius-lg);
-    border-spacing: 0;
-    width: 100%;
-    min-width: 680px;
-}
-
-#wpiko-registered-devices-table thead th {
-    background: var(--wpiko-surface-alt);
-    color: var(--wpiko-text-strong);
-    font-weight: 600;
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    padding: 14px 16px;
-    border-bottom: 2px solid var(--wpiko-border);
-    white-space: nowrap;
-    text-align: left;
-}
-
-#wpiko-registered-devices-table thead th:first-child {
-    border-radius: 10px 0 0 0;
-}
-
-#wpiko-registered-devices-table thead th:last-child {
-    border-radius: 0 10px 0 0;
-}
-
-#wpiko-registered-devices-table tbody td {
-    padding: 14px 16px;
-    color: var(--wpiko-text);
-    font-size: 14px;
-    border-bottom: 1px solid var(--wpiko-bg-subtle);
+/* Mobile App shares the root palette, cards, and controls with the SEO-style settings. */
+.wpiko-mobile-app-page { container: chatbot-mobile-app / inline-size; }
+.wpiko-mobile-app-page .mobile-app-pro-badge {
+    display: inline-block;
+    padding: 2px 5px;
     vertical-align: middle;
-    line-height: 1.5;
-    background: #ffffff;
-    transition: background 0.15s ease;
+    color: var(--wpiko-ui-text-secondary);
+    background: var(--wpiko-ui-sunken);
+    border: 1px solid var(--wpiko-ui-line);
+    border-radius: var(--wpiko-ui-radius-sm);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.4;
 }
-
-#wpiko-registered-devices-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-#wpiko-registered-devices-table tbody tr:last-child td:first-child {
-    border-radius: 0 0 0 10px;
-}
-
-#wpiko-registered-devices-table tbody tr:last-child td:last-child {
-    border-radius: 0 0 10px 0;
-}
-
-#wpiko-registered-devices-table tbody tr:hover td {
-    background: var(--wpiko-surface-alt);
-}
-
-#wpiko-registered-devices-table tbody td .description {
-    color: var(--wpiko-text-faint);
-    font-size: 12px;
-    margin-top: 2px;
-    font-style: normal;
-}
-
-/* Remove Device Button */
-.wpiko-remove-device {
-    display: inline-flex !important;
-    align-items: center;
-    gap: 5px;
-    padding: 7px 14px !important;
-    border: 1px solid var(--wpiko-danger) !important;
-    border-radius: 6px !important;
-    background: #fff !important;
-    color: var(--wpiko-danger) !important;
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    line-height: 1.2;
-    cursor: pointer;
-    transition: all 0.2s ease !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
-    white-space: nowrap;
-    text-decoration: none !important;
-}
-
-.wpiko-remove-device:hover:not(:disabled) {
-    background: var(--wpiko-danger) !important;
-    color: #fff !important;
-    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.2) !important;
-    transform: translateY(-1px);
-}
-
-.wpiko-remove-device:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-    transform: none !important;
-    box-shadow: none !important;
-}
-
-/* Responsive: horizontal scroll hint */
-@media screen and (max-width: 782px) {
-    .wpiko-registered-devices-wrap {
-        margin-right: -1px;
-        position: relative;
-    }
+.wpiko-mobile-app-page .mobile-app-delivery-note { max-width: 600px; margin-top: 4px; padding: 10px 12px; border: 1px solid var(--wpiko-ui-warn-line); border-radius: var(--wpiko-ui-radius-sm); color: var(--wpiko-ui-warn); background: var(--wpiko-ui-warn-soft); font-size: 12px; line-height: 1.5; }
+.wpiko-mobile-app-page .mobile-app-delivery-note summary { cursor: pointer; font-weight: 600; }
+.wpiko-mobile-app-page .mobile-app-delivery-note summary:focus-visible { outline: 2px solid var(--wpiko-ui-accent); outline-offset: 3px; }
+.wpiko-mobile-app-page .mobile-app-delivery-note p { margin: 8px 0 0; font-size: inherit; line-height: inherit; }
+.wpiko-mobile-app-page .mobile-app-devices-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.wpiko-mobile-app-page .mobile-app-devices-header .wpiko-chatbot-settings-card-title { margin: 0; }
+.wpiko-mobile-app-page .mobile-app-device-count { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border: 1px solid var(--wpiko-ui-line); border-radius: var(--wpiko-ui-radius-sm); color: var(--wpiko-ui-text-secondary); background: var(--wpiko-ui-sunken); font-size: 12px; }
+.wpiko-mobile-app-page .mobile-app-device-help { max-width: none; margin-top: 6px; }
+.wpiko-mobile-app-page .wpiko-registered-devices-wrap { max-width: 100%; margin-top: 12px; overflow-x: auto; border: 1px solid var(--wpiko-ui-line); border-radius: var(--wpiko-ui-radius-sm); }
+.wpiko-mobile-app-page .wpiko-registered-devices-wrap:focus-visible { outline: 2px solid var(--wpiko-ui-accent); outline-offset: 2px; }
+.wpiko-mobile-app-page #wpiko-registered-devices-table { width: 100%; min-width: 680px; margin: 0; border: 0; border-collapse: collapse; box-shadow: none; }
+.wpiko-mobile-app-page #wpiko-registered-devices-table th { padding: 10px 12px; color: var(--wpiko-ui-text-secondary); background: var(--wpiko-ui-sunken); border-bottom: 1px solid var(--wpiko-ui-line); font-size: 12px; font-weight: 600; text-align: left; white-space: nowrap; }
+.wpiko-mobile-app-page #wpiko-registered-devices-table td { padding: 12px; color: var(--wpiko-ui-text); background: var(--wpiko-ui-surface); border-bottom: 1px solid var(--wpiko-ui-line); font-size: 13px; line-height: 1.5; vertical-align: middle; }
+.wpiko-mobile-app-page #wpiko-registered-devices-table tr:last-child td { border-bottom: 0; }
+.wpiko-mobile-app-page #wpiko-registered-devices-table td .wpiko-chatbot-settings-field-description { overflow-wrap: anywhere; }
+.wpiko-mobile-app-page .mobile-app-empty-devices { margin: 0; padding: 20px 12px; text-align: center; }
+.wpiko-mobile-app-page #wpiko-test-push-status:empty { display: none; }
+.wpiko-mobile-app-page .mobile-app-text-template { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; max-width: 600px; }
+.wpiko-mobile-app-page .mobile-app-text-template input[type="text"] { flex: 1 1 220px; min-width: 0; }
+.wpiko-mobile-app-page .mobile-app-agent-placeholder { flex: none; padding: 4px 8px; color: var(--wpiko-ui-muted); background: var(--wpiko-ui-sunken); border: 1px solid var(--wpiko-ui-line); border-radius: var(--wpiko-ui-radius-sm); font-size: 12px; line-height: 20px; }
+.wpiko-mobile-app-page .mobile-app-guide { color: var(--wpiko-ui-text-secondary); font-size: 13px; line-height: 1.6; }
+.wpiko-mobile-app-page .mobile-app-guide p { margin: 0 0 12px; font-size: inherit; line-height: inherit; }
+.wpiko-mobile-app-page .mobile-app-guide .wpiko-pwa-guide-block { padding: 16px 0; border-top: 1px solid var(--wpiko-ui-line); }
+.wpiko-mobile-app-page .mobile-app-guide .wpiko-pwa-guide-block:last-child { padding-bottom: 0; }
+.wpiko-mobile-app-page .mobile-app-guide h4 { margin: 0 0 8px; color: var(--wpiko-ui-text); font-size: 14px; font-weight: 600; }
+.wpiko-mobile-app-page .mobile-app-guide ol,
+.wpiko-mobile-app-page .mobile-app-guide ul { margin: 0 0 12px; padding-left: 20px; }
+.wpiko-mobile-app-page .mobile-app-guide ol { list-style: decimal; }
+.wpiko-mobile-app-page .mobile-app-guide ul { list-style: disc; }
+.wpiko-mobile-app-page .mobile-app-guide li { margin: 0 0 8px; }
+.wpiko-mobile-app-page .mobile-app-guide li:last-child,
+.wpiko-mobile-app-page .mobile-app-guide .wpiko-pwa-guide-block > :last-child { margin-bottom: 0; }
+.wpiko-mobile-app-page .mobile-app-guide code { color: var(--wpiko-ui-text); background: var(--wpiko-ui-sunken); overflow-wrap: anywhere; }
+@container chatbot-mobile-app (max-width: 480px) {
+    .wpiko-mobile-app-page .mobile-app-text-template { flex-direction: column; align-items: stretch; }
+    .wpiko-mobile-app-page .mobile-app-text-template input[type="text"] { flex-basis: auto; }
+    .wpiko-mobile-app-page .mobile-app-agent-placeholder { align-self: flex-start; }
 }

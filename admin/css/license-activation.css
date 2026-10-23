@@ -1,339 +1,62 @@
-/* TAB - LICENSE ACTIVATION */
-.license-activation-section {
-    background: var(--wpiko-surface);
-    padding: 24px;
-    border-radius: var(--wpiko-radius-lg);
-    border: 1px solid var(--wpiko-border);
-    box-shadow: var(--wpiko-shadow-xs);
-}
+/* License management uses the shared SEO-style cards, fields, notices, and buttons. */
+.wpiko-license-page .license-details-form { margin: 0; }
+.wpiko-license-page .license-key-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; max-width: 600px; }
+.wpiko-license-page .license-key-controls input[type="text"] { flex: 1 1 240px; min-width: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.wpiko-license-page .license-key-controls .button { flex: none; }
+.wpiko-license-page input[type="text"].expired-license { border-color: var(--wpiko-ui-danger); }
+.wpiko-license-page .license-status { display: inline-flex; align-self: flex-start; padding: 3px 8px; color: var(--wpiko-ui-text-secondary); background: var(--wpiko-ui-sunken); border-radius: var(--wpiko-ui-radius-sm); font-size: 12px; font-weight: 500; font-style: normal; line-height: 1.5; }
+.wpiko-license-page .license-status.active { color: var(--wpiko-ui-ok); background: var(--wpiko-ui-ok-soft); }
+.wpiko-license-page .license-status.expired { color: var(--wpiko-ui-error); background: var(--wpiko-ui-error-soft); }
+.wpiko-license-page .license-status.inactive { color: var(--wpiko-ui-warn); background: var(--wpiko-ui-warn-soft); }
+.wpiko-license-page .license-expiration { color: var(--wpiko-ui-text); font-size: 13px; line-height: 1.5; }
+.wpiko-license-page #wpiko-chatbot-license-check-result:empty,
+.wpiko-license-page #github-update-check-result:empty { display: none; }
+.wpiko-license-page #wpiko-chatbot-license-check-result:not(:empty) { margin-top: 12px; margin-left: 0; }
+.wpiko-license-page #wpiko-connection-results { margin-top: 16px; overflow-x: auto; }
+.wpiko-license-page #wpiko-connection-loading { padding: 12px 0; color: var(--wpiko-ui-muted); font-size: 13px; line-height: 20px; }
+.wpiko-license-page #wpiko-connection-loading .spinner { float: none; margin: 0 6px 0 0; vertical-align: middle; }
+.wpiko-license-page #wpiko-connection-output .widefat { border: 1px solid var(--wpiko-ui-line); border-radius: var(--wpiko-ui-radius-sm); box-shadow: none; border-spacing: 0; overflow: hidden; }
+.wpiko-license-page #wpiko-connection-output .widefat th { padding: 10px 12px; color: var(--wpiko-ui-text-secondary); background: var(--wpiko-ui-sunken); border-bottom: 1px solid var(--wpiko-ui-line); font-size: 12px; font-weight: 600; }
+.wpiko-license-page #wpiko-connection-output .widefat td { padding: 10px 12px; color: var(--wpiko-ui-text); border-bottom: 1px solid var(--wpiko-ui-line); background: var(--wpiko-ui-surface); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.wpiko-license-page #wpiko-connection-output .widefat tr:last-child td { border-bottom: 0; }
+.wpiko-license-page #wpiko-connection-output details summary { color: var(--wpiko-ui-text); font-size: 13px; }
 
-.wpiko-chatbot-check-button {
-    margin-top: 20px!important;
-}
+/* Update status keeps the existing widget and AJAX hooks inside the shared page. */
+.wpiko-license-page .github-status-banner { display: flex; align-items: flex-start; gap: 10px; padding: 12px; margin-bottom: 16px; color: var(--wpiko-ui-text-secondary); background: var(--wpiko-ui-sunken); border: 1px solid var(--wpiko-ui-line); border-radius: var(--wpiko-ui-radius-sm); }
+.wpiko-license-page .github-status-banner__icon { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: var(--wpiko-ui-radius-sm); font-size: 18px; }
+.wpiko-license-page .github-status-banner__content { min-width: 0; }
+.wpiko-license-page .github-status-banner__title { display: block; color: var(--wpiko-ui-text); font-size: 13px; font-weight: 600; line-height: 1.5; }
+.wpiko-license-page .github-status-banner__text { margin: 4px 0 0; color: var(--wpiko-ui-text-secondary); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.wpiko-license-page .github-status-banner__text small { font-size: inherit; }
+.wpiko-license-page .github-status-banner__text a { color: inherit; }
+.wpiko-license-page .github-status-banner__text code { color: var(--wpiko-ui-text); background: var(--wpiko-ui-surface); border-radius: 3px; font-size: 12px; }
+.wpiko-license-page .github-status-banner.is-success .github-status-banner__icon { color: var(--wpiko-ui-ok); background: var(--wpiko-ui-ok-soft); }
+.wpiko-license-page .github-status-banner.is-update { background: var(--wpiko-ui-info-soft); }
+.wpiko-license-page .github-status-banner.is-update .github-status-banner__icon { color: var(--wpiko-ui-info); background: var(--wpiko-ui-surface); }
+.wpiko-license-page .github-status-banner.is-error { background: var(--wpiko-ui-error-soft); border-color: var(--wpiko-ui-danger-line); }
+.wpiko-license-page .github-status-banner.is-error .github-status-banner__icon { color: var(--wpiko-ui-danger); background: var(--wpiko-ui-surface); }
+.wpiko-license-page .github-status-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; border-top: 1px solid var(--wpiko-ui-line); }
+.wpiko-license-page .github-status-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.wpiko-license-page .github-status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: var(--wpiko-ui-radius-sm); font-size: 12px; font-weight: 500; line-height: 1.5; }
+.wpiko-license-page .github-status-pill__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.wpiko-license-page .github-status-pill.is-connected { color: var(--wpiko-ui-ok); background: var(--wpiko-ui-ok-soft); }
+.wpiko-license-page .github-status-pill.is-disconnected { color: var(--wpiko-ui-error); background: var(--wpiko-ui-error-soft); }
+.wpiko-license-page .github-status-version { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--wpiko-ui-muted); font-size: 12px; }
+.wpiko-license-page .github-status-version__value { color: var(--wpiko-ui-text); font-size: 13px; font-weight: 600; }
+.wpiko-license-page .github-force-check-btn__icon.is-spinning { animation: wpiko-license-update-spin 0.9s linear infinite; }
+.wpiko-license-page #github-update-check-result { display: none; margin-top: 12px; padding: 10px 12px; color: var(--wpiko-ui-text-secondary); background: var(--wpiko-ui-sunken); border: 1px solid var(--wpiko-ui-line); border-radius: var(--wpiko-ui-radius-sm); font-size: 13px; line-height: 1.5; }
+.wpiko-license-page #github-update-check-result.github-update-success-message { color: var(--wpiko-ui-ok); background: var(--wpiko-ui-ok-soft); }
+.wpiko-license-page #github-update-check-result.github-update-error-message { color: var(--wpiko-ui-error); background: var(--wpiko-ui-error-soft); border-color: var(--wpiko-ui-danger-line); }
+@keyframes wpiko-license-update-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .wpiko-license-page .github-force-check-btn__icon.is-spinning { animation: none; } }
 
-#wpiko-delete-license {
-    color: var(--wpiko-danger)!important;
-    border-color: var(--wpiko-danger)!important;
-    font-weight: 500;
-    transition: all 0.3s ease !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-    display: inline-flex !important;
-    align-items: center;
-}
-
-#wpiko-delete-license .dashicons {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-    margin-right: 5px;
-    display: inline-flex;
-    align-items: center;
-}
-
-#wpiko-delete-license:hover {
-    background: var(--wpiko-danger) !important;
-    color: white !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
-}
-
-#wpiko-test-connection {
-    display: inline-flex !important;
-    align-items: center;
-    gap: 6px;
-}
-
-#wpiko-test-connection .dashicons {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    font-size: 18px;
-    line-height: 1;
-    margin: 0;
-    vertical-align: middle;
-    flex-shrink: 0;
-}
-
-.license-status {
-    font-weight: bold;
-    font-style: italic;
-}
-
-.license-status.active {
-    color: var(--wpiko-accent);
-}
-
-.license-status.expired {
-    color: var(--wpiko-danger);
-}
-
-.license-status.inactive {
-    color: var(--wpiko-warning);
-}
-
-/* Success/Error Messages */
-#wpiko-chatbot-license-check-result {
-    margin-top: 26px;
-    margin-left: 15px;
-    padding: 15px;
-    border-radius: var(--wpiko-radius);
-    display: inline-block;
-    font-size: 13px;
-    font-style: italic;
-}
-
-.license-success-message {
-    color: var(--wpiko-accent);
-    background-color: rgba(3, 181, 170, 0.1);
-}
-
-.license-error-message {
-    color: var(--wpiko-danger);
-    background-color: rgba(220, 53, 69, 0.1);
-}
-
-
-/* GitHub Status Widget */
-.wpiko-github-status-widget {
-    background: var(--wpiko-surface);
-    padding: 24px;
-    border-radius: var(--wpiko-radius-lg);
-    border: 1px solid var(--wpiko-border);
-    box-shadow: var(--wpiko-shadow-xs);
-    margin-top: 20px;
-}
-
-.wpiko-github-status-widget h3 {
-    margin-top: 0;
-    color: var(--wpiko-text-strong);
-}
-
-.wpiko-github-status-widget h3 .dashicons {
-    margin-right: 5px;
-}
-
-/* Status banner */
-.wpiko-github-status-widget .github-status-banner {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 16px 18px;
-    border: 1px solid var(--wpiko-border);
-    border-radius: var(--wpiko-radius);
-    background: var(--wpiko-surface-alt);
-    margin-bottom: 18px;
-}
-
-.wpiko-github-status-widget .github-status-banner__icon {
-    flex-shrink: 0;
-    width: 40px;
-    height: 40px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--wpiko-radius-full);
-    font-size: 22px;
-}
-
-.wpiko-github-status-widget .github-status-banner__content {
-    min-width: 0;
-}
-
-.wpiko-github-status-widget .github-status-banner__title {
-    display: block;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--wpiko-text-strong);
-    line-height: 1.3;
-}
-
-.wpiko-github-status-widget .github-status-banner__text {
-    margin: 4px 0 0 0;
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--wpiko-text-muted);
-}
-
-.wpiko-github-status-widget .github-status-banner__text a {
-    font-weight: 600;
-    text-decoration: none;
-    white-space: nowrap;
-}
-
-.wpiko-github-status-widget .github-status-banner__text code {
-    font-size: 12px;
-    background: var(--wpiko-bg-subtle);
-    padding: 1px 5px;
-    border-radius: var(--wpiko-radius-xs);
-}
-
-/* Banner variants */
-.wpiko-github-status-widget .github-status-banner.is-success {
-    background: var(--wpiko-success-tint);
-    border-color: var(--wpiko-success-light);
-}
-.wpiko-github-status-widget .github-status-banner.is-success .github-status-banner__icon {
-    background: rgba(16, 185, 129, 0.15);
-    color: var(--wpiko-success-hover);
-}
-
-.wpiko-github-status-widget .github-status-banner.is-update {
-    background: var(--wpiko-primary-tint);
-    border-color: var(--wpiko-primary-light);
-}
-.wpiko-github-status-widget .github-status-banner.is-update .github-status-banner__icon {
-    background: var(--wpiko-primary-glow);
-    color: var(--wpiko-primary);
-}
-.wpiko-github-status-widget .github-status-banner.is-update .github-status-banner__text a {
-    color: var(--wpiko-primary);
-}
-
-.wpiko-github-status-widget .github-status-banner.is-error {
-    background: var(--wpiko-danger-tint);
-    border-color: var(--wpiko-danger-soft);
-}
-.wpiko-github-status-widget .github-status-banner.is-error .github-status-banner__icon {
-    background: rgba(220, 53, 69, 0.12);
-    color: var(--wpiko-danger);
-}
-
-/* Footer: status pill, version, and action button */
-.wpiko-github-status-widget .github-status-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 14px;
-    border-top: 1px solid var(--wpiko-border);
-    padding-top: 16px;
-    margin-top: 4px;
-}
-
-.wpiko-github-status-widget .github-status-meta {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px 18px;
-}
-
-.wpiko-github-status-widget .github-status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 4px 12px;
-    border-radius: var(--wpiko-radius-full);
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.6;
-}
-
-.wpiko-github-status-widget .github-status-pill__dot {
-    width: 8px;
-    height: 8px;
-    border-radius: var(--wpiko-radius-full);
-    flex-shrink: 0;
-}
-
-.wpiko-github-status-widget .github-status-pill.is-connected {
-    background: var(--wpiko-success-tint);
-    color: var(--wpiko-success-hover);
-}
-.wpiko-github-status-widget .github-status-pill.is-connected .github-status-pill__dot {
-    background: var(--wpiko-success);
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
-}
-
-.wpiko-github-status-widget .github-status-pill.is-disconnected {
-    background: var(--wpiko-danger-tint);
-    color: var(--wpiko-danger);
-}
-.wpiko-github-status-widget .github-status-pill.is-disconnected .github-status-pill__dot {
-    background: var(--wpiko-danger);
-    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15);
-}
-
-.wpiko-github-status-widget .github-status-version {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 12px;
-    color: var(--wpiko-text-muted);
-}
-
-.wpiko-github-status-widget .github-status-version__label {
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    font-weight: 600;
-    color: var(--wpiko-text-faint);
-}
-
-.wpiko-github-status-widget .github-status-version__value {
-    font-weight: 700;
-    color: var(--wpiko-text-strong);
-    font-size: 13px;
-}
-
-/* Force update check button */
-.wpiko-github-status-widget .github-force-check-btn {
-    display: inline-flex !important;
-    align-items: center;
-    gap: 6px;
-}
-
-.wpiko-github-status-widget .github-force-check-btn .github-force-check-btn__icon {
-    width: 16px;
-    height: 16px;
-    font-size: 16px;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.wpiko-github-status-widget .github-force-check-btn__icon.is-spinning {
-    animation: wpikoGithubSpin 0.9s linear infinite;
-}
-
-@keyframes wpikoGithubSpin {
-    to { transform: rotate(360deg); }
-}
-
-/* GitHub Update Check Messages */
-#github-update-check-result {
-    padding: 12px 15px;
-    border-radius: var(--wpiko-radius-sm);
-    font-size: 12px;
-    line-height: 1.4;
-    border: 1px solid transparent;
-    transition: all 0.3s ease;
-    animation: fadeIn 0.3s ease;
-    margin-top: 10px;
-    display: none;
-}
-
-.github-update-success-message {
-    color: var(--wpiko-accent);
-    background-color: rgba(3, 181, 170, 0.1);
-    border-color: rgba(3, 181, 170, 0.2);
-}
-
-.github-update-error-message {
-    color: var(--wpiko-danger);
-    background-color: rgba(220, 53, 69, 0.1);
-    border-color: rgba(220, 53, 69, 0.2);
-}
-
-/* Fade in animation for messages */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-5px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+/* Presentation for diagnostic results generated by license-management.js. */
+.wpiko-license-page #wpiko-connection-output .notice.wpiko-connection-summary { margin: 0 0 15px; padding: 10px; }
+.wpiko-license-page #wpiko-connection-output .wpiko-connection-tests { margin-bottom: 15px; }
+.wpiko-license-page #wpiko-connection-output .widefat td.wpiko-connection-status-ok { color: var(--wpiko-ui-ok); font-weight: 700; }
+.wpiko-license-page #wpiko-connection-output .widefat td.wpiko-connection-status-error { color: var(--wpiko-ui-danger); font-weight: 700; }
+.wpiko-license-page #wpiko-connection-output .wpiko-connection-server-info { margin-top: 10px; }
+.wpiko-license-page #wpiko-connection-output .wpiko-connection-server-info summary { cursor: pointer; font-weight: 700; }
+.wpiko-license-page #wpiko-connection-output .wpiko-connection-server-table { margin-top: 10px; }
+.wpiko-license-page #wpiko-connection-output .notice.wpiko-connection-help { margin-top: 15px; padding: 10px; }
+.wpiko-license-page #wpiko-connection-output .notice.wpiko-connection-error { margin: 0; padding: 10px; }

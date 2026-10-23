@@ -617,7 +617,7 @@ function initializeMessageActivityChart(chartRoot, dailyMessages) {
             label: 'Total messages',
             singular: 'message',
             plural: 'messages',
-            color: '#0968FE',
+            color: 'var(--wpiko-ui-info)',
             emptyTitle: 'No messages recorded'
         },
         user: {
@@ -625,7 +625,7 @@ function initializeMessageActivityChart(chartRoot, dailyMessages) {
             label: 'User messages',
             singular: 'user message',
             plural: 'user messages',
-            color: '#0968FE',
+            color: 'var(--wpiko-ui-info)',
             emptyTitle: 'No user messages recorded'
         },
         assistant: {
@@ -633,7 +633,7 @@ function initializeMessageActivityChart(chartRoot, dailyMessages) {
             label: 'Assistant messages',
             singular: 'assistant message',
             plural: 'assistant messages',
-            color: '#7C3AED',
+            color: 'var(--wpiko-ui-purple)',
             emptyTitle: 'No assistant messages recorded'
         },
         error: {
@@ -641,7 +641,7 @@ function initializeMessageActivityChart(chartRoot, dailyMessages) {
             label: 'Errors',
             singular: 'error',
             plural: 'errors',
-            color: '#DC2626',
+            color: 'var(--wpiko-ui-danger)',
             emptyTitle: 'No errors recorded'
         }
     };

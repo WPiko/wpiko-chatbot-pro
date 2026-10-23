@@ -1,22 +1,31 @@
-# WPiko Chatbot Pro - GitHub Updates Repository
+# WPiko AI Chatbot Pro - GitHub Updates Repository
 
 ![WordPress](https://img.shields.io/badge/WordPress-5.0%2B-blue.svg)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-blue.svg)
 ![License](https://img.shields.io/badge/License-GPL--2.0%2B-green.svg)
 
-This repository hosts the **WPiko Chatbot Pro** plugin and provides automatic updates through GitHub Releases. This is the premium add-on for the WPiko Chatbot WordPress plugin, offering advanced AI-powered features for enhanced website interactions.
+This repository hosts the **WPiko AI Chatbot Pro** plugin and provides automatic updates through GitHub Releases. This is the premium add-on for the WPiko AI Chatbot WordPress plugin, offering advanced AI-powered features for enhanced website interactions.
+
+## 2.1.2 Admin redesign
+
+Update both WPiko AI Chatbot and WPiko AI Chatbot Pro to 2.1.2. Pro now requires the
+shared admin styles and popups provided by WPiko AI Chatbot 2.1.2 or newer. Scan Website
+can now scan many pages at once, rescan changed pages and read posts and documentation
+plugins (added as clean Markdown, with no AI cost),
+and the Q&A Builder allows up to 50 pairs. See [CHANGELOG.md](CHANGELOG.md)
+for the release notes.
 
 ## 2.1.0 Security update
 
-Update both WPiko Chatbot and WPiko Chatbot Pro to 2.1.0. Conversation rendering
+Update both WPiko AI Chatbot and WPiko AI Chatbot Pro to 2.1.0. Conversation rendering
 now filters unsafe HTML, including previously saved messages. Pro contact-form
 buttons use delegated event listeners instead of inline JavaScript, and the PWA
 shares the base plugin's message allowlist. Thanks to **Ali Hidayat** for
 responsibly reporting the stored XSS vulnerability in assistant messages.
 
-## 🤖 About WPiko Chatbot Pro
+## 🤖 About WPiko AI Chatbot Pro
 
-WPiko Chatbot Pro is a premium WordPress plugin that seamlessly integrates OpenAI's powerful language models into websites, providing an intelligent and highly customizable chat interface. It extends the base WPiko Chatbot plugin with advanced features for professional websites and e-commerce stores.
+WPiko AI Chatbot Pro is a premium WordPress plugin that seamlessly integrates OpenAI's powerful language models into websites, providing an intelligent and highly customizable chat interface. It extends the base WPiko AI Chatbot plugin with advanced features for professional websites and e-commerce stores.
 
 ### Core Features
 
@@ -28,7 +37,7 @@ WPiko Chatbot Pro is a premium WordPress plugin that seamlessly integrates OpenA
 - **WooCommerce Integration** - Product cards, shopping assistance, and e-commerce optimization
 - **Conversation Management** - Full conversation history, user details, and interaction tracking
 - **Contact Form System** - Lead generation with file attachments and reCAPTCHA protection
-- **Website Content Scanning** - Automatic training from your website content
+- **Website Content Scanning** - AI-written Q&A from your pages, and clean Markdown from your posts and documentation plugin articles, with bulk scanning, rescans of changed content and optional automatic updates of posts and docs
 - **Multi-deployment Options** - Floating chatbot and shortcode embedding
 
 ## 🚀 Installation & Updates
@@ -37,7 +46,7 @@ WPiko Chatbot Pro is a premium WordPress plugin that seamlessly integrates OpenA
 
 - WordPress 5.0 or higher
 - PHP 7.4 or higher
-- **WPiko Chatbot** base plugin (required)
+- **WPiko AI Chatbot** base plugin 2.1.2 or newer (required)
 - Valid license key for premium features
 
 ### Automatic Updates
@@ -46,7 +55,7 @@ The plugin automatically checks for updates from this GitHub repository every 12
 
 #### For Administrators:
 1. Navigate to your WordPress admin dashboard
-2. Go to **WPiko Chatbot > License Activation**
+2. Go to **WPiko AI Chatbot > License Activation**
 3. View the GitHub Update Status widget
 4. Click "Force Update Check" for immediate update verification
 
@@ -61,7 +70,7 @@ The plugin automatically checks for updates from this GitHub repository every 12
 ### WordPress Environment
 - **WordPress Version:** 6.0 or newer
 - **PHP Version:** 7.4 or newer  
-- **Base Plugin:** WPiko Chatbot (latest version)
+- **Base Plugin:** WPiko AI Chatbot (latest version)
 
 ### External Services
 - **OpenAI API:** Required for AI functionality
@@ -85,7 +94,7 @@ return array(
 ### License Activation
 
 1. Purchase a license from [WPiko.com](https://wpiko.com)
-2. Navigate to **WPiko Chatbot > License Activation**
+2. Navigate to **WPiko AI Chatbot > License Activation**
 3. Enter your license key
 4. Activate to unlock premium features
 
@@ -146,8 +155,8 @@ All releases are tracked through GitHub Releases with detailed changelogs:
 - **Inventory Awareness** - Real-time product availability
 
 ### Content Management
-- **Website Scanning** - Automatic content extraction for training
-- **Q&A Builder** - Custom knowledge base creation
+- **Website Scanning** - Pages, posts and docs from any documentation plugin, with bulk scanning and change detection
+- **Q&A Builder** - Up to 50 exact question-and-answer pairs
 - **Conversation Cleanup** - Automated data management
 - **Transcript Generation** - Beautifully formatted conversation exports
 
@@ -214,4 +223,4 @@ Check the [Releases](../../releases) section for the most recent version, change
 
 ---
 
-*WPiko Chatbot Pro is developed by [WPiko](https://wpiko.com) - Enhancing WordPress websites with intelligent AI interactions.*
+*WPiko AI Chatbot Pro is developed by [WPiko](https://wpiko.com) - Enhancing WordPress websites with intelligent AI interactions.*

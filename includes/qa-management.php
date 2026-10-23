@@ -7,12 +7,43 @@ if (!defined('ABSPATH')) {
  * Q&A Management functionality - Compatible with Responses API only
  */
 
-// Helper function to check if we're using Responses API
-function wpiko_chatbot_pro_is_using_responses_api() {
-    return true;
+
+/**
+ * Most Q&A pairs the Q&A Builder accepts.
+ *
+ * @return int
+ */
+function wpiko_chatbot_pro_qa_max_pairs() {
+    /**
+     * Filter the maximum number of Q&A pairs.
+     *
+     * @param int $max Default 50.
+     */
+    return max(1, (int) apply_filters('wpiko_chatbot_pro_qa_max_pairs', 50));
 }
 
 // Create the Q&A table
+/**
+ * Clean a Q&A Builder question or answer without changing its wording.
+ *
+ * sanitize_text_field() and sanitize_textarea_field() remove percent-encoded
+ * characters, which breaks links such as Greek or other non-Latin page
+ * addresses, and drop anything that looks like an HTML tag. Q&A text is only
+ * stored, shown escaped in the builder and uploaded as a plain-text file,
+ * so it only needs plain-text clean-up.
+ *
+ * @param string $text      Text.
+ * @param bool   $multiline Keep line breaks (answers) or join to one line (questions).
+ * @return string
+ */
+function wpiko_chatbot_pro_clean_qa_text($text, $multiline = true) {
+    $text = wpiko_chatbot_pro_clean_scan_text($text);
+    if (!$multiline) {
+        $text = trim(preg_replace('/\s+/u', ' ', $text));
+    }
+    return $text;
+}
+
 function wpiko_chatbot_pro_create_qa_table() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'wpiko_chatbot_qa';
@@ -31,51 +62,6 @@ function wpiko_chatbot_pro_create_qa_table() {
     dbDelta($sql);
 }
 
-// Add or update Q&A pair
-function wpiko_chatbot_pro_add_update_qa($question, $answer, $id = null) {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'wpiko_chatbot_qa';
-
-    // Check if table exists and create it if it doesn't
-    if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name)) != $table_name) {
-        wpiko_chatbot_pro_create_qa_table();
-    }
-
-    if ($id) {
-        $result = $wpdb->update(
-            $table_name,
-            array('question' => $question, 'answer' => $answer),
-            array('id' => $id)
-        );
-    } else {
-        $result = $wpdb->insert(
-            $table_name,
-            array('question' => $question, 'answer' => $answer)
-        );
-        $id = $wpdb->insert_id;
-    }
-
-    if ($result === false) {
-        return false;
-    }
-
-    wpiko_chatbot_pro_generate_qa_file();
-    return $id;
-}
-
-// Delete Q&A pair
-function wpiko_chatbot_pro_delete_qa($id) {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'wpiko_chatbot_qa';
-
-    $result = $wpdb->delete($table_name, array('id' => $id));
-
-    if ($result === false) {
-        return false;
-    }
-
-    return true;
-}
 
 // Function to delete the Q&A file
 function wpiko_chatbot_pro_delete_qa_file() {
@@ -173,44 +159,6 @@ function wpiko_chatbot_pro_generate_qa_file() {
     return wpiko_chatbot_pro_cleanup_and_generate_qa_file();
 }
 
-// AJAX handler for adding/updating Q&A
-function wpiko_chatbot_pro_ajax_add_update_qa() {
-    check_ajax_referer('wpiko_chatbot_nonce', 'security');
-
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(array('message' => 'Unauthorized'));
-    }
-    
-    // Check for premium license
-    if (!wpiko_chatbot_is_license_active()) {
-        wp_send_json_error(array('message' => 'This feature requires a premium license'));
-    }
-
-    // Validate POST data before processing
-    if (!isset($_POST['question']) || !isset($_POST['answer'])) {
-        wp_send_json_error(array('message' => 'Missing required fields'));
-        return;
-    }
-
-    $question = sanitize_text_field(wp_unslash($_POST['question']));
-    $answer = sanitize_textarea_field(wp_unslash($_POST['answer']));
-    $id = isset($_POST['id']) ? intval($_POST['id']) : null;
-
-    $result = wpiko_chatbot_pro_add_update_qa($question, $answer, $id);
-
-    if ($result === false) {
-        wp_send_json_error(array('message' => 'Failed to save Q&A'));
-    } else {
-        // Generate Q&A file with locking mechanism
-        $file_generated = wpiko_chatbot_pro_generate_qa_file();
-        if ($file_generated) {
-            wp_send_json_success(array('message' => 'Q&A saved and file generated successfully', 'id' => $result));
-        } else {
-            wp_send_json_error(array('message' => 'Q&A saved but file generation failed'));
-        }
-    }
-}
-add_action('wp_ajax_wpiko_chatbot_add_update_qa', 'wpiko_chatbot_pro_ajax_add_update_qa');
 
 // AJAX handler for saving all Q&A pairs
 function wpiko_chatbot_pro_ajax_save_all_qa() {
@@ -230,22 +178,32 @@ function wpiko_chatbot_pro_ajax_save_all_qa() {
         wp_send_json_error(array('message' => 'No data provided'));
     }
     
-    // Sanitize raw input before processing
-    $qa_pairs_raw = sanitize_text_field(wp_unslash($_POST['qa_pairs']));
-    $qa_pairs = json_decode($qa_pairs_raw, true);
-    
+    // Decode first, then sanitize each field. Sanitizing the raw JSON as one
+    // line of text would strip the line breaks from every answer.
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- each field is sanitized below.
+    $qa_pairs = json_decode(wp_unslash($_POST['qa_pairs']), true);
+
     if (!is_array($qa_pairs)) {
         wp_send_json_error(array('message' => 'Invalid data format'));
     }
-    
-    // Sanitize each Q&A pair individually after JSON decoding
-    foreach ($qa_pairs as $key => $qa) {
-        if (isset($qa['question'])) {
-            $qa_pairs[$key]['question'] = sanitize_text_field($qa['question']);
+
+    $clean_pairs = array();
+    foreach ($qa_pairs as $qa) {
+        if (!is_array($qa)) {
+            continue;
         }
-        if (isset($qa['answer'])) {
-            $qa_pairs[$key]['answer'] = sanitize_textarea_field($qa['answer']);
-        }
+        $clean_pairs[] = array(
+            'question' => isset($qa['question']) ? wpiko_chatbot_pro_clean_qa_text((string) $qa['question'], false) : '',
+            'answer' => isset($qa['answer']) ? wpiko_chatbot_pro_clean_qa_text((string) $qa['answer']) : '',
+        );
+    }
+    $qa_pairs = $clean_pairs;
+
+    $complete_pairs = array_filter($qa_pairs, function ($qa) {
+        return $qa['question'] !== '' && $qa['answer'] !== '';
+    });
+    if (count($complete_pairs) > wpiko_chatbot_pro_qa_max_pairs()) {
+        wp_send_json_error(array('message' => sprintf('You can save up to %d Q&A pairs.', wpiko_chatbot_pro_qa_max_pairs())));
     }
 
     global $wpdb;
@@ -288,30 +246,6 @@ function wpiko_chatbot_pro_ajax_save_all_qa() {
 }
 add_action('wp_ajax_wpiko_chatbot_save_all_qa', 'wpiko_chatbot_pro_ajax_save_all_qa');
 
-// AJAX handler for deleting Q&A
-function wpiko_chatbot_pro_ajax_delete_qa() {
-    check_ajax_referer('wpiko_chatbot_nonce', 'security');
-
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(array('message' => 'Unauthorized'));
-    }
-
-    if (!isset($_POST['id'])) {
-        wp_send_json_error(array('message' => 'Missing ID parameter'));
-        return;
-    }
-
-    $id = intval($_POST['id']);
-
-    $result = wpiko_chatbot_pro_delete_qa($id);
-
-    if ($result) {
-        wp_send_json_success(array('message' => 'Q&A deleted successfully'));
-    } else {
-        wp_send_json_error(array('message' => 'Failed to delete Q&A'));
-    }
-}
-add_action('wp_ajax_wpiko_chatbot_delete_qa', 'wpiko_chatbot_pro_ajax_delete_qa');
 
 // Get all Q&A pairs
 function wpiko_chatbot_pro_get_all_qa() {

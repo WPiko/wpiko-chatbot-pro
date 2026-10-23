@@ -1,6 +1,6 @@
 <?php
 /**
- * WP-CLI commands for WPiko Chatbot Pro WooCommerce sync.
+ * WP-CLI commands for WPiko AI Chatbot Pro WooCommerce sync.
  *
  * Usage:
  *   wp wpiko-chatbot sync products     — Sync all published WooCommerce products to OpenAI
@@ -19,7 +19,7 @@ if (!class_exists('WP_CLI')) {
 }
 
 /**
- * Manage WPiko Chatbot WooCommerce synchronization.
+ * Manage WPiko AI Chatbot WooCommerce synchronization.
  */
 class WPiko_Chatbot_CLI_Command {
 
@@ -73,11 +73,11 @@ class WPiko_Chatbot_CLI_Command {
         }
 
         if (!function_exists('wpiko_chatbot_is_woocommerce_integration_enabled') || !wpiko_chatbot_is_woocommerce_integration_enabled()) {
-            WP_CLI::error('WooCommerce Integration is not enabled. Enable it in WPiko Chatbot → AI Configuration → WooCommerce Integration.');
+            WP_CLI::error('WooCommerce Integration is not enabled. Enable it in WPiko AI Chatbot → AI Configuration → WooCommerce Integration.');
         }
 
         if (!function_exists('wpiko_chatbot_is_license_active') || !wpiko_chatbot_is_license_active()) {
-            WP_CLI::error('WPiko Chatbot Pro license is not active.');
+            WP_CLI::error('WPiko AI Chatbot Pro license is not active.');
         }
 
         // Acquire lock

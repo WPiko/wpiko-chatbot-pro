@@ -74,41 +74,6 @@ function wpiko_chatbot_release_lock($lock_name) {
     delete_transient($lock_key);
 }
 
-/**
- * Helper: Write data to a temp file with WP_Filesystem fallback to native PHP.
- * Returns the temp file path on success, or false on failure.
- */
-function wpiko_chatbot_write_temp_file($prefix, $data) {
-    // Try WP_Filesystem first
-    global $wp_filesystem;
-    if (!function_exists('WP_Filesystem')) {
-        require_once ABSPATH . 'wp-admin/includes/file.php';
-    }
-    
-    $temp_file_path = wp_tempnam($prefix);
-    if (!$temp_file_path) {
-        wpiko_chatbot_log_error('Failed to create temp file for: ' . $prefix);
-        return false;
-    }
-    
-    // Try WP_Filesystem
-    $fs_init = WP_Filesystem();
-    if ($fs_init && $wp_filesystem && $wp_filesystem->put_contents($temp_file_path, $data)) {
-        return $temp_file_path;
-    }
-    
-    // Fallback to native PHP file_put_contents
-    wpiko_chatbot_log_error('WP_Filesystem unavailable for ' . $prefix . ', using native fallback');
-    $written = @file_put_contents($temp_file_path, $data);
-    if ($written !== false) {
-        return $temp_file_path;
-    }
-    
-    // Clean up on failure
-    @unlink($temp_file_path);
-    wpiko_chatbot_log_error('Failed to write temp file for: ' . $prefix);
-    return false;
-}
 
 /**
  * Helper: Delete a temp file with WP_Filesystem fallback to native PHP.
@@ -229,13 +194,6 @@ function wpiko_chatbot_pro_managed_woocommerce_instructions($instructions) {
 }
 add_filter('wpiko_chatbot_managed_system_instructions', 'wpiko_chatbot_pro_managed_woocommerce_instructions');
 
-/**
- * Compatibility shim: managed instructions are now resolved for each request.
- * Changing sync settings no longer rewrites editable instructions.
- */
-function wpiko_chatbot_update_responses_woo_instructions($add_instructions) {
-    return true;
-}
 
 // Function to get product field preferences
 function wpiko_chatbot_get_product_fields_options() {
@@ -346,14 +304,6 @@ function wpiko_chatbot_format_product_data($product) {
     return $product_data;
 }
 
-// Store the current WooCommerce file ID
-function wpiko_chatbot_get_woo_file_id() {
-    return get_option('wpiko_chatbot_woo_file_id', '');
-}
-
-function wpiko_chatbot_set_woo_file_id($file_id) {
-    update_option('wpiko_chatbot_woo_file_id', $file_id);
-}
 
 // Function to sync existing products
 function wpiko_chatbot_get_formatted_products_data($offset = 0, $limit = 100) {
@@ -564,18 +514,6 @@ function wpiko_chatbot_sync_existing_products() {
     }
 }
 
-// Fallback sync is no longer needed — the main sync now uses memory-efficient streaming.
-// Kept as a thin wrapper for backward compatibility.
-function wpiko_chatbot_fallback_sync_products() {
-    wpiko_chatbot_log_error("Fallback sync called — delegating to main streaming sync.");
-    // The main sync already uses streaming; just return false to let the caller handle it.
-    return false;
-}
-
-// Function to get the sync progress
-function wpiko_chatbot_get_sync_progress() {
-    return get_option('wpiko_chatbot_sync_progress', 0);
-}
 
 // Function to get the sync status
 function wpiko_chatbot_get_sync_status() {
@@ -802,18 +740,6 @@ function wpiko_chatbot_check_sync_progress_ajax() {
 }
 add_action('wp_ajax_check_sync_progress', 'wpiko_chatbot_check_sync_progress_ajax');
 
-// AJAX action to check the download progress
-function wpiko_chatbot_check_download_progress() {
-    check_ajax_referer('wpiko_chatbot_nonce', 'security');
-    
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(array('message' => 'Unauthorized'));
-    }
-
-    $progress = get_option('wpiko_chatbot_download_progress', 0);
-    wp_send_json_success(array('progress' => $progress));
-}
-add_action('wp_ajax_check_download_progress', 'wpiko_chatbot_check_download_progress');
 
 // Function products auto update
 function wpiko_chatbot_update_products_auto_sync() {
@@ -879,118 +805,6 @@ add_action('plugins_loaded', function() {
     $initialized = true;
 });
 
-// WooCommerce Orders Integration
-function wpiko_chatbot_get_formatted_orders_data($limit = 100) {
-    $orders = wc_get_orders(array(
-        'limit' => $limit,
-        'orderby' => 'date',
-        'order' => 'DESC',
-        'type' => 'shop_order', // Exclude refunds (OrderRefund objects lack standard order methods)
-    ));
-
-    // Get field preferences
-    $field_options = wpiko_chatbot_get_order_fields_options();
-
-    $formatted_data = array();
-    foreach ($orders as $order) {
-        // Safety check: skip any non-standard order objects (e.g. refunds)
-        if (!($order instanceof \WC_Order) || ($order instanceof \WC_Order_Refund)) {
-            continue;
-        }
-        $tracking_number = wpiko_chatbot_get_tracking_number($order);
-        $tracking_link = wpiko_chatbot_generate_aftership_link($tracking_number);
-        
-        // Get the date of the last status change
-        $status_changes = wc_get_order_notes(array(
-            'order_id' => $order->get_id(),
-            'type' => 'order_status_change'
-        ));
-        $last_status_change_date = !empty($status_changes) ? $status_changes[0]->date_created->format('Y-m-d H:i:s') : null;
-        
-        // Get the note to customer
-        $customer_notes = wc_get_order_notes(array(
-            'order_id' => $order->get_id(),
-            'type' => 'customer'
-        ));
-        $note_to_customer = !empty($customer_notes) ? $customer_notes[0]->content : '';
-        
-        // Create order data array with only selected fields
-        $order_data = array();
-        
-        if ($field_options['id']) {
-            $order_data['id'] = $order->get_id();
-        }
-        
-        if ($field_options['date_created']) {
-            $order_data['date_created'] = $order->get_date_created()->format('Y-m-d H:i:s');
-        }
-        
-        if ($field_options['date_paid']) {
-            $order_data['date_paid'] = $order->get_date_paid() ? $order->get_date_paid()->format('Y-m-d H:i:s') : null;
-        }
-        
-        if ($field_options['date_completed']) {
-            $order_data['date_completed'] = $order->get_date_completed() ? $order->get_date_completed()->format('Y-m-d H:i:s') : null;
-        }
-        
-        if ($field_options['date_last_status_change']) {
-            $order_data['date_last_status_change'] = $last_status_change_date;
-        }
-        
-        if ($field_options['status']) {
-            $order_data['status'] = $order->get_status();
-        }
-        
-        if ($field_options['total']) {
-            $order_data['total'] = $order->get_total();
-        }
-        
-        if ($field_options['customer_id']) {
-            $order_data['customer_id'] = $order->get_customer_id();
-        }
-        
-        if ($field_options['first_name']) {
-            $order_data['first_name'] = $order->get_billing_first_name();
-        }
-        
-        if ($field_options['billing_email']) {
-            $order_data['billing_email'] = $order->get_billing_email();
-        }
-        
-        if ($field_options['order_note']) {
-            $order_data['order_note'] = $order->get_customer_note();
-        }
-        
-        if ($field_options['note_to_customer']) {
-            $order_data['note_to_customer'] = $note_to_customer;
-        }
-        
-        if ($field_options['payment_method']) {
-            $order_data['payment_method'] = $order->get_payment_method_title();
-        }
-        
-        if ($field_options['tracking_number']) {
-            $order_data['tracking_number'] = $tracking_number;
-        }
-        
-        if ($field_options['tracking_link']) {
-            $order_data['tracking_link'] = $tracking_link;
-        }
-        
-        if ($field_options['items']) {
-            $order_data['items'] = array_map(function($item) {
-                return array(
-                    'name' => $item->get_name(),
-                    'quantity' => $item->get_quantity(),
-                    'total' => $item->get_total()
-                );
-            }, $order->get_items());
-        }
-        
-        $formatted_data[] = $order_data;
-    }
-    return $formatted_data;
-}
 
 // Function to get tracking number
 function wpiko_chatbot_get_tracking_number($order) {
@@ -1064,67 +878,11 @@ function wpiko_chatbot_sync_orders($retry_count = 0) {
     return false;
 }
 
-function wpiko_chatbot_run_background_orders_sync() {
-    return false;
-}
 
 function wpiko_chatbot_delayed_sync_orders() {
     return false;
 }
 
-function wpiko_chatbot_update_orders_auto_sync() {
-    check_ajax_referer('wpiko_chatbot_nonce', 'security');
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(array('message' => 'Unauthorized'));
-        return;
-    }
-    wp_send_json_error(array('message' => 'Order file sync has been replaced by Order Assistance. Reload the page to use the new setting.'));
-}
-add_action('wp_ajax_update_orders_auto_sync', 'wpiko_chatbot_update_orders_auto_sync');
-
-function wpiko_chatbot_update_assistant_order_instructions($add_instructions) {
-    return true;
-}
-
-// Download Orders JSON" button
-function wpiko_chatbot_download_orders_json() {
-    check_ajax_referer('wpiko_chatbot_nonce', 'security');
-    
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(array('message' => 'Unauthorized'));
-    }
-
-    if (!wpiko_chatbot_pro_is_main_wc_active()) {
-        wp_send_json_error(array('message' => 'WooCommerce is not active'));
-    }
-
-    $sync_option = get_option('wpiko_chatbot_orders_auto_sync', 'disabled');
-    $limit = ($sync_option === 'disabled') ? 100 : intval($sync_option);
-
-    try {
-        $orders_data = wpiko_chatbot_get_formatted_orders_data($limit);
-        wp_send_json_success(array('orders' => $orders_data));
-    } catch (Exception $e) {
-        wpiko_chatbot_log('Error in wpiko_chatbot_download_orders_json: ' . $e->getMessage(), 'error');
-        wp_send_json_error(array('message' => 'An error occurred while generating the JSON.'));
-    }
-}
-add_action('wp_ajax_download_orders_json', 'wpiko_chatbot_download_orders_json');
-
-// AJAX handler to get system instructions
-function wpiko_chatbot_get_system_instructions_ajax() {
-    check_ajax_referer('wpiko_chatbot_nonce', 'security');
-    
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(array('message' => 'Unauthorized'));
-    }
-
-    // Get the system instructions from the database
-    $instructions = wpiko_chatbot_get_system_instructions();
-    
-    wp_send_json_success($instructions);
-}
-add_action('wp_ajax_get_system_instructions', 'wpiko_chatbot_get_system_instructions_ajax');
 
 // AJAX handler for updating product field options
 function wpiko_chatbot_update_product_fields() {

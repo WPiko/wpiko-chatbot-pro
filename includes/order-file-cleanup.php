@@ -158,7 +158,7 @@ function wpiko_chatbot_order_cleanup_notice() {
     $state = get_option('wpiko_chatbot_order_file_cleanup', array());
     if ($state && empty($state['done'])) {
         echo '<div class="notice notice-warning"><p>';
-        esc_html_e('WPiko Chatbot is preparing knowledge files for controlled order lookup and removing old order exports. Only checked knowledge files can be searched during this process. Cleanup runs in the background. If this notice persists, check your OpenAI connection and WordPress scheduled tasks.', 'wpiko-chatbot-pro');
+        esc_html_e('WPiko AI Chatbot is preparing knowledge files for controlled order lookup and removing old order exports. Only checked knowledge files can be searched during this process. Cleanup runs in the background. If this notice persists, check your OpenAI connection and WordPress scheduled tasks.', 'wpiko-chatbot-pro');
         echo '</p></div>';
     }
 }

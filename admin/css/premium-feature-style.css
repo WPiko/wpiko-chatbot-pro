@@ -1,60 +1,42 @@
-/* Pro feature badge — matches the Scan Website comparison badge. */
+/* Pro badges and locked-feature cards match the Email Capture design. */
 .premium-feature-badge {
     display: inline-block;
-    padding: 0 6px;
-    border-radius: var(--wpiko-radius-full);
-    background: var(--wpiko-gold-light);
-    color: var(--wpiko-text-strong);
+    padding: 2px 5px;
+    border: 1px solid var(--wpiko-ui-line);
+    border-radius: var(--wpiko-ui-radius-sm);
+    color: var(--wpiko-ui-text-secondary);
+    background: var(--wpiko-ui-sunken);
     font-size: 10px;
-    font-weight: 700;
-    line-height: 18px;
+    font-weight: 600;
+    line-height: 1.4;
     text-transform: uppercase;
     letter-spacing: normal;
     vertical-align: middle;
     white-space: nowrap;
 }
-
-.chatbot-menu-section .premium-feature-badge {
-    margin-right: 5px;
-}
-
+.chatbot-menu-section .premium-feature-badge { margin-right: 5px; }
 #url-processing-section .premium-feature-badge,
 #qa-management-section .premium-feature-badge,
 #woocommerce-integration-section .premium-feature-badge,
-.product-card-section .premium-feature-badge {
-    margin-left: 5px;
-}
-
-
-/* Premium Feature Notice */
+.product-card-section .premium-feature-badge,
+.auto-delete-notice .premium-feature-badge { margin-left: 5px; }
 .premium-feature-notice {
-    background: linear-gradient(135deg, var(--wpiko-surface-alt), var(--wpiko-primary-tint));
-    padding: 25px;
-    border-radius: var(--wpiko-radius-lg);
-    border: 1px solid rgba(100, 152, 252, 0.2);
-    margin: 20px 0;
+    box-sizing: border-box;
+    margin: 16px 0;
+    padding: 18px 20px 20px;
+    color: var(--wpiko-ui-text);
+    background: var(--wpiko-ui-surface);
+    border: 1px solid var(--wpiko-ui-line);
+    border-radius: var(--wpiko-ui-radius);
+    box-shadow: var(--wpiko-ui-shadow);
 }
-
-.premium-feature-notice h3 {
-    color: var(--wpiko-text-strong);
-    font-size: 1.3em;
-    margin-bottom: 15px;
-}
-
-.premium-feature-notice ul {
-    list-style-type: none;
-    padding: 0;
-    margin: 20px 0;
-}
-
-.premium-feature-notice li {
-    padding: 8px 0;
-    color: var(--wpiko-text);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.premium-feature-notice .button-primary {
-    margin-top: 10px;
-}
+.premium-feature-notice h3,
+.wpiko-chatbot-settings-page .premium-feature-notice h3 { margin: 0 0 12px; padding: 0; border: 0; color: var(--wpiko-ui-text); font-size: 15px; font-weight: 600; line-height: 1.4; }
+.premium-feature-notice p { margin: 0 0 6px; color: var(--wpiko-ui-muted); font-size: 12px; font-style: normal; line-height: 1.5; }
+.premium-feature-notice ul { margin: 12px 0 16px; padding: 0 0 0 18px; list-style: disc; color: var(--wpiko-ui-text-secondary); font-size: 13px; line-height: 1.6; }
+.premium-feature-notice li { display: list-item; margin: 0 0 4px; padding: 0; color: inherit; }
+.premium-feature-notice .button-primary { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 30px; margin: 0; padding: 0 10px; border: 1px solid var(--wpiko-ui-accent); border-radius: var(--wpiko-ui-radius-sm); color: var(--wpiko-ui-on-dark); background: var(--wpiko-ui-accent); box-shadow: none; text-shadow: none; font-size: 13px; font-weight: 400; line-height: 2.153846; text-decoration: none; }
+.premium-feature-notice .button-primary:hover,
+.premium-feature-notice .button-primary:focus { color: var(--wpiko-ui-on-dark); background: var(--wpiko-ui-accent-dark); border-color: var(--wpiko-ui-accent-dark); box-shadow: none; }
+.premium-feature-notice .button-primary:focus-visible { outline: 2px solid var(--wpiko-ui-accent); outline-offset: 2px; }
+@media (max-width: 600px) { .premium-feature-notice .button-primary { min-height: 40px; } }

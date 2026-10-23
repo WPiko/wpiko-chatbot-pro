@@ -1,6 +1,6 @@
 <?php
 /**
- * GitHub Configuration for WPiko Chatbot Pro
+ * GitHub Configuration for WPiko AI Chatbot Pro
  * 
  * Configuration settings for GitHub-based updates.
  * 

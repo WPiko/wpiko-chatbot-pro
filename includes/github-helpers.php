@@ -61,14 +61,6 @@ function wpiko_chatbot_pro_get_latest_version_info() {
     return false;
 }
 
-/**
- * Test GitHub connection
- * 
- * @return bool|WP_Error
- */
-function wpiko_chatbot_pro_test_github_connection() {
-    return WPiko_Chatbot_Pro_GitHub_Config::test_connection();
-}
 
 /**
  * Get GitHub configuration status
@@ -92,33 +84,6 @@ function wpiko_chatbot_pro_get_github_status() {
     );
 }
 
-/**
- * Display GitHub update status in admin
- * 
- * @return void
- */
-function wpiko_chatbot_pro_display_github_status() {
-    $status = wpiko_chatbot_pro_get_github_status();
-    
-    echo '<div class="wpiko-github-status">';
-    echo '<h4>GitHub Update Status</h4>';
-    
-    if (!$status['config_valid']) {
-        echo '<div class="notice notice-error"><p><strong>Configuration Error:</strong> ' . esc_html($status['config_error']) . '</p></div>';
-    } elseif (!$status['connection_valid']) {
-        echo '<div class="notice notice-warning"><p><strong>Connection Error:</strong> ' . esc_html($status['connection_error']) . '</p></div>';
-    } else {
-        echo '<div class="notice notice-success"><p><strong>GitHub connection is working correctly.</strong></p></div>';
-        
-        if ($status['update_available']) {
-            echo '<div class="notice notice-info"><p><strong>A new version is available!</strong> Please check the WordPress updates page.</p></div>';
-        } else {
-            echo '<p>Your plugin is up to date.</p>';
-        }
-    }
-    
-    echo '</div>';
-}
 
 /**
  * Add GitHub status to plugin row meta
@@ -161,7 +126,7 @@ function wpiko_chatbot_pro_github_admin_notices() {
     
     if (!$status['config_valid']) {
         echo '<div class="notice notice-warning is-dismissible">';
-        echo '<p><strong>WPiko Chatbot Pro:</strong> GitHub update configuration needs attention. ';
+        echo '<p><strong>WPiko AI Chatbot Pro:</strong> GitHub update configuration needs attention. ';
         echo 'Please configure your GitHub settings in the plugin files to enable automatic updates.</p>';
         echo '</div>';
     }

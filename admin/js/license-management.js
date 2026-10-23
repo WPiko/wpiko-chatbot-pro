@@ -1,5 +1,15 @@
 jQuery(document).ready(function($) {
 
+    // In-page message in the wpiko notice style; falls back to a browser
+    // message on older core versions without the notices helper.
+    function wpikoNotify(message, type, options) {
+        if (window.wpikoChatbotNotices) {
+            return window.wpikoChatbotNotices.show(message, type, options);
+        }
+        window.alert(message);
+        return null;
+    }
+
     $('#wpiko-delete-license').on('click', function(e) {
         e.preventDefault();
 
@@ -13,14 +23,14 @@ jQuery(document).ready(function($) {
                 },
                 success: function(response) {
                     if (response.success) {
-                        alert('License deleted successfully');
-                        location.reload();
+                        wpikoNotify('License deleted successfully. Reloading…', 'success', { dismissible: false });
+                        setTimeout(function() { location.reload(); }, 1200);
                     } else {
-                        alert('Failed to delete license: ' + response.data);
+                        wpikoNotify('Failed to delete license: ' + response.data, 'error');
                     }
                 },
                 error: function(xhr, status, error) {
-                    alert('An error occurred while deleting the license: ' + error);
+                    wpikoNotify('An error occurred while deleting the license: ' + error, 'error');
                 }
             });
         }
@@ -89,24 +99,24 @@ jQuery(document).ready(function($) {
                     
                     // Summary box
                     var summaryClass = data.success ? 'notice-success' : 'notice-error';
-                    html += '<div class="notice ' + summaryClass + '" style="margin: 0 0 15px 0; padding: 10px;">';
+                    html += '<div class="notice ' + summaryClass + ' wpiko-connection-summary">';
                     html += '<strong>' + (data.success ? '✓ Connection OK' : '✗ Connection Issues Detected') + '</strong><br>';
                     html += data.summary;
                     html += '</div>';
                     
                     // Test results table
-                    html += '<table class="widefat" style="margin-bottom: 15px;">';
+                    html += '<table class="widefat wpiko-connection-tests">';
                     html += '<thead><tr><th>Test</th><th>Status</th><th>Details</th><th>Time</th></tr></thead>';
                     html += '<tbody>';
                     
                     for (var testKey in data.tests) {
                         var test = data.tests[testKey];
                         var statusIcon = test.success ? '✓' : '✗';
-                        var statusColor = test.success ? '#46b450' : '#dc3232';
+                        var statusClass = test.success ? 'wpiko-connection-status-ok' : 'wpiko-connection-status-error';
                         
                         html += '<tr>';
                         html += '<td><strong>' + test.name + '</strong></td>';
-                        html += '<td style="color: ' + statusColor + '; font-weight: bold;">' + statusIcon + '</td>';
+                        html += '<td class="' + statusClass + '">' + statusIcon + '</td>';
                         html += '<td>' + test.message + '</td>';
                         html += '<td>' + test.time_ms + ' ms</td>';
                         html += '</tr>';
@@ -115,9 +125,9 @@ jQuery(document).ready(function($) {
                     html += '</tbody></table>';
                     
                     // Server info (collapsible)
-                    html += '<details style="margin-top: 10px;">';
-                    html += '<summary style="cursor: pointer; font-weight: bold;">Server Information</summary>';
-                    html += '<table class="widefat" style="margin-top: 10px;">';
+                    html += '<details class="wpiko-connection-server-info">';
+                    html += '<summary>Server Information</summary>';
+                    html += '<table class="widefat wpiko-connection-server-table">';
                     html += '<tbody>';
                     html += '<tr><td>PHP Version</td><td>' + data.server_info.php_version + '</td></tr>';
                     html += '<tr><td>WordPress Version</td><td>' + data.server_info.wp_version + '</td></tr>';
@@ -129,7 +139,7 @@ jQuery(document).ready(function($) {
                     
                     // Help text if blocked
                     if (!data.success) {
-                        html += '<div class="notice notice-warning" style="margin-top: 15px; padding: 10px;">';
+                        html += '<div class="notice notice-warning wpiko-connection-help">';
                         html += '<strong>What to do next:</strong><br>';
                         html += '1. Contact your hosting provider and share these results<br>';
                         html += '2. Ask them to whitelist requests to <code>wpiko.com</code><br>';
@@ -140,13 +150,13 @@ jQuery(document).ready(function($) {
                     
                     $output.html(html);
                 } else {
-                    $output.html('<div class="notice notice-error" style="margin: 0; padding: 10px;">Error: ' + response.data + '</div>');
+                    $output.html('<div class="notice notice-error wpiko-connection-error">Error: ' + response.data + '</div>');
                 }
             },
             error: function(xhr, status, error) {
                 $loading.hide();
                 $button.prop('disabled', false);
-                $output.html('<div class="notice notice-error" style="margin: 0; padding: 10px;">Request failed: ' + error + '</div>');
+                $output.html('<div class="notice notice-error wpiko-connection-error">Request failed: ' + error + '</div>');
             }
         });
     });

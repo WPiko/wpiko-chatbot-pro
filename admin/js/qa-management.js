@@ -4,12 +4,22 @@ jQuery(document).ready(function($) {
         <script type="text/template" id="tmpl-qa-item">
             <div class="qa-item" data-id="{{ data.id }}">
                 <div class="qa-question-header">
-                    <span class="qa-question-text">{{ data.question }}</span>
-                    <button class="delete-qa" aria-label="Delete">&times;</button>
+                    <button type="button" class="qa-toggle" aria-expanded="false">
+                        <span class="qa-question-text">{{ data.question }}</span>
+                    </button>
+                    <button type="button" class="delete-qa wpiko-icon-button is-danger" aria-label="Delete this Q&amp;A" title="Delete">
+                        <span class="dashicons dashicons-trash" aria-hidden="true"></span>
+                    </button>
                 </div>
                 <div class="qa-answer-container" style="display: none;">
-                    <textarea class="qa-question" placeholder="Enter question">{{ data.question }}</textarea>
-                    <textarea class="qa-answer" placeholder="Enter answer">{{ data.answer }}</textarea>
+                    <label class="qa-field">
+                        <span class="qa-field-label">Question</span>
+                        <textarea class="qa-question" rows="2" placeholder="e.g. Do you ship internationally?">{{ data.question }}</textarea>
+                    </label>
+                    <label class="qa-field">
+                        <span class="qa-field-label">Answer</span>
+                        <textarea class="qa-answer" rows="4" placeholder="Write the answer the chatbot should give">{{ data.answer }}</textarea>
+                    </label>
                 </div>
             </div>
         </script>
@@ -33,8 +43,6 @@ function initializeQaManagement() {
         if (typeof wpikoChatbotFileManagement !== 'undefined' && 
             typeof wpikoChatbotFileManagement.refreshQAFileList === 'function') {
             wpikoChatbotFileManagement.refreshQAFileList();
-        } else {
-            console.log('QA file list refresh function not available');
         }
     }
 
@@ -43,25 +51,63 @@ function initializeQaManagement() {
             return; // Exit if container doesn't exist
         }
 
-        // Create action container if it doesn't exist
-        var $actionContainer = $('#qa-action-container');
-        if (!$actionContainer.length) {
-            $actionContainer = $('<div id="qa-action-container"></div>').insertAfter($qaList);
-            $saveAllQaButton.appendTo($actionContainer);
-        }
-
-        // Create status element if it doesn't exist
-        var $qaStatus = $('#qa-status');
+        // The shared popup puts the save status next to Save in its footer.
+        var $qaStatus = $('#wpiko-qa-save-status');
         if (!$qaStatus.length) {
-            $qaStatus = $('<span id="qa-status"></span>').appendTo($actionContainer);
+            // Older markup: create an action row under the list.
+            var $actionContainer = $('#qa-action-container');
+            if (!$actionContainer.length) {
+                $actionContainer = $('<div id="qa-action-container"></div>').insertAfter($qaList);
+                $saveAllQaButton.appendTo($actionContainer);
+            }
+            $qaStatus = $('#qa-status');
+            if (!$qaStatus.length) {
+                $qaStatus = $('<span id="qa-status"></span>').appendTo($actionContainer);
+            }
         }
 
         var qaTemplate = wp.template('qa-item');
+        var isDirty = false;
+        var maxPairs = parseInt($qaContainer.data('max'), 10) || 50;
+        var FILTER_FROM = 10; // Show the filter box once there are this many pairs.
+        var $filterWrap = $('.qa-filter');
+        var $filterInput = $('#qa-filter-input');
+        var $filterEmpty = $('.qa-filter-empty');
+        var savedCount = 0; // Pairs stored on the server (Download / Delete all act on these).
+
+        function askConfirm(options) {
+            if (window.wpikoModal && typeof window.wpikoModal.confirm === 'function') {
+                return window.wpikoModal.confirm(options);
+            }
+            return $.Deferred().resolve(window.confirm(options.title)).promise();
+        }
+        var statusTimer = null;
+
+        function markDirty(value) {
+            isDirty = !!value;
+            if (window.wpikoModal) {
+                window.wpikoModal.setDirty($qaList, isDirty);
+            }
+            updateButtonStates();
+        }
+
+        function showEmptyState() {
+            if (!$qaList.find('.qa-item').length && !$qaList.find('.qa-empty-state').length) {
+                $qaList.append(
+                    '<div class="qa-empty-state">' +
+                        '<span class="dashicons dashicons-format-chat" aria-hidden="true"></span>' +
+                        '<strong>No Q&amp;A yet</strong>' +
+                        '<span>Add your first question and answer. Start with the questions visitors ask most.</span>' +
+                    '</div>'
+                );
+            }
+        }
 
         function showStatus(message, type) {
-            $qaStatus.html('<span class="' + type + '">' + message + '</span>').show();
+            clearTimeout(statusTimer);
+            $qaStatus.empty().append($('<span></span>').addClass(type).text(message)).show();
             if (type !== 'error' && type !== 'processing') {
-                setTimeout(clearStatus, 3000);
+                statusTimer = setTimeout(clearStatus, 3000);
             }
         }
 
@@ -94,12 +140,13 @@ function initializeQaManagement() {
                         $qaPairsCount.text(data.qa_count || '0');
                         
                         // Update file status
+                        $qaFileStatus.removeClass('status-active status-error status-syncing is-ok is-warn is-error');
                         if (data.has_file && data.qa_count > 0) {
-                            $qaFileStatus.text('Synchronized').addClass('status-active').removeClass('status-error status-syncing');
+                            $qaFileStatus.text('In sync').addClass('status-active is-ok');
                         } else if (data.qa_count > 0) {
-                            $qaFileStatus.text('Needs Sync').addClass('status-syncing').removeClass('status-active status-error');
+                            $qaFileStatus.text('Needs saving').addClass('status-syncing is-warn');
                         } else {
-                            $qaFileStatus.text('No Data').addClass('status-error').removeClass('status-active status-syncing');
+                            $qaFileStatus.text('No file yet');
                         }
                         
                         // Update last updated time
@@ -122,7 +169,7 @@ function initializeQaManagement() {
                     }
                 },
                 error: function() {
-                    $qaFileStatus.text('Error').addClass('status-error').removeClass('status-active status-syncing');
+                    $qaFileStatus.text('Unavailable').removeClass('status-active status-syncing is-ok is-warn').addClass('status-error is-error');
                     $qaFileUpdated.text('Unknown');
                 }
             });
@@ -146,13 +193,14 @@ function initializeQaManagement() {
                                 $qaList.append(qaTemplate(qa));
                             });
                             qaCount = response.data.length;
-                            showStatus('Q&A pairs loaded successfully.', 'success');
                         } else {
                             qaCount = 0;
-                            $qaList.append('<p>No Q&A pairs found.</p>');
-                            clearStatus(); // Clear the loading status when no pairs found
+                            showEmptyState();
                         }
-                        updateButtonStates();
+                        savedCount = qaCount;
+                        clearStatus();
+                        markDirty(false);
+                        applyFilter();
                         updateQAFileInfo(); // Update file info after loading
                     } else {
                         showStatus('Error loading Q&A pairs: ' + response.data.message, 'error');
@@ -166,11 +214,32 @@ function initializeQaManagement() {
 
         // Update button states
         function updateButtonStates() {
-            $addQaButton.prop('disabled', qaCount >= 30);
-            $downloadQaButton.prop('disabled', qaCount === 0);
-            $saveAllQaButton.prop('disabled', qaCount === 0);
-            $deleteAllQaButton.prop('disabled', qaCount === 0);
+            $addQaButton.prop('disabled', qaCount >= maxPairs)
+                .attr('title', qaCount >= maxPairs ? 'You have reached the ' + maxPairs + '-pair limit.' : null);
+            $downloadQaButton.prop('disabled', savedCount === 0);
+            $saveAllQaButton.prop('disabled', !isDirty);
+            $deleteAllQaButton.prop('disabled', savedCount === 0);
+            $('#qa-count-label').text(qaCount + ' / ' + maxPairs);
+            $filterWrap.prop('hidden', qaCount < FILTER_FROM && !$filterInput.val());
         }
+
+        // Filter rows by question or answer text.
+        function applyFilter() {
+            var term = $.trim($filterInput.val() || '').toLowerCase();
+            var shown = 0;
+            $qaList.find('.qa-item').each(function() {
+                var $item = $(this);
+                var text = ($item.find('.qa-question').val() + ' ' + $item.find('.qa-answer').val()).toLowerCase();
+                var match = !term || text.indexOf(term) !== -1 || $item.hasClass('is-new');
+                $item.toggle(match);
+                if (match) {
+                    shown++;
+                }
+            });
+            $filterEmpty.prop('hidden', !term || shown > 0);
+        }
+
+        $filterInput.off('input').on('input', applyFilter);
 
         // Unbind existing events to prevent duplicates
         $addQaButton.off('click');
@@ -179,38 +248,59 @@ function initializeQaManagement() {
         $deleteAllQaButton.off('click');
         $qaList.off('click', '.qa-question-header');
         $qaList.off('click', '.delete-qa');
+        $qaList.off('input', 'textarea');
 
         // Add new Q&A pair
         $addQaButton.on('click', function(e) {
             e.preventDefault();
-            if (qaCount < 30) {
+            if (qaCount < maxPairs) {
                 var newQa = {
                     id: '',
-                    question: 'New Question',
+                    question: '',
                     answer: ''
                 };
-                $qaList.prepend(qaTemplate(newQa));
+                $qaList.find('.qa-empty-state').remove();
+                if ($filterInput.val()) {
+                    $filterInput.val('');
+                    applyFilter();
+                }
+                var $item = $(qaTemplate(newQa)).addClass('is-new');
+                $qaList.prepend($item);
+                $item.find('.qa-answer-container').show();
+                $item.find('.qa-toggle').attr('aria-expanded', 'true');
+                $item.find('.qa-question').trigger('focus');
                 qaCount++;
-                updateButtonStates();
-                showStatus('New Q&A pair added. Remember to save your changes.', 'success');
+                markDirty(true);
             }
         });
 
         // Toggle answer visibility
         $qaList.on('click', '.qa-question-header', function(e) {
-            if (!$(e.target).hasClass('delete-qa')) {
+            if (!$(e.target).closest('.delete-qa').length) {
                 var $qaItem = $(this).closest('.qa-item');
                 var $answerContainer = $qaItem.find('.qa-answer-container');
-                $answerContainer.slideToggle();
+                var willOpen = !$answerContainer.is(':visible');
+                $qaItem.find('.qa-toggle').attr('aria-expanded', willOpen ? 'true' : 'false');
+                $answerContainer.slideToggle(150);
             }
+        });
+
+        // Typing marks unsaved changes and keeps the row title in sync.
+        $qaList.on('input', 'textarea', function() {
+            var $qaItem = $(this).closest('.qa-item');
+            $qaItem.removeClass('has-error');
+            if ($(this).hasClass('qa-question')) {
+                $qaItem.find('.qa-question-text').text($(this).val().trim());
+            }
+            markDirty(true);
         });
 
         // Save all Q&A pairs
         $saveAllQaButton.on('click', function(e) {
             e.preventDefault();
-            showStatus('Saving Q&A pairs and generating file...', 'processing');
             var qaPairs = [];
-            $('.qa-item').each(function() {
+            var $incomplete = $();
+            $qaList.find('.qa-item').each(function() {
                 var $qaItem = $(this);
                 var question = $qaItem.find('.qa-question').val().trim();
                 var answer = $qaItem.find('.qa-answer').val().trim();
@@ -220,11 +310,66 @@ function initializeQaManagement() {
                         question: question,
                         answer: answer
                     });
+                } else if (question || answer) {
+                    $incomplete = $incomplete.add($qaItem);
+                } else {
+                    // Completely empty rows are simply dropped.
+                    $qaItem.remove();
+                    qaCount--;
                 }
             });
-            
+
+            if ($incomplete.length) {
+                $incomplete.addClass('has-error').find('.qa-answer-container').show();
+                $incomplete.find('.qa-toggle').attr('aria-expanded', 'true');
+                var $firstEmpty = $incomplete.first().find('textarea').filter(function() { return !$(this).val().trim(); }).first();
+                $firstEmpty.trigger('focus');
+                showStatus('Each pair needs both a question and an answer.', 'error');
+                return;
+            }
+
             // Reverse the array to maintain the original order
             qaPairs.reverse();
+
+            $saveAllQaButton.prop('disabled', true).text('Saving…');
+            function resetSaveButton() {
+                $saveAllQaButton.text('Save changes');
+                updateButtonStates();
+            }
+
+            // Removing every pair is the same as Delete all on the server.
+            if (qaPairs.length === 0) {
+                showStatus('Removing all Q&A…', 'processing');
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'wpiko_chatbot_delete_all_qa',
+                        security: wpikoChatbotAdmin.nonce
+                    }
+                }).done(function(response) {
+                    if (response.success) {
+                        qaCount = 0;
+                        savedCount = 0;
+                        markDirty(false);
+                        showEmptyState();
+                        updateQAFileInfo();
+                        showStatus('Saved.', 'success');
+                        setTimeout(function() {
+                            if (typeof wpikoChatbotFileManagement !== 'undefined') {
+                                wpikoChatbotFileManagement.refreshQAFileList();
+                            }
+                        }, 1000);
+                    } else {
+                        showStatus('Could not save: ' + (response.data ? response.data.message : 'Unknown error'), 'error');
+                    }
+                }).fail(function() {
+                    showStatus('Could not save. Please try again.', 'error');
+                }).always(resetSaveButton);
+                return;
+            }
+
+            showStatus('Saving and updating the knowledge base…', 'processing');
 
             $.ajax({
                 url: ajaxurl,
@@ -234,9 +379,11 @@ function initializeQaManagement() {
                     security: wpikoChatbotAdmin.nonce,
                     qa_pairs: JSON.stringify(qaPairs)
                 },
+                complete: resetSaveButton,
                 success: function(response) {
                     if (response.success) {
-                        showStatus('All Q&A pairs saved and file generated successfully.', 'success');
+                        markDirty(false);
+                        showStatus('Saved.', 'success');
                         loadQaPairs();
                         updateQAFileInfo(); // Update file info after saving
                         // Refresh the Q&A file list with a slight delay to ensure file is indexed
@@ -260,20 +407,44 @@ function initializeQaManagement() {
         $qaList.on('click', '.delete-qa', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            if (confirm('Are you sure you want to delete this Q&A pair?')) {
-                var $qaItem = $(this).closest('.qa-item');
+            var $qaItem = $(this).closest('.qa-item');
+            var question = $qaItem.find('.qa-question').val().trim();
+            var removeItem = function() {
                 $qaItem.remove();
                 qaCount--;
-                updateButtonStates();
-                showStatus('Q&A pair marked for deletion. Remember to save your changes.', 'success');
+                showEmptyState();
+                markDirty(true);
+            };
+            // Nothing typed yet: remove without asking.
+            if (!question && !$qaItem.find('.qa-answer').val().trim()) {
+                removeItem();
+                return;
             }
+            askConfirm({
+                title: 'Remove this Q&A?',
+                message: question ? '“' + question + '” will be removed when you save.' : 'This pair will be removed when you save.',
+                confirmLabel: 'Remove',
+                danger: true
+            }).then(function(ok) {
+                if (ok) {
+                    removeItem();
+                }
+            });
         });
 
         // Delete all Q&A pairs
         $deleteAllQaButton.on('click', function(e) {
             e.preventDefault();
-            if (confirm('Are you sure you want to delete all Q&A pairs? This action cannot be undone.')) {
-                showStatus('Deleting all Q&A pairs...', 'processing');
+            askConfirm({
+                title: 'Delete all Q&A?',
+                message: 'Every pair and the knowledge base file will be deleted. This cannot be undone.',
+                confirmLabel: 'Delete all',
+                danger: true
+            }).then(function(ok) {
+                if (!ok) {
+                    return;
+                }
+                showStatus('Deleting all Q&A…', 'processing');
                 $.ajax({
                     url: ajaxurl,
                     type: 'POST',
@@ -285,9 +456,11 @@ function initializeQaManagement() {
                         if (response.success) {
                             $qaList.empty();
                             qaCount = 0;
-                            updateButtonStates();
+                            savedCount = 0;
+                            markDirty(false);
+                            showEmptyState();
                             updateQAFileInfo(); // Update file info after deletion
-                            showStatus('All Q&A pairs deleted successfully.', 'success');
+                            showStatus('All Q&A deleted.', 'success');
                         
                             // Refresh the Q&A file list with a slight delay
                             setTimeout(function() {
@@ -304,13 +477,13 @@ function initializeQaManagement() {
                         showStatus('An error occurred while deleting Q&A pairs.', 'error');
                     }
                 });
-            }
+            });
         });
 
         // Download Q&A file
         $downloadQaButton.on('click', function(e) {
             e.preventDefault();
-            showStatus('Preparing Q&A file for download...', 'processing');
+            showStatus('Preparing download…', 'processing');
             $.ajax({
                 url: ajaxurl,
                 type: 'POST',
@@ -326,7 +499,7 @@ function initializeQaManagement() {
                         link.download = response.data.filename;
                         link.click();
                         window.URL.revokeObjectURL(link.href);
-                        showStatus('Q&A file downloaded successfully.', 'success');
+                        clearStatus();
                     } else {
                         showStatus('Error downloading Q&A file: ' + response.data.message, 'error');
                     }
@@ -357,14 +530,12 @@ function initializeQaManagement() {
 function initializeModalHandlers() {
     // Handle click on the Q&A Management button
     $(document).on('click', '#qa-management-button', function() {
-        console.log('Q&A Management button clicked');
         var $qaStatus = $('#qa-status-message');
         
         $qaStatus.html('<span class="processing">Checking for duplicate files...</span>');
         checkDuplicateQAFiles().then(function(response) {
             if (response.success) {
                 if (response.data.duplicateFound) {
-                    console.log('Duplicate Q&A files cleaned up on button click');
                     $qaStatus.html('<span class="success">Duplicate files cleaned up successfully.</span>');
                 } else {
                     $qaStatus.html('<span class="success">No duplicate files found.</span>');
@@ -382,7 +553,6 @@ function initializeModalHandlers() {
 
     // Handle modal show event (this is triggered when the modal content is loaded)
     $(document).on('qaManagementLoaded', function() {
-        console.log('Q&A Management modal content loaded');
         initializeQaManagement();
         // Check for duplicates when the Q&A Management modal content is loaded
         var $qaStatus = $('#qa-status-message');
@@ -394,7 +564,6 @@ function initializeModalHandlers() {
         checkDuplicateQAFiles().then(function(response) {
             if (response.success) {
                 if (response.data.duplicateFound) {
-                    console.log('Duplicate Q&A files cleaned up on modal load');
                     $qaStatus.html('<span class="success">Duplicate files cleaned up successfully.</span>');
                 } else {
                     $qaStatus.html('<span class="success">No duplicate files found.</span>');
@@ -412,14 +581,12 @@ function initializeModalHandlers() {
 
     // Handle any wpikoChatbot modal show events
     $(document).on('shown.wpiko.modal', '#qa-management-modal', function() {
-        console.log('Q&A Management modal shown');
         var $qaStatus = $('#qa-status-message');
         
         $qaStatus.html('<span class="processing">Checking for duplicate files...</span>');
         checkDuplicateQAFiles().then(function(response) {
             if (response.success) {
                 if (response.data.duplicateFound) {
-                    console.log('Duplicate Q&A files cleaned up on modal show');
                     $qaStatus.html('<span class="success">Duplicate files cleaned up successfully.</span>');
                 } else {
                     $qaStatus.html('<span class="success">No duplicate files found.</span>');
@@ -439,7 +606,6 @@ function initializeModalHandlers() {
 
 // After file upload, trigger duplicate check
 $(document).on('wpikoChatbotFileUploaded', function() {
-    console.log('File upload completed, checking for duplicates');
     var $qaStatus = $('#qa-status-message');
     $qaStatus.html('<span class="processing">Checking for duplicate files...</span>');
     
@@ -447,7 +613,6 @@ $(document).on('wpikoChatbotFileUploaded', function() {
         .then(function(response) {
             if (response.success) {
                 if (response.data.duplicateFound) {
-                    console.log('Duplicate Q&A files cleaned up after file upload');
                     $qaStatus.html('<span class="success">Duplicate files cleaned up successfully.</span>');
                 } else {
                     $qaStatus.html('<span class="success">No duplicate files found.</span>');
@@ -470,7 +635,6 @@ $(document).on('wpikoChatbotFileUploaded', function() {
 // Also check for duplicates when switching between modal tabs
 $(document).on('wpikoChatbotTabSwitch', function(e, tabId) {
     if (tabId === 'qa-management') {
-        console.log('Q&A Management tab active, checking for duplicates');
         var $qaStatus = $('#qa-status-message');
         $qaStatus.html('<span class="processing">Checking for duplicate files...</span>');
         
@@ -478,7 +642,6 @@ $(document).on('wpikoChatbotTabSwitch', function(e, tabId) {
             .then(function(response) {
                 if (response.success) {
                     if (response.data.duplicateFound) {
-                        console.log('Duplicate Q&A files cleaned up on tab switch');
                         $qaStatus.html('<span class="success">Duplicate files cleaned up successfully.</span>');
                     } else {
                         $qaStatus.html('<span class="success">No duplicate files found.</span>');

@@ -115,7 +115,7 @@ function wpiko_chatbot_license_activation_page() {
                                 $message_type = 'error';
                             }
                         } else {
-                            $message = 'Invalid product type. This license key is not for the WPiko Chatbot plugin.';
+                            $message = 'Invalid product type. This license key is not for the WPiko AI Chatbot plugin.';
                             $message_type = 'error';
                         }
                     } else {
@@ -157,101 +157,92 @@ function wpiko_chatbot_license_activation_page() {
     ));
 
     ?>
-    <div class="license-activation-section">
-        <h2><span class="dashicons dashicons-unlock"></span> License Activation</h2>
-        <p class="description">
-            Enter your license key to activate WPiko Chatbot and unlock all features. 
-            <a href="https://wpiko.com/chatbot-pricing/" target="_blank">Get your license key here</a> to access premium features.
-        </p>
+    <div class="wpiko-chatbot-settings-page wpiko-license-page">
+        <header class="wpiko-chatbot-settings-header">
+            <h1>License Activation</h1>
+            <p class="wpiko-chatbot-settings-subtitle">Manage your WPiko AI Chatbot Pro license and check your connection and update status.</p>
+        </header>
         <?php if (!empty($message)): ?>
-            <div class="notice notice-<?php echo esc_attr($message_type); ?>" style="padding: 10px;">
-                <p style="margin: 0;"><?php echo wp_kses_post($message); ?></p>
-            </div>
+            <div class="wpiko-chatbot-settings-notice is-<?php echo esc_attr($message_type); ?>" role="status"><p><?php echo wp_kses_post($message); ?></p></div>
         <?php endif; ?>
         <?php if ($license_status === 'expired'): ?>
-            <div class="notice notice-error">
+            <div class="wpiko-chatbot-settings-notice is-error" role="alert">
                 <p><?php esc_html_e('Your license has expired. If it was converted to lifetime, click Refresh License below. Otherwise get a lifetime license to continue using all Pro features.', 'wpiko-chatbot-pro'); ?></p>
             </div>
         <?php endif; ?>
-        <form method="post" action="">
-            <?php wp_nonce_field('wpiko_chatbot_license_action', 'wpiko_chatbot_license_nonce'); ?>
-            <table class="form-table">
-                <tr>
-                    <th scope="row">License Key</th>
-                    <td>
-                        <input type="text" name="wpiko_chatbot_license_key" 
-                               value="<?php echo esc_attr($masked_license_key); ?>" 
-                               class="regular-text <?php echo $license_status === 'expired' ? 'expired-license' : ''; ?>"
-                               <?php echo $license_status === 'active' ? 'readonly' : ''; ?>>
-                        <?php if (in_array($license_status, ['active', 'expired'])): ?>
-                            <button type="button" id="wpiko-delete-license" class="button button-secondary"><span class="dashicons dashicons-trash"></span>Delete License</button>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">License Status</th>
-                    <td>
-                        <span class="license-status <?php echo esc_attr($license_status); ?>">
-                            <?php echo esc_html(ucfirst($license_status)); ?>
-                        </span>
-                    </td>
-                </tr>
+        <div class="wpiko-chatbot-settings-content">
+            <section class="wpiko-chatbot-settings-card" aria-labelledby="license-details-title">
+                <h2 class="wpiko-chatbot-settings-card-title" id="license-details-title">License details</h2>
+                <form method="post" action="" class="license-details-form">
+                    <?php wp_nonce_field('wpiko_chatbot_license_action', 'wpiko_chatbot_license_nonce'); ?>
+                    <div class="wpiko-chatbot-settings-field-row">
+                        <label class="wpiko-chatbot-settings-field-label" for="wpiko-chatbot-license-key">License key</label>
+                        <div class="wpiko-chatbot-settings-field-control">
+                            <div class="license-key-controls">
+                                <input type="text" id="wpiko-chatbot-license-key" name="wpiko_chatbot_license_key" value="<?php echo esc_attr($masked_license_key); ?>" class="<?php echo $license_status === 'expired' ? 'expired-license' : ''; ?>" placeholder="Enter your license key" autocomplete="off" spellcheck="false" aria-describedby="license-key-description" <?php echo $license_status === 'active' ? 'readonly' : ''; ?>>
+                                <?php if (in_array($license_status, ['active', 'expired'])): ?>
+                                    <button type="button" id="wpiko-delete-license" class="button wpiko-chatbot-settings-danger"><span class="dashicons dashicons-trash" aria-hidden="true"></span>Delete License</button>
+                                <?php endif; ?>
+                            </div>
+                            <p class="wpiko-chatbot-settings-field-description" id="license-key-description">
+                                <?php if ($license_status === 'active'): ?>
+                                    Your saved license key is masked for security.
+                                <?php else: ?>
+                                    Enter your key to unlock Pro features. <a href="https://wpiko.com/chatbot-pricing/" target="_blank" rel="noopener">Get a license key</a>.
+                                <?php endif; ?>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="wpiko-chatbot-settings-field-row">
+                        <div class="wpiko-chatbot-settings-field-label">License status</div>
+                        <div class="wpiko-chatbot-settings-field-control"><span class="license-status <?php echo esc_attr($license_status); ?>"><?php echo esc_html(ucfirst($license_status)); ?></span></div>
+                    </div>
+                    <?php if (in_array($license_status, ['active', 'expired'])): ?>
+                        <div class="wpiko-chatbot-settings-field-row">
+                            <div class="wpiko-chatbot-settings-field-label">Expiration date</div>
+                            <div class="wpiko-chatbot-settings-field-control license-expiration">
+                                <?php
+                                if ($is_lifetime) {
+                                    echo 'Lifetime License';
+                                } elseif (!empty($license_expiration)) {
+                                    echo esc_html(gmdate('F j, Y', strtotime($license_expiration)));
+                                } else {
+                                    echo 'N/A';
+                                }
+                                ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($license_status === 'inactive'): ?>
+                        <div class="wpiko-chatbot-settings-actions"><button type="submit" name="submit" id="submit" class="button wpiko-chatbot-settings-save">Activate License</button></div>
+                    <?php endif; ?>
+                </form>
                 <?php if (in_array($license_status, ['active', 'expired'])): ?>
-                <tr>
-                    <th scope="row">Expiration Date</th>
-                    <td>
-                        <?php
-                        if ($is_lifetime) {
-                            echo 'Lifetime License';
-                        } elseif (!empty($license_expiration)) {
-                            echo esc_html(gmdate('F j, Y', strtotime($license_expiration)));
-                        } else {
-                            echo 'N/A';
-                        }
-                        ?>
-                    </td>
-                </tr>
+                    <div class="wpiko-chatbot-settings-actions">
+                        <button type="button" id="wpiko-chatbot-manual-license-check" class="button wpiko-chatbot-settings-save"><?php esc_html_e('Refresh License', 'wpiko-chatbot-pro'); ?></button>
+                        <?php if ($license_status === 'expired'): ?>
+                            <a href="https://wpiko.com/chatbot-pricing/" class="button" target="_blank" rel="noopener">Get Lifetime License</a>
+                        <?php endif; ?>
+                    </div>
+                    <div id="wpiko-chatbot-license-check-result" role="status" aria-live="polite"></div>
                 <?php endif; ?>
-            </table>
-            <?php if ($license_status === 'inactive'): ?>
-                <?php submit_button('Activate License'); ?>
-            <?php elseif ($license_status === 'expired'): ?>
-                <a href="https://wpiko.com/chatbot-pricing/" class="button button-secondary wpiko-chatbot-check-button" target="_blank" rel="noopener">Get Lifetime License</a>
-            <?php endif; ?>
-        </form>
-        <?php if (in_array($license_status, ['active', 'expired'])): ?>
-            <button id="wpiko-chatbot-manual-license-check" class="button button-primary wpiko-chatbot-check-button">
-                <?php esc_html_e('Refresh License', 'wpiko-chatbot-pro'); ?>
-            </button>
-            <span id="wpiko-chatbot-license-check-result"></span>
-        <?php endif; ?>
-        
-        <!-- Connection Diagnostic Tool -->
-        <div class="wpiko-connection-diagnostic" style="margin-top: 30px; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
-            <h3 style="margin-top: 0;"><span class="dashicons dashicons-admin-tools"></span> Connection Diagnostics</h3>
-            <p class="description">
-                Having trouble activating your license? Use this tool to test if your server can connect to our licensing server.
-            </p>
-            <button type="button" id="wpiko-test-connection" class="button button-secondary">
-                <span class="dashicons dashicons-networking" style="vertical-align: middle;"></span> Test Connection
-            </button>
-            <div id="wpiko-connection-results" style="display: none; margin-top: 15px;">
-                <div id="wpiko-connection-loading" style="display: none;">
-                    <span class="spinner is-active" style="float: none; margin: 0 10px 0 0;"></span>
-                    Testing connection to licensing server...
+            </section>
+            <section class="wpiko-chatbot-settings-card wpiko-connection-diagnostic" aria-labelledby="license-diagnostics-title">
+                <h2 class="wpiko-chatbot-settings-card-title" id="license-diagnostics-title">Connection diagnostics</h2>
+                <p class="wpiko-chatbot-settings-field-description">Having trouble activating your license? Check whether your server can connect to the licensing server.</p>
+                <div class="wpiko-chatbot-settings-actions"><button type="button" id="wpiko-test-connection" class="button">Test Connection</button></div>
+                <div id="wpiko-connection-results" style="display: none;" aria-live="polite">
+                    <div id="wpiko-connection-loading" style="display: none;" role="status">
+                        <span class="spinner is-active" aria-hidden="true"></span>
+                        Testing connection to licensing server...
+                    </div>
+                    <div id="wpiko-connection-output"></div>
                 </div>
-                <div id="wpiko-connection-output"></div>
-            </div>
+            </section>
+            <?php wpiko_chatbot_pro_github_status_widget(); ?>
         </div>
     </div>
-    
     <?php
-    // Display GitHub update status widget
-    wpiko_chatbot_pro_github_status_widget();
-    ?>
-    
-    <?php
-    
     // Ensure the status is always stored encrypted
     if ($license_status !== 'inactive') {
         $encrypted_status = wpiko_chatbot_pro_encrypt_data($license_status);

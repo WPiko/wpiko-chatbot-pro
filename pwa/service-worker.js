@@ -1,4 +1,4 @@
-// WPiko Chatbot Pro — Service Worker
+// WPiko AI Chatbot Pro — Service Worker
 const CACHE_NAME = 'wpiko-pwa-shell-v2';
 const APP_SCOPE = '/wpiko-app/';
 const APP_URLS = [

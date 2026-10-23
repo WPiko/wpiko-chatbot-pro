@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# WPiko Chatbot Pro Release Script
+# WPiko AI Chatbot Pro Release Script
 # This script helps automate the release process for GitHub updates
 
 set -e
@@ -176,7 +176,7 @@ EOF
 
 # Main script
 main() {
-    print_status "WPiko Chatbot Pro Release Script"
+    print_status "WPiko AI Chatbot Pro Release Script"
     echo "=================================="
     echo
     

@@ -4,6 +4,9 @@ if (!defined('ABSPATH')) {
 }
 
 function wpiko_chatbot_pwa_settings_section() {
+    $settings_saved = false;
+    $license_error = false;
+
     // Handle form submission
     if (isset($_POST['action']) && $_POST['action'] === 'save_pwa_settings') {
         check_admin_referer('save_pwa_settings', 'pwa_settings_nonce');
@@ -48,9 +51,9 @@ function wpiko_chatbot_pwa_settings_section() {
                 flush_rewrite_rules();
             }
 
-            echo '<div class="updated"><p>PWA settings updated successfully.</p></div>';
+            $settings_saved = true;
         } else {
-            echo '<div class="notice notice-error"><p>PWA settings cannot be saved without an active license.</p></div>';
+            $license_error = true;
         }
     }
 
@@ -72,85 +75,89 @@ function wpiko_chatbot_pwa_settings_section() {
         ? wpiko_chatbot_pro_get_push_subscriptions()
         : array();
     ?>
-
-    <div class="pwa-settings-section">
-        <div class="pwa-settings-header">
-            <h2>
-                <span class="dashicons dashicons-smartphone"></span>
-                Mobile App (PWA)
-                <?php if (!$is_license_active): ?>
-                    <span class="premium-feature-badge">PRO</span>
-                <?php endif; ?>
-            </h2>
-            <p class="description">Access conversations and reply to users directly from your phone as an Administrator or Live Agent.</p>
-        </div>
-
+    <div class="wpiko-chatbot-settings-page wpiko-mobile-app-page">
+        <header class="wpiko-chatbot-settings-header">
+            <h1>Mobile App<?php if (!$is_license_active): ?> <span class="mobile-app-pro-badge">PRO</span><?php endif; ?></h1>
+            <p class="wpiko-chatbot-settings-subtitle">Access conversations and reply from your phone as an Administrator or Live Agent.</p>
+        </header>
+        <?php if ($settings_saved): ?>
+            <div class="wpiko-chatbot-settings-notice is-success" role="status"><p>PWA settings updated successfully.</p></div>
+        <?php endif; ?>
+        <?php if ($license_error): ?>
+            <div class="wpiko-chatbot-settings-notice is-error" role="alert"><p>PWA settings cannot be saved without an active license.</p></div>
+        <?php endif; ?>
         <?php if ($is_license_active): ?>
-            <form method="post" action="">
+            <form method="post" action="" class="wpiko-chatbot-settings-form">
                 <input type="hidden" name="action" value="save_pwa_settings">
                 <?php wp_nonce_field('save_pwa_settings', 'pwa_settings_nonce'); ?>
-
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">Enable PWA</th>
-                        <td>
-                            <label class="wpiko-switch">
-                                <input type="checkbox" id="wpiko_chatbot_enable_pwa" name="wpiko_chatbot_enable_pwa" value="1"
-                                       <?php checked($enable_pwa, '1'); ?>>
-                                <span class="wpiko-slider round"></span>
+                <section class="wpiko-chatbot-settings-card" aria-labelledby="mobile-app-settings-title">
+                    <h2 class="wpiko-chatbot-settings-card-title" id="mobile-app-settings-title">App settings</h2>
+                    <div class="wpiko-chatbot-settings-field-row">
+                        <div class="wpiko-chatbot-settings-field-label">Mobile web app</div>
+                        <div class="wpiko-chatbot-settings-field-control">
+                            <label class="wpiko-chatbot-settings-switch" for="wpiko_chatbot_enable_pwa">
+                                <input type="checkbox" role="switch" id="wpiko_chatbot_enable_pwa" name="wpiko_chatbot_enable_pwa" value="1" aria-controls="mobile-app-options" aria-describedby="mobile-app-enabled-description" <?php checked($enable_pwa, '1'); ?>>
+                                <span class="wpiko-chatbot-settings-switch__track" aria-hidden="true"></span>
+                                <span class="wpiko-chatbot-settings-switch__label">Enable the mobile web app</span>
                             </label>
-                            <label for="wpiko_chatbot_enable_pwa">Enable the mobile web app</label>
-                            <p class="description">When enabled, Administrators and Live Agents can access the chat app at the URL below.</p>
-                        </td>
-                    </tr>
-                </table>
-
-                <div class="pwa-settings-collapsible <?php echo $enable_pwa === '1' ? 'active' : ''; ?>">
-                    <div class="wpiko-accordion-item">
-                        <h3 class="collapsible-header active">
-                            <span><span class="dashicons dashicons-admin-settings"></span> General Settings</span>
-                            <span class="dashicons dashicons-arrow-down-alt2"></span>
-                        </h3>
-                        <div class="collapsible-content active">
-                            <table class="form-table">
-                                <tr>
-                                    <th scope="row">App URL</th>
-                                    <td>
-                                        <code><?php echo esc_html($pwa_url); ?></code>
-                                        <p class="description">Open this URL on your phone and add it to your home screen.</p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">App Name</th>
-                                    <td>
-                                        <input type="text" name="wpiko_chatbot_pwa_app_name" class="regular-text"
-                                               value="<?php echo esc_attr($pwa_app_name); ?>">
-                                        <p class="description">Shown on the home screen icon.</p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Push Notifications</th>
-                                    <td>
-                                        <label class="wpiko-switch">
-                                            <input type="checkbox" id="wpiko_chatbot_enable_push" name="wpiko_chatbot_enable_push" value="1"
-                                                   <?php checked($enable_push, '1'); ?>>
-                                            <span class="wpiko-slider round"></span>
-                                        </label>
-                                        <label for="wpiko_chatbot_enable_push">Enable push notifications for new messages</label>
-                                        <p class="description">Get notified on your phone when a visitor sends a message. VAPID keys are generated automatically.</p>
-                                        <p class="description" style="margin-top: 8px; color: #826200; background: #fff8e1; border-left: 4px solid #ffb300; padding: 8px 12px;">
-                                            <strong>Delivery timing note:</strong> Web push notifications are delivered through Apple (APNs) and Google (FCM) services, which may sometimes delay delivery by a few minutes depending on your device's battery state, power-saving mode, network conditions, and OS-level notification batching. This is a platform limitation that affects all PWA-based apps — not something that can be controlled from the server side. Notifications sent while the app is actively open will always appear instantly.
-                                        </p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Registered Devices</th>
-                                    <td>
-                                        <strong id="wpiko-registered-device-count"><?php echo esc_html((string) $subscription_count); ?></strong>
-                                        <p class="description">Devices with push notifications enabled in the Mobile App settings.</p>
-                                        <p class="description">Subscriptions are removed automatically only when the push provider reports the endpoint as expired or gone, such as HTTP 404 or 410. Devices that are simply offline are kept and can be removed manually if the app was deleted without turning push off first.</p>
-                                        <div class="wpiko-registered-devices-wrap" style="margin-top: 12px; max-width: 980px;">
-                                            <table class="widefat striped" id="wpiko-registered-devices-table" <?php echo empty($subscriptions) ? 'style="display:none;"' : ''; ?>>
+                            <p class="wpiko-chatbot-settings-field-description" id="mobile-app-enabled-description">Let Administrators and Live Agents access the chat app on a phone or tablet.</p>
+                        </div>
+                    </div>
+                </section>
+                <div class="wpiko-chatbot-settings-content" id="mobile-app-options" <?php if ($enable_pwa !== '1'): ?>hidden<?php endif; ?>>
+                    <section class="wpiko-chatbot-settings-card" aria-labelledby="mobile-app-general-title">
+                        <h2 class="wpiko-chatbot-settings-card-title" id="mobile-app-general-title">General settings</h2>
+                        <div class="wpiko-chatbot-settings-field-row">
+                            <div class="wpiko-chatbot-settings-field-label">App URL</div>
+                            <div class="wpiko-chatbot-settings-field-control">
+                                <code class="wpiko-chatbot-settings-code"><?php echo esc_html($pwa_url); ?></code>
+                                <p class="wpiko-chatbot-settings-field-description">Open this URL on your phone and add it to your home screen.</p>
+                            </div>
+                        </div>
+                        <div class="wpiko-chatbot-settings-field-row">
+                            <label class="wpiko-chatbot-settings-field-label" for="wpiko_chatbot_pwa_app_name">App name</label>
+                            <div class="wpiko-chatbot-settings-field-control">
+                                <input type="text" id="wpiko_chatbot_pwa_app_name" name="wpiko_chatbot_pwa_app_name" value="<?php echo esc_attr($pwa_app_name); ?>" aria-describedby="mobile-app-name-description">
+                                <p class="wpiko-chatbot-settings-field-description" id="mobile-app-name-description">Shown on the home screen icon.</p>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="wpiko-chatbot-settings-card" aria-labelledby="mobile-app-push-title">
+                        <h2 class="wpiko-chatbot-settings-card-title" id="mobile-app-push-title">Push notifications</h2>
+                        <div class="wpiko-chatbot-settings-field-row">
+                            <div class="wpiko-chatbot-settings-field-label">New message alerts</div>
+                            <div class="wpiko-chatbot-settings-field-control">
+                                <label class="wpiko-chatbot-settings-switch" for="wpiko_chatbot_enable_push">
+                                    <input type="checkbox" role="switch" id="wpiko_chatbot_enable_push" name="wpiko_chatbot_enable_push" value="1" aria-describedby="mobile-app-push-description" <?php checked($enable_push, '1'); ?>>
+                                    <span class="wpiko-chatbot-settings-switch__track" aria-hidden="true"></span>
+                                    <span class="wpiko-chatbot-settings-switch__label">Enable push notifications for new messages</span>
+                                </label>
+                                <p class="wpiko-chatbot-settings-field-description" id="mobile-app-push-description">Get notified on your phone when a visitor sends a message. VAPID keys are generated automatically.</p>
+                                <details class="mobile-app-delivery-note">
+                                    <summary>About notification delivery</summary>
+                                    <p>Web push notifications are delivered through Apple (APNs) and Google (FCM) services, which may sometimes delay delivery by a few minutes depending on your device's battery state, power-saving mode, network conditions, and OS-level notification batching. This is a platform limitation that affects all PWA-based apps — not something that can be controlled from the server side. Notifications sent while the app is actively open will always appear instantly.</p>
+                                </details>
+                            </div>
+                        </div>
+                        <div class="wpiko-chatbot-settings-field-row">
+                            <div class="wpiko-chatbot-settings-field-label">Test notification</div>
+                            <div class="wpiko-chatbot-settings-field-control wpiko-test-push-controls">
+                                <button type="button" class="button" id="wpiko-send-test-push" <?php echo $enable_push !== '1' ? 'disabled' : ''; ?>>Send Test Notification</button>
+                                <p class="wpiko-chatbot-settings-field-description">Send a test notification to verify that your device is set up correctly.</p>
+                                <div id="wpiko-test-push-status" class="wpiko-inline-status" aria-live="polite" role="status"></div>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="wpiko-chatbot-settings-card" aria-labelledby="mobile-app-devices-title">
+                        <div class="mobile-app-devices-header">
+                            <h2 class="wpiko-chatbot-settings-card-title" id="mobile-app-devices-title">Registered devices</h2>
+                            <span class="mobile-app-device-count" aria-label="Registered device count"><strong id="wpiko-registered-device-count"><?php echo esc_html((string) $subscription_count); ?></strong> devices</span>
+                        </div>
+                        <p class="wpiko-chatbot-settings-field-description">Devices with push notifications enabled in the Mobile App settings.</p>
+                        <p class="wpiko-chatbot-settings-field-description mobile-app-device-help">Subscriptions are removed automatically only when the push provider reports the endpoint as expired or gone, such as HTTP 404 or 410. Devices that are simply offline are kept and can be removed manually if the app was deleted without turning push off first.</p>
+                        <div class="wpiko-registered-devices-wrap" role="region" aria-label="Registered devices" tabindex="0">
+<table class="widefat" id="wpiko-registered-devices-table" <?php echo empty($subscriptions) ? 'style="display:none;"' : ''; ?>>
+                                                <caption class="screen-reader-text">Registered push notification devices</caption>
                                                 <thead>
                                                     <tr>
                                                         <th>Owner</th>
@@ -167,88 +174,51 @@ function wpiko_chatbot_pwa_settings_section() {
                                                             <td><?php echo esc_html($subscription['user_name']); ?></td>
                                                             <td>
                                                                 <strong><?php echo esc_html($subscription['device_label']); ?></strong><br>
-                                                                <span class="description"><?php echo esc_html($subscription['endpoint_host'] . ' / ' . $subscription['endpoint_reference']); ?></span>
+                                                                <span class="wpiko-chatbot-settings-field-description"><?php echo esc_html($subscription['endpoint_host'] . ' / ' . $subscription['endpoint_reference']); ?></span>
                                                             </td>
                                                             <td><?php echo esc_html($subscription['last_seen_text']); ?></td>
                                                             <td><?php echo esc_html($subscription['last_delivery_text']); ?></td>
                                                             <td><?php echo esc_html($subscription['created_at_text']); ?></td>
                                                             <td>
-                                                                <button type="button" class="button-link-delete wpiko-remove-device" data-subscription-id="<?php echo esc_attr((string) $subscription['id']); ?>">Remove</button>
+                                                                <button type="button" class="button wpiko-chatbot-settings-danger wpiko-remove-device" data-subscription-id="<?php echo esc_attr((string) $subscription['id']); ?>">Remove</button>
                                                             </td>
                                                         </tr>
                                                     <?php endforeach; ?>
                                                 </tbody>
                                             </table>
-                                            <p class="description" id="wpiko-registered-devices-empty" <?php echo !empty($subscriptions) ? 'style="display:none;"' : ''; ?>>No registered devices yet.</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Test Push Notification</th>
-                                    <td class="wpiko-test-push-cell">
-                                        <div class="wpiko-test-push-controls">
-                                            <button type="button" class="button button-primary" id="wpiko-send-test-push"
-                                                    <?php echo $enable_push !== '1' ? 'disabled' : ''; ?>>Send Test Notification</button>
-                                            <p class="description wpiko-test-push-description">Send a test notification to verify that your device is set up correctly.</p>
-                                            <div id="wpiko-test-push-status" class="wpiko-inline-status" aria-live="polite" role="status"></div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </table>
+                            <p class="wpiko-chatbot-settings-field-description mobile-app-empty-devices" id="wpiko-registered-devices-empty" <?php echo !empty($subscriptions) ? 'style="display:none;"' : ''; ?>>No registered devices yet.</p>
                         </div>
-                    </div>
-
-                    <div class="wpiko-accordion-item">
-                        <h3 class="collapsible-header">
-                            <span><span class="dashicons dashicons-edit"></span> Customizable Text</span>
-                            <span class="dashicons dashicons-arrow-down-alt2"></span>
-                        </h3>
-                        <div class="collapsible-content">
-                            <table class="form-table">
-                                <tr>
-                                    <th scope="row">Header Text</th>
-                                    <td>
-                                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                                            <input type="text" name="wpiko_chatbot_takeover_header_prefix" class="regular-text"
-                                                   value="<?php echo esc_attr($takeover_header_prefix); ?>" style="flex: 1;">
-                                            Agent name
-                                        </div>
-                                        <p class="description">Shown in the chatbot header during admin takeover. Example: <em><?php echo esc_html($takeover_header_prefix); ?> John</em></p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Agent Joined Text</th>
-                                    <td>
-                                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                                            Agent name
-                                            <input type="text" name="wpiko_chatbot_takeover_join_text" class="regular-text"
-                                                   value="<?php echo esc_attr($takeover_join_text); ?>" style="flex: 1;">
-                                        </div>
-                                        <p class="description">Appended automatically after the agent name. Example: <em>John <?php echo esc_html($takeover_join_text); ?></em></p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Agent Left Text</th>
-                                    <td>
-                                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                                            Agent name
-                                            <input type="text" name="wpiko_chatbot_takeover_release_text" class="regular-text"
-                                                   value="<?php echo esc_attr($takeover_release_text); ?>" style="flex: 1;">
-                                        </div>
-                                        <p class="description">Appended automatically after the agent name. Example: <em>John <?php echo esc_html($takeover_release_text); ?></em></p>
-                                    </td>
-                                </tr>
-                            </table>
+                    </section>
+                    <details class="wpiko-chatbot-settings-card wpiko-chatbot-settings-disclosure">
+                        <summary class="wpiko-chatbot-settings-disclosure-title">Customizable text</summary>
+                        <div class="wpiko-chatbot-settings-disclosure-content">
+                            <div class="wpiko-chatbot-settings-field-row">
+                                <label class="wpiko-chatbot-settings-field-label" for="wpiko_chatbot_takeover_header_prefix">Header text</label>
+                                <div class="wpiko-chatbot-settings-field-control">
+                                    <div class="mobile-app-text-template"><input type="text" id="wpiko_chatbot_takeover_header_prefix" name="wpiko_chatbot_takeover_header_prefix" value="<?php echo esc_attr($takeover_header_prefix); ?>" aria-describedby="wpiko_chatbot_takeover_header_prefix-description"><span class="mobile-app-agent-placeholder">Agent name</span></div>
+                                    <p class="wpiko-chatbot-settings-field-description" id="wpiko_chatbot_takeover_header_prefix-description">Shown in the chatbot header during admin takeover. Example: <em><?php echo esc_html($takeover_header_prefix); ?> John</em></p>
+                                </div>
+                            </div>
+                            <div class="wpiko-chatbot-settings-field-row">
+                                <label class="wpiko-chatbot-settings-field-label" for="wpiko_chatbot_takeover_join_text">Agent joined text</label>
+                                <div class="wpiko-chatbot-settings-field-control">
+                                    <div class="mobile-app-text-template"><span class="mobile-app-agent-placeholder">Agent name</span><input type="text" id="wpiko_chatbot_takeover_join_text" name="wpiko_chatbot_takeover_join_text" value="<?php echo esc_attr($takeover_join_text); ?>" aria-describedby="wpiko_chatbot_takeover_join_text-description"></div>
+                                    <p class="wpiko-chatbot-settings-field-description" id="wpiko_chatbot_takeover_join_text-description">Appended automatically after the agent name when an agent joins. Example: <em>John <?php echo esc_html($takeover_join_text); ?></em></p>
+                                </div>
+                            </div>
+                            <div class="wpiko-chatbot-settings-field-row">
+                                <label class="wpiko-chatbot-settings-field-label" for="wpiko_chatbot_takeover_release_text">Agent left text</label>
+                                <div class="wpiko-chatbot-settings-field-control">
+                                    <div class="mobile-app-text-template"><span class="mobile-app-agent-placeholder">Agent name</span><input type="text" id="wpiko_chatbot_takeover_release_text" name="wpiko_chatbot_takeover_release_text" value="<?php echo esc_attr($takeover_release_text); ?>" aria-describedby="wpiko_chatbot_takeover_release_text-description"></div>
+                                    <p class="wpiko-chatbot-settings-field-description" id="wpiko_chatbot_takeover_release_text-description">Appended automatically after the agent name when an agent leaves. Example: <em>John <?php echo esc_html($takeover_release_text); ?></em></p>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="wpiko-accordion-item">
-                        <h3 class="collapsible-header">
-                            <span><span class="dashicons dashicons-info"></span> Quick Setup Guide</span>
-                            <span class="dashicons dashicons-arrow-down-alt2"></span>
-                        </h3>
-                        <div class="collapsible-content">
-                            <div class="instruction-content pwa-setup-guide">
+                    </details>
+                <details class="wpiko-chatbot-settings-card wpiko-chatbot-settings-disclosure">
+                    <summary class="wpiko-chatbot-settings-disclosure-title">Quick setup guide</summary>
+                    <div class="wpiko-chatbot-settings-disclosure-content">
+<div class="mobile-app-guide pwa-setup-guide">
                                 <p>Use this checklist for the fastest setup flow before installing the Mobile App on a phone or tablet.</p>
 
                                 <div class="wpiko-pwa-guide-block">
@@ -270,16 +240,12 @@ function wpiko_chatbot_pwa_settings_section() {
                                     </ul>
                                 </div>
                             </div>
-                        </div>
                     </div>
-
-                    <div class="wpiko-accordion-item">
-                        <h3 class="collapsible-header">
-                            <span><span class="dashicons dashicons-smartphone"></span> Install Guide for iPhone & Android</span>
-                            <span class="dashicons dashicons-arrow-down-alt2"></span>
-                        </h3>
-                        <div class="collapsible-content">
-                            <div class="instruction-content wpiko-pwa-install-guide">
+                </details>
+                <details class="wpiko-chatbot-settings-card wpiko-chatbot-settings-disclosure">
+                    <summary class="wpiko-chatbot-settings-disclosure-title">Install guide for iPhone & Android</summary>
+                    <div class="wpiko-chatbot-settings-disclosure-content">
+<div class="mobile-app-guide wpiko-pwa-install-guide">
                                 <p>Use the instructions below to add the Mobile App to a phone or tablet and review the main requirements before sharing it with your team.</p>
 
                                 <div class="wpiko-pwa-guide-block">
@@ -322,43 +288,48 @@ function wpiko_chatbot_pwa_settings_section() {
                                     </ul>
                                 </div>
                             </div>
-                        </div>
                     </div>
+                </details>
                 </div>
-
-                <p class="submit">
-                    <button type="submit" class="button button-primary">Save Settings</button>
-                </p>
+                <div class="wpiko-chatbot-settings-actions"><button type="submit" class="button wpiko-chatbot-settings-save">Save Settings</button></div>
             </form>
         <?php elseif ($is_license_expired): ?>
-            <div class="premium-feature-notice pwa-settings-notice">
-                <h3>📱 Mobile App Disabled</h3>
-                <p>Your license has expired. The Mobile App (PWA) feature is currently unavailable.</p>
-                <p>Get a lifetime license to regain access to these features:</p>
-                <ul>
-                    <li>📲 Install the chatbot as a mobile app on your phone</li>
-                    <li>💬 Reply to conversations away from your desktop</li>
-                    <li>🔔 Receive push notifications for new visitor messages</li>
-                    <li>🛠️ See live agent join and leave notices in conversations</li>
-                    <li>🧪 Send test notifications to verify device setup</li>
+            <section class="wpiko-chatbot-settings-card wpiko-chatbot-settings-upgrade" aria-labelledby="mobile-app-license-title">
+                <h2 class="wpiko-chatbot-settings-card-title" id="mobile-app-license-title">Mobile App Disabled</h2>
+                <div class="wpiko-chatbot-settings-notice is-warning"><p>Your license has expired. The Mobile App (PWA) feature is currently unavailable.</p></div>
+                <p class="wpiko-chatbot-settings-field-description">Get a lifetime license to manage conversations on your phone, reply to visitors, receive push alerts, and take over chats.</p>
+                <ul class="wpiko-chatbot-settings-benefits">
+                    <li>Reply to conversations from your phone</li>
+                    <li>Receive push notifications for new messages</li>
+                    <li>Take over chats as an Administrator or Live Agent</li>
+                    <li>Customize agent join and leave messages</li>
                 </ul>
-                <a href="https://wpiko.com/chatbot-pricing/" target="_blank" rel="noopener" class="button button-primary">Get Lifetime License</a>
-            </div>
+                <a href="https://wpiko.com/chatbot-pricing/" target="_blank" rel="noopener" class="button wpiko-chatbot-settings-save">Get Lifetime License</a>
+            </section>
         <?php else: ?>
-            <div class="premium-feature-notice pwa-settings-notice">
-                <h3>📱 Unlock Mobile App</h3>
-                <p>Activate Pro to manage chatbot conversations directly from your phone:</p>
-                <ul>
-                    <li>📲 Install the chatbot as a mobile app on your phone</li>
-                    <li>💬 Reply to conversations away from your desktop</li>
-                    <li>🔔 Receive push notifications for new visitor messages</li>
-                    <li>🛠️ See live agent join and leave notices in conversations</li>
-                    <li>🧪 Send test notifications to verify device setup</li>
+            <section class="wpiko-chatbot-settings-card wpiko-chatbot-settings-upgrade" aria-labelledby="mobile-app-license-title">
+                <h2 class="wpiko-chatbot-settings-card-title" id="mobile-app-license-title">Unlock Mobile App</h2>
+                <p class="wpiko-chatbot-settings-field-description">Activate Pro to manage chatbot conversations from your phone.</p>
+                <ul class="wpiko-chatbot-settings-benefits">
+                    <li>Reply to conversations from your phone</li>
+                    <li>Receive push notifications for new messages</li>
+                    <li>Take over chats as an Administrator or Live Agent</li>
+                    <li>Customize agent join and leave messages</li>
                 </ul>
-                <a href="?page=ai-chatbot&tab=license_activation" class="button button-primary">Activate Pro</a>
-            </div>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=ai-chatbot&tab=license_activation')); ?>" class="button wpiko-chatbot-settings-save">Activate Pro</a>
+            </section>
         <?php endif; ?>
-
+        <script>
+        (function () {
+            var enablePwaCheckbox = document.getElementById('wpiko_chatbot_enable_pwa');
+            var options = document.getElementById('mobile-app-options');
+            if (enablePwaCheckbox && options) {
+                enablePwaCheckbox.addEventListener('change', function () {
+                    options.hidden = !enablePwaCheckbox.checked;
+                });
+            }
+        }());
+        </script>
         <?php if ($enable_pwa === '1' && $is_license_active): ?>
         <script>
         (function () {
@@ -567,17 +538,8 @@ function wpiko_chatbot_pwa_settings_section() {
 
             updateRegisteredDevicesUi(<?php echo (int) $subscription_count; ?>);
 
-            var enablePwaCheckbox = document.getElementById('wpiko_chatbot_enable_pwa');
-            var pwaSettingsCollapsible = document.querySelector('.pwa-settings-collapsible');
             var pushCheckbox = document.getElementById('wpiko_chatbot_enable_push');
             var savedPushEnabled = pushCheckbox ? pushCheckbox.checked : false;
-            var accordionHeaders = document.querySelectorAll('.pwa-settings-section .collapsible-header');
-
-            if (enablePwaCheckbox && pwaSettingsCollapsible) {
-                enablePwaCheckbox.addEventListener('change', function () {
-                    pwaSettingsCollapsible.classList.toggle('active', enablePwaCheckbox.checked);
-                });
-            }
 
             if (pushCheckbox && button) {
                 pushCheckbox.addEventListener('change', function () {
@@ -591,33 +553,6 @@ function wpiko_chatbot_pwa_settings_section() {
                 });
             }
 
-            accordionHeaders.forEach(function (header) {
-                header.addEventListener('click', function () {
-                    header.classList.toggle('active');
-                    header.nextElementSibling.classList.toggle('active');
-                });
-            });
-        }());
-        </script>
-        <?php else: ?>
-        <script>
-        (function () {
-            var enablePwaCheckbox = document.getElementById('wpiko_chatbot_enable_pwa');
-            var pwaSettingsCollapsible = document.querySelector('.pwa-settings-collapsible');
-            var accordionHeaders = document.querySelectorAll('.pwa-settings-section .collapsible-header');
-
-            if (enablePwaCheckbox && pwaSettingsCollapsible) {
-                enablePwaCheckbox.addEventListener('change', function () {
-                    pwaSettingsCollapsible.classList.toggle('active', enablePwaCheckbox.checked);
-                });
-            }
-
-            accordionHeaders.forEach(function (header) {
-                header.addEventListener('click', function () {
-                    header.classList.toggle('active');
-                    header.nextElementSibling.classList.toggle('active');
-                });
-            });
         }());
         </script>
         <?php endif; ?>

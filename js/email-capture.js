@@ -1,5 +1,5 @@
 /**
- * Email Capture Functionality for WPiko Chatbot Pro
+ * Email Capture Functionality for WPiko AI Chatbot Pro
  * 
  * This file contains all the email capture related JavaScript functionality
  * that was moved from the main wpiko-chatbot plugin to the pro version.
@@ -220,9 +220,4 @@ function initEmailCapture() {
 
         return true;
     };
-
-    // Debug: Log that email capture is loaded
-    if (typeof wpikoChatbot !== 'undefined' && wpikoChatbot.debug) {
-        console.log('WPiko Chatbot Pro: Email capture functionality loaded');
-    }
 }

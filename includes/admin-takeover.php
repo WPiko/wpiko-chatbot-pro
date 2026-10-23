@@ -482,107 +482,6 @@ function wpiko_chatbot_pro_save_admin_reply($session_id, $message, $admin_id) {
     return $wpdb->insert_id;
 }
 
-/**
- * Get new messages for a conversation since a given message ID
- * Used by the frontend polling mechanism
- */
-function wpiko_chatbot_pro_get_new_messages($session_id, $last_id) {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'wpiko_chatbot_conversations';
-    
-    return $wpdb->get_results($wpdb->prepare(
-        "SELECT id, role, message, timestamp, user_name FROM `{$wpdb->prefix}wpiko_chatbot_conversations` WHERE session_id = %s AND id > %d ORDER BY id ASC",
-        $session_id,
-        intval($last_id)
-    ));
-}
-
-/**
- * AJAX: Check takeover status for a conversation (WP admin)
- */
-function wpiko_chatbot_pro_ajax_check_takeover() {
-    check_ajax_referer('wpiko_chatbot_takeover_nonce', '_wpnonce');
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(array('message' => 'Unauthorized'));
-    }
-    if (get_option('wpiko_chatbot_enable_pwa', '0') !== '1') {
-        wp_send_json_error(array('message' => 'Mobile App is disabled'));
-    }
-    if (!function_exists('wpiko_chatbot_pro_is_license_active') || !wpiko_chatbot_pro_is_license_active()) {
-        wp_send_json_error(array('message' => 'License inactive'));
-    }
-    $session_id = isset($_POST['session_id']) ? sanitize_text_field(wp_unslash($_POST['session_id'])) : '';
-    $is_takeover = wpiko_chatbot_pro_is_takeover_active($session_id);
-    $takeover_admin_name = $is_takeover ? wpiko_chatbot_pro_get_takeover_admin_name($session_id) : '';
-    wp_send_json_success(array(
-        'human_takeover' => $is_takeover,
-        'takeover_admin_name' => $takeover_admin_name,
-        'takeover_owned_by_current_admin' => $is_takeover ? wpiko_chatbot_pro_is_takeover_owned_by_admin($session_id, get_current_user_id()) : false,
-    ));
-}
-add_action('wp_ajax_wpiko_chatbot_check_takeover', 'wpiko_chatbot_pro_ajax_check_takeover');
-
-/**
- * AJAX: Activate or release takeover (WP admin)
- */
-function wpiko_chatbot_pro_ajax_admin_takeover() {
-    check_ajax_referer('wpiko_chatbot_takeover_nonce', '_wpnonce');
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(array('message' => 'Unauthorized'));
-    }
-    if (get_option('wpiko_chatbot_enable_pwa', '0') !== '1') {
-        wp_send_json_error(array('message' => 'Mobile App is disabled'));
-    }
-    if (!function_exists('wpiko_chatbot_pro_is_license_active') || !wpiko_chatbot_pro_is_license_active()) {
-        wp_send_json_error(array('message' => 'License inactive'));
-    }
-    $session_id = isset($_POST['session_id']) ? sanitize_text_field(wp_unslash($_POST['session_id'])) : '';
-    $takeover_action = isset($_POST['takeover_action']) ? sanitize_text_field(wp_unslash($_POST['takeover_action'])) : '';
-    $current_admin_id = get_current_user_id();
-    $is_takeover = wpiko_chatbot_pro_is_takeover_active($session_id);
-    $takeover_admin_name = $is_takeover ? wpiko_chatbot_pro_get_takeover_admin_name($session_id) : '';
-
-    if ($takeover_action === 'takeover') {
-        if ($is_takeover && !wpiko_chatbot_pro_is_takeover_owned_by_admin($session_id, $current_admin_id)) {
-            wp_send_json_error(array(
-                'message' => $takeover_admin_name ? sprintf('This conversation is already handled by %s.', $takeover_admin_name) : 'This conversation is already handled by another admin.',
-                'human_takeover' => true,
-                'takeover_admin_name' => $takeover_admin_name,
-                'takeover_owned_by_current_admin' => false,
-            ));
-        }
-
-        wpiko_chatbot_pro_activate_takeover($session_id, $current_admin_id);
-        wpiko_chatbot_pro_save_takeover_event_notice($session_id, $current_admin_id, 'takeover_notice');
-
-        wp_send_json_success(array(
-            'human_takeover' => true,
-            'takeover_admin_name' => wpiko_chatbot_pro_get_takeover_admin_name($session_id),
-            'takeover_owned_by_current_admin' => true,
-        ));
-    } elseif ($takeover_action === 'release') {
-        if ($is_takeover && !wpiko_chatbot_pro_is_takeover_owned_by_admin($session_id, $current_admin_id)) {
-            wp_send_json_error(array(
-                'message' => $takeover_admin_name ? sprintf('Only %s can release this conversation.', $takeover_admin_name) : 'Only the admin who activated takeover can release this conversation.',
-                'human_takeover' => true,
-                'takeover_admin_name' => $takeover_admin_name,
-                'takeover_owned_by_current_admin' => false,
-            ));
-        }
-
-        wpiko_chatbot_pro_release_takeover($session_id);
-        wpiko_chatbot_pro_save_takeover_event_notice($session_id, $current_admin_id, 'release_notice');
-
-        wp_send_json_success(array(
-            'human_takeover' => false,
-            'takeover_admin_name' => '',
-            'takeover_owned_by_current_admin' => false,
-        ));
-    } else {
-        wp_send_json_error(array('message' => 'Invalid action'));
-    }
-}
-add_action('wp_ajax_wpiko_chatbot_admin_takeover', 'wpiko_chatbot_pro_ajax_admin_takeover');
 
 /**
  * Handle user heartbeat — update last_seen timestamp and status in conversation_meta
@@ -720,15 +619,6 @@ function wpiko_chatbot_pro_is_user_online($session_id, $threshold = 60) {
     return !empty($presence['is_online']);
 }
 
-/**
- * Get user last seen timestamp for a conversation
- *
- * @param string $session_id The conversation session ID
- * @return string|null The last seen datetime or null
- */
-function wpiko_chatbot_pro_get_user_last_seen($session_id) {
-    return wpiko_chatbot_pro_get_conversation_meta($session_id, 'user_last_seen');
-}
 
 /**
  * Enrich the admin conversation fetch response with user presence data
