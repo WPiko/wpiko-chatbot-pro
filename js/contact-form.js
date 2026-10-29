@@ -548,7 +548,9 @@ document.addEventListener('DOMContentLoaded', function () {
         form.appendChild(securityInput);
 
         // Add thread_id to form data to link contact form activity with the conversation thread
-        const threadId = sessionStorage.getItem('wpiko_chatbot_thread_id') || null;
+        const threadId = (window.wpikoChatbotStore
+            ? window.wpikoChatbotStore.get('wpiko_chatbot_thread_id')
+            : sessionStorage.getItem('wpiko_chatbot_thread_id')) || null;
         if (threadId) {
             const threadInput = document.createElement('input');
             threadInput.type = 'hidden';
@@ -708,15 +710,21 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /**
-     * Store a contact form result message in sessionStorage
-     * so it persists across page navigations.
+     * Store a contact form result message with the conversation
+     * so it persists across page navigations (and visits, when the
+     * site remembers conversations across visits).
      * Uses the same format as the base chatbot's appendMessage().
      */
     function storeContactFormMessage(messageText) {
         try {
-            const storedMessages = JSON.parse(sessionStorage.getItem('wpiko_chatbot_messages') || '[]');
+            // WPiko AI Chatbot 2.1.3+ chooses where the conversation is kept.
+            const store = window.wpikoChatbotStore || {
+                get: function (key) { return sessionStorage.getItem(key); },
+                set: function (key, value) { sessionStorage.setItem(key, value); }
+            };
+            const storedMessages = JSON.parse(store.get('wpiko_chatbot_messages') || '[]');
             storedMessages.push({ type: 'bot', content: messageText, errorType: 'general_error' });
-            sessionStorage.setItem('wpiko_chatbot_messages', JSON.stringify(storedMessages));
+            store.set('wpiko_chatbot_messages', JSON.stringify(storedMessages));
         } catch (e) {
             console.error('WPiko AI Chatbot: Failed to store contact form message', e);
         }

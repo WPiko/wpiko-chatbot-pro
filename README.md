@@ -6,6 +6,13 @@
 
 This repository hosts the **WPiko AI Chatbot Pro** plugin and provides automatic updates through GitHub Releases. This is the premium add-on for the WPiko AI Chatbot WordPress plugin, offering advanced AI-powered features for enhanced website interactions.
 
+## 2.1.3 Conversation memory
+
+Works with the new Conversation Memory setting in WPiko AI Chatbot 2.1.3: live chat
+takeover and the contact form follow the conversation when the site remembers it across
+visits, and a takeover nobody from the team looks after for 12 hours goes back to the AI.
+Still works with WPiko AI Chatbot 2.1.2. See [CHANGELOG.md](CHANGELOG.md).
+
 ## 2.1.2 Admin redesign
 
 Update both WPiko AI Chatbot and WPiko AI Chatbot Pro to 2.1.2. Pro now requires the

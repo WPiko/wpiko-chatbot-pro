@@ -38,7 +38,46 @@
             defaultSubtitle: statusText.textContent,
             defaultHeaderAvatar: headerImage ? headerImage.getAttribute('src') : '',
             defaultPlaceholder: inputField ? inputField.getAttribute('placeholder') : '',
+            showMissedOnSync: false,
         };
+
+        // The last team message shown in this conversation is saved with it, so
+        // replies sent while the visitor was away (another page, or a closed
+        // browser when the site remembers conversations) appear when they return.
+        var TEAM_CURSOR_KEY = 'wpiko_chatbot_last_admin_message_id';
+
+        function readStore(key) {
+            try {
+                return window.wpikoChatbotStore ? window.wpikoChatbotStore.get(key) : sessionStorage.getItem(key);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function writeStore(key, value) {
+            try {
+                if (window.wpikoChatbotStore) {
+                    window.wpikoChatbotStore.set(key, value);
+                } else {
+                    sessionStorage.setItem(key, value);
+                }
+            } catch (e) {
+                // Storage blocked: messages still show while the page is open.
+            }
+        }
+
+        // null = this conversation was never tracked (shown before this version).
+        function getSavedCursor() {
+            var value = readStore(TEAM_CURSOR_KEY);
+            return value === null || value === '' ? null : (parseInt(value, 10) || 0);
+        }
+
+        function rememberShown(messageId) {
+            var cursor = getSavedCursor();
+            if (cursor === null || messageId > cursor) {
+                writeStore(TEAM_CURSOR_KEY, String(messageId));
+            }
+        }
 
         function getTakeoverStatusLabel() {
             var prefix = (state.takeoverHeaderPrefix || '').trim();
@@ -266,14 +305,20 @@
         }
 
         function syncThreadId() {
-            var nextThreadId = sessionStorage.getItem('wpiko_chatbot_thread_id') || '';
+            var nextThreadId = (window.wpikoChatbotStore
+                ? window.wpikoChatbotStore.get('wpiko_chatbot_thread_id')
+                : sessionStorage.getItem('wpiko_chatbot_thread_id')) || '';
 
             if (nextThreadId === state.currentThreadId) {
                 return;
             }
 
             state.currentThreadId = nextThreadId;
-            state.lastKnownMessageId = 0;
+            var savedCursor = getSavedCursor();
+            // Known conversation: show what arrived since the last message shown.
+            // Untracked one: only note what is there, as before.
+            state.showMissedOnSync = savedCursor !== null;
+            state.lastKnownMessageId = savedCursor || 0;
             stopIntervals();
 
             if (!state.currentThreadId) {
@@ -291,6 +336,12 @@
             }
 
             state.isPollingRequestInFlight = true;
+
+            // Another tab of the site may already have shown newer messages.
+            var savedCursor = getSavedCursor();
+            if (savedCursor !== null && savedCursor > state.lastKnownMessageId) {
+                state.lastKnownMessageId = savedCursor;
+            }
 
             jQuery.ajax({
                 url: wpikoChatbot.ajax_url,
@@ -335,19 +386,25 @@
                         appendWaitingIndicator();
                     }
 
+                    var showMessages = !syncOnly || state.showMissedOnSync;
+
                     if (!data.messages || !data.messages.length) {
+                        rememberShown(state.lastKnownMessageId);
                         return;
                     }
 
                     data.messages.forEach(function (message) {
-                        var messageId = parseInt(message.id, 10);
+                        var messageId = parseInt(message.id, 10) || 0;
+                        var alreadyShown = (getSavedCursor() || 0) >= messageId;
                         if (messageId > state.lastKnownMessageId) {
                             state.lastKnownMessageId = messageId;
                         }
 
-                        if (syncOnly) {
+                        if (!showMessages || alreadyShown) {
+                            rememberShown(messageId);
                             return;
                         }
+                        rememberShown(messageId);
 
                         if (message.event_type === 'takeover_notice' || message.event_type === 'release_notice') {
                             appendMessage('system', message.message, {

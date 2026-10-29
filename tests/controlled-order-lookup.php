@@ -64,6 +64,7 @@ class WC_Order_Refund extends WC_Order{}
 function wc_get_order($id){return $GLOBALS['orders'][$id]??false;}
 function wc_get_order_status_name($s){return ucfirst($s);}
 $root=dirname(__DIR__, 2) . '/';
+require $root.'wpiko-chatbot/includes/conversation-memory.php';
 require $root.'wpiko-chatbot/includes/responses-tools.php';
 require $root.'wpiko-chatbot/includes/responses-api.php';
 require $root.'wpiko-chatbot-pro/includes/woocommerce-integration.php';

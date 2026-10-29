@@ -3,7 +3,7 @@
  * Plugin Name: WPiko AI Chatbot Pro
  * Plugin URI: https://wpiko.com/chatbot
  * Description: Pro add-on for WPiko AI Chatbot: mobile app with live takeover and push notifications, WooCommerce product answers, website scanning, analytics and lead capture.
- * Version: 2.1.2
+ * Version: 2.1.3
  * Requires at least: 6.0
  * Tested up to: 7.1
  * Requires PHP: 7.0
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('WPIKO_CHATBOT_PRO_VERSION', '2.1.2');
+define('WPIKO_CHATBOT_PRO_VERSION', '2.1.3');
 define('WPIKO_CHATBOT_PRO_MIN_BASE_VERSION', '2.1.2');
 define('WPIKO_CHATBOT_PRO_FILE', __FILE__);
 define('WPIKO_CHATBOT_PRO_PATH', plugin_dir_path(__FILE__));

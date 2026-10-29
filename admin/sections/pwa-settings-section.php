@@ -210,7 +210,7 @@ function wpiko_chatbot_pwa_settings_section() {
                                 <label class="wpiko-chatbot-settings-field-label" for="wpiko_chatbot_takeover_release_text">Agent left text</label>
                                 <div class="wpiko-chatbot-settings-field-control">
                                     <div class="mobile-app-text-template"><span class="mobile-app-agent-placeholder">Agent name</span><input type="text" id="wpiko_chatbot_takeover_release_text" name="wpiko_chatbot_takeover_release_text" value="<?php echo esc_attr($takeover_release_text); ?>" aria-describedby="wpiko_chatbot_takeover_release_text-description"></div>
-                                    <p class="wpiko-chatbot-settings-field-description" id="wpiko_chatbot_takeover_release_text-description">Appended automatically after the agent name when an agent leaves. Example: <em>John <?php echo esc_html($takeover_release_text); ?></em></p>
+                                    <p class="wpiko-chatbot-settings-field-description" id="wpiko_chatbot_takeover_release_text-description">Appended automatically after the agent name when an agent leaves. Example: <em>John <?php echo esc_html($takeover_release_text); ?></em> Also shown when nobody from the team has replied to or opened the conversation for 12 hours: the visitor's next visit or message then hands it back to the AI.</p>
                                 </div>
                             </div>
                         </div>

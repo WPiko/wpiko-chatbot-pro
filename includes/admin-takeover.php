@@ -446,10 +446,121 @@ function wpiko_chatbot_pro_filter_skip_ai($skip, $session_id) {
     if (!wpiko_chatbot_pro_is_license_active()) {
         return $skip;
     }
-    
-    return wpiko_chatbot_pro_is_takeover_active($session_id);
+
+    if (!wpiko_chatbot_pro_is_takeover_active($session_id)) {
+        return false;
+    }
+
+    // Runs when the visitor is on the site (checking for replies) or sends a
+    // message, so a takeover nobody is looking after hands the chat back.
+    return !wpiko_chatbot_pro_maybe_auto_release_takeover($session_id);
 }
 add_filter('wpiko_chatbot_skip_ai_response', 'wpiko_chatbot_pro_filter_skip_ai', 10, 2);
+
+/**
+ * Hours without team activity after which a takeover goes back to the AI.
+ *
+ * @return float 0 = never.
+ */
+function wpiko_chatbot_pro_takeover_auto_release_hours() {
+    /**
+     * Filter how long a takeover stays active without team activity.
+     *
+     * When nobody from the team has replied to or opened the conversation for
+     * this many hours, the visitor's next visit or message hands it back to the
+     * AI. Return 0 to keep takeovers until a team member releases them.
+     *
+     * @param float $hours Default 12.
+     */
+    return max(0, (float) apply_filters('wpiko_chatbot_pro_takeover_auto_release_hours', 12));
+}
+
+/**
+ * Last time the team showed activity in a taken-over conversation: the takeover
+ * itself, a team message, or a team member opening the conversation.
+ *
+ * @param string $session_id Conversation ID.
+ * @return int Timestamp in the site's time zone (as current_time('mysql')), 0 if unknown.
+ */
+function wpiko_chatbot_pro_get_last_takeover_activity($session_id) {
+    global $wpdb;
+
+    $times = array(
+        wpiko_chatbot_pro_get_conversation_meta($session_id, 'takeover_started_at'),
+        wpiko_chatbot_pro_get_conversation_meta($session_id, 'admin_watching'),
+        $wpdb->get_var($wpdb->prepare(
+            "SELECT updated_at FROM `{$wpdb->prefix}wpiko_chatbot_conversation_meta` WHERE session_id = %s AND meta_key = 'human_takeover' LIMIT 1",
+            $session_id
+        )),
+        $wpdb->get_var($wpdb->prepare(
+            "SELECT MAX(timestamp) FROM `{$wpdb->prefix}wpiko_chatbot_conversations` WHERE session_id = %s AND role = 'admin'",
+            $session_id
+        )),
+    );
+
+    $latest = 0;
+    foreach ($times as $time) {
+        $timestamp = $time ? strtotime((string) $time) : false;
+        if ($timestamp && $timestamp > $latest) {
+            $latest = $timestamp;
+        }
+    }
+
+    return $latest;
+}
+
+/**
+ * Hand a takeover back to the AI when the team has not replied to or opened
+ * the conversation for wpiko_chatbot_pro_takeover_auto_release_hours().
+ *
+ * A "left the conversation" notice is added to the transcript, as when the
+ * team member releases it.
+ *
+ * @param string $session_id Conversation ID (takeover must be active).
+ * @return bool True when the takeover was released now.
+ */
+function wpiko_chatbot_pro_maybe_auto_release_takeover($session_id) {
+    global $wpdb;
+
+    $hours = wpiko_chatbot_pro_takeover_auto_release_hours();
+    if ($hours <= 0) {
+        return false;
+    }
+
+    $last_activity = wpiko_chatbot_pro_get_last_takeover_activity($session_id);
+    $now = strtotime(current_time('mysql'));
+    if ($last_activity > 0 && ($now - $last_activity) < $hours * HOUR_IN_SECONDS) {
+        return false;
+    }
+
+    // Only one request may release it (the visitor's page checks every few seconds).
+    $released = $wpdb->query($wpdb->prepare(
+        "UPDATE `{$wpdb->prefix}wpiko_chatbot_conversation_meta` SET meta_value = '0', updated_at = %s WHERE session_id = %s AND meta_key = 'human_takeover' AND meta_value = '1'",
+        current_time('mysql'),
+        $session_id
+    ));
+    if ((int) $released !== 1) {
+        return !wpiko_chatbot_pro_is_takeover_active($session_id);
+    }
+
+    $admin_id = wpiko_chatbot_pro_get_takeover_admin_id($session_id);
+    wpiko_chatbot_pro_release_takeover($session_id);
+    wpiko_chatbot_pro_save_takeover_event_notice($session_id, $admin_id, 'release_notice');
+
+    if (function_exists('wpiko_chatbot_log')) {
+        wpiko_chatbot_log('Takeover of conversation ' . $session_id . ' went back to the AI after ' . $hours . ' hours without team activity.', 'info');
+    }
+
+    /**
+     * Fires after a takeover went back to the AI because the team was inactive.
+     *
+     * @param string $session_id Conversation ID.
+     * @param int    $admin_id   Team member who had taken it over (0 if unknown).
+     */
+    do_action('wpiko_chatbot_pro_takeover_auto_released', $session_id, $admin_id);
+
+    return true;
+}
 
 /**
  * Save an admin reply to a conversation

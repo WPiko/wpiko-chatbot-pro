@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.3
+
+* Fix: Live chat replies sent while the visitor was away now appear when they come back: after moving to another page, or after closing the browser when the site remembers conversations across visits. Each reply is shown once, even with several tabs open.
+* Improve: Live chat takeover goes back to the AI on its own when nobody from the team has replied to or opened the conversation for 12 hours. The visitor's next visit or message hands it back, with the usual "left the conversation. AI assistant is back." notice, so a visitor returning to a remembered conversation is never left without answers. Developers can change the time with the `wpiko_chatbot_pro_takeover_auto_release_hours` filter (0 = never) and react with the `wpiko_chatbot_pro_takeover_auto_released` action.
+* Compatibility: Live chat takeover and the contact form use the conversation where WPiko AI Chatbot 2.1.3 keeps it, so they keep working when the site remembers conversations across visits. Contact form results stay in the remembered conversation. Older versions of WPiko AI Chatbot work as before.
+
 ## 2.1.2
 
 * Improve: The plugin is now called "WPiko AI Chatbot Pro" everywhere (plugin name, description, menus, notices and messages), matching the free plugin's WordPress.org listing.
