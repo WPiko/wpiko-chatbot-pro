@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.4
+
+* Improve: Updates now come from wpiko.com instead of GitHub. Sites with a valid license activated on them update through WordPress as before, including automatic background updates.
+* Security: Every update is checked before WordPress installs it: the file must match the checksum from wpiko.com and carry the WPiko release signature. A changed or unsigned file is never installed, and this plugin no longer accepts update files from anywhere else.
+* Improve: Sites without a valid license (no key, not activated on this site, or an ended free trial) still see when a new version is available, with a short note and links to the License page or to buy a lifetime license.
+* Improve: The "Plugin updates" card on the License page shows the latest version, when it was last checked, and why an update cannot be installed. "Check for updates" checks right away.
+* Fix: The update card on the fallback page (shown when the free plugin is missing or too old) no longer causes an error.
+* Developer: Removed the GitHub updater (`includes/github-*.php`, `check-github-config.php`, `release.sh`). The release workflow signs each ZIP with the `WPIKO_RELEASE_SIGNING_KEY` secret and refuses to publish without it.
+
 ## 2.1.3
 
 * Fix: Live chat replies sent while the visitor was away now appear when they come back: after moving to another page, or after closing the browser when the site remembers conversations across visits. Each reply is shown once, even with several tabs open.

@@ -1,9 +1,12 @@
 """Exercise release failure paths without writing to GitHub."""
 
+import base64
 import hashlib
 import io
 import importlib.util
 from pathlib import Path
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -104,6 +107,45 @@ class ReleaseTests(unittest.TestCase):
         self.assertTrue(writes[1][2]["draft"])
         self.assertFalse(writes[-1][2]["draft"])
         self.assertEqual(writes[-1][2]["make_latest"], "true")
+
+    def test_signature_is_attached_before_publication(self):
+        signature = self.package.with_name(self.package.name + ".sig")
+        signature.write_text("c2lnbmF0dXJl\n")
+        sig_digest = "sha256:" + hashlib.sha256(signature.read_bytes()).hexdigest()
+
+        def with_sig(path, method="GET", data=None, **kwargs):
+            if path.startswith("releases/123/assets?name=" + signature.name) and method == "POST":
+                self.calls.append((method, path, data, kwargs))
+                asset = {"name": signature.name, "state": "uploaded", "digest": sig_digest}
+                self.draft["assets"].append(asset)
+                return asset
+            return self.request(path, method, data, **kwargs)
+        self.api.request.side_effect = with_sig
+        release.publish(self.api, "2.0.9", "* Notes", self.package, self.commit, False, signature)
+        self.assertEqual([call[1] for call in self.writes()], [
+            "git/refs", "releases", "releases/123/assets?name=" + self.package.name,
+            "releases/123/assets?name=" + signature.name, "releases/123"])
+
+    def test_sign_package_uses_only_the_plugin_release_key(self):
+        if not shutil.which("openssl"):
+            self.skipTest("openssl not available")
+        key = subprocess.run(["openssl", "genpkey", "-algorithm", "ed25519"], check=True,
+                             stdout=subprocess.PIPE).stdout.decode()
+        der = subprocess.run(["openssl", "pkey", "-pubout", "-outform", "DER"], input=key.encode(),
+                             check=True, stdout=subprocess.PIPE).stdout
+        public = base64.b64encode(der[-32:]).decode()
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            release.sign_package(self.package, key, ["A" * 43 + "="])
+        signature = release.sign_package(self.package, key, [public])
+        self.assertEqual(len(base64.b64decode(signature.read_text().strip())), 64)
+
+    def test_release_keys_are_read_from_the_updater(self):
+        source = b"<?php class X { const RELEASE_KEYS = array(\n 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',\n); }"
+        with patch.object(release, "git", return_value=source):
+            self.assertEqual(release.release_keys("HEAD"), ["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="])
+        with patch.object(release, "git", return_value=b"<?php // nothing"):
+            with self.assertRaisesRegex(ValueError, "no RELEASE_KEYS"):
+                release.release_keys("HEAD")
 
     def test_retry_reuses_matching_tag_draft_and_zip(self):
         self.reference = {"object": {"type": "commit", "sha": self.commit}}

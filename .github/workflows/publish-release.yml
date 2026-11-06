@@ -46,6 +46,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           DRY_RUN: ${{ inputs.dry_run }}
+          # Ed25519 private key (PEM). Customer sites only install updates signed with it.
+          WPIKO_RELEASE_SIGNING_KEY: ${{ secrets.WPIKO_RELEASE_SIGNING_KEY }}
         run: |
           options=(--output-dir "$RUNNER_TEMP/wpiko-pro-package")
           if [ "$DRY_RUN" = true ]; then
@@ -57,6 +59,24 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: wpiko-chatbot-pro-package-${{ github.run_id }}
-          path: ${{ steps.package.outputs.zip_path }}
+          path: |
+            ${{ steps.package.outputs.zip_path }}
+            ${{ steps.package.outputs.sig_path }}
           if-no-files-found: error
           retention-days: 7
+
+      # Optional: ask Keymaster on wpiko.com to fetch the new release now instead of
+      # within the hour. The ping carries no file; Keymaster downloads and checks it.
+      - name: Tell Keymaster about the release
+        if: ${{ !inputs.dry_run }}
+        env:
+          KEYMASTER_PING_URL: ${{ secrets.KEYMASTER_PING_URL }}
+          KEYMASTER_PING_SECRET: ${{ secrets.KEYMASTER_PING_SECRET }}
+        run: |
+          if [ -z "$KEYMASTER_PING_URL" ] || [ -z "$KEYMASTER_PING_SECRET" ]; then
+            echo "Keymaster ping secrets not set; Keymaster checks GitHub every hour."
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error --max-time 120 \
+            --data-urlencode "secret=$KEYMASTER_PING_SECRET" "$KEYMASTER_PING_URL" \
+            || echo "::warning::Keymaster could not be reached; it will find the release on its hourly check."

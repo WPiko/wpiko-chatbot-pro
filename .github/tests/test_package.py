@@ -14,8 +14,8 @@ import plugin_package
 class PackageTests(unittest.TestCase):
     def setUp(self):
         self.files = dict.fromkeys([
-            "index.php", "includes/github-config.php", "includes/github-updater.php",
-            "includes/github-helpers.php", "admin/admin-integration.php",
+            "index.php", "includes/updater.php",
+            "admin/templates/update-status-widget.php", "admin/admin-integration.php",
             "css/wpiko-chatbot-pro.css", "js/contact-form.js", "pwa/index.html",
             "pwa/manifest.json", "pwa/service-worker.js", "pwa/icons/icon-192.png",
             "pwa/icons/icon-512.png",
@@ -25,7 +25,7 @@ class PackageTests(unittest.TestCase):
  * Version: 2.0.9
  */
 define('WPIKO_CHATBOT_PRO_VERSION', '2.0.9');
-require_once WPIKO_CHATBOT_PRO_PATH . 'includes/github-config.php';
+require_once WPIKO_CHATBOT_PRO_PATH . 'includes/updater.php';
 """
         self.notes = b"# Changelog\n\n## 2.0.9\n\n* Improved Pro feature.\n\n## 2.0.8\n\n* Older change.\n"
         self.link = False
@@ -59,7 +59,7 @@ require_once WPIKO_CHATBOT_PRO_PATH . 'includes/github-config.php';
             self.verify()
 
     def test_missing_runtime_file_stops_packaging(self):
-        del self.files["includes/github-updater.php"]
+        del self.files["includes/updater.php"]
         with self.assertRaisesRegex(ValueError, "Missing runtime files"):
             self.verify()
 
@@ -83,7 +83,7 @@ require_once WPIKO_CHATBOT_PRO_PATH . 'includes/github-config.php';
                 self.verify()
 
     def test_php_syntax_error_stops_packaging(self):
-        self.files["includes/github-updater.php"] = b"<?php function broken( {"
+        self.files["includes/updater.php"] = b"<?php function broken( {"
         with self.assertRaisesRegex(ValueError, "PHP syntax failed"):
             self.verify()
 

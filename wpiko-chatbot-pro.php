@@ -3,7 +3,7 @@
  * Plugin Name: WPiko AI Chatbot Pro
  * Plugin URI: https://wpiko.com/chatbot
  * Description: Pro add-on for WPiko AI Chatbot: mobile app with live takeover and push notifications, WooCommerce product answers, website scanning, analytics and lead capture.
- * Version: 2.1.3
+ * Version: 2.1.4
  * Requires at least: 6.0
  * Tested up to: 7.1
  * Requires PHP: 7.0
@@ -23,20 +23,17 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('WPIKO_CHATBOT_PRO_VERSION', '2.1.3');
+define('WPIKO_CHATBOT_PRO_VERSION', '2.1.4');
 define('WPIKO_CHATBOT_PRO_MIN_BASE_VERSION', '2.1.2');
 define('WPIKO_CHATBOT_PRO_FILE', __FILE__);
 define('WPIKO_CHATBOT_PRO_PATH', plugin_dir_path(__FILE__));
 define('WPIKO_CHATBOT_PRO_URL', plugin_dir_url(__FILE__));
 define('WPIKO_CHATBOT_PRO_BASENAME', plugin_basename(__FILE__));
 
-// Include GitHub updater files
-require_once WPIKO_CHATBOT_PRO_PATH . 'includes/github-config.php';
-require_once WPIKO_CHATBOT_PRO_PATH . 'includes/github-updater.php';
-require_once WPIKO_CHATBOT_PRO_PATH . 'includes/github-helpers.php';
-
 // Include pro functions
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/license-signature.php';
+// Updates from wpiko.com (license-checked, signature-checked)
+require_once WPIKO_CHATBOT_PRO_PATH . 'includes/updater.php';
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/license-activation.php';
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/analytics.php';
 require_once WPIKO_CHATBOT_PRO_PATH . 'includes/scan-website.php';
@@ -64,9 +61,6 @@ require_once WPIKO_CHATBOT_PRO_PATH . 'includes/pwa-rewrite.php';
 if (defined('WP_CLI') && WP_CLI) {
     require_once WPIKO_CHATBOT_PRO_PATH . 'includes/cli-commands.php';
 }
-
-// Global variable to store updater instance
-global $wpiko_chatbot_pro_github_updater;
 
 /**
  * Check whether the required WPiko AI Chatbot base version is active.
@@ -205,25 +199,17 @@ function wpiko_chatbot_pro_enqueue_email_capture_scripts()
 add_action('wpiko_chatbot_enqueue_frontend_assets', 'wpiko_chatbot_pro_enqueue_email_capture_scripts', 25); // Run after main plugin scripts
 
 /**
- * Initialize the GitHub updater (always available for updates)
+ * One-time cleanup after moving from GitHub updates (2.1.3 and older) to wpiko.com.
  */
-function wpiko_chatbot_pro_init_updater()
+function wpiko_chatbot_pro_cleanup_github_updater()
 {
-    // Only initialize updater in admin context to avoid frontend interference
-    if (!is_admin()) {
+    if (get_option('wpiko_chatbot_pro_update_source') === 'wpiko') {
         return;
     }
-
-    // Initialize GitHub updater regardless of base plugin status
-    // This ensures updates work even if base plugin is temporarily disabled
-    if (class_exists('WPiko_Chatbot_Pro_GitHub_Updater')) {
-        global $wpiko_chatbot_pro_github_updater;
-        $wpiko_chatbot_pro_github_updater = new WPiko_Chatbot_Pro_GitHub_Updater(
-            WPIKO_CHATBOT_PRO_FILE,
-            'wpiko-chatbot-pro',
-            WPIKO_CHATBOT_PRO_VERSION
-        );
-    }
+    delete_transient('wpiko_chatbot_pro_github_version');
+    delete_transient('wpiko_chatbot_pro_github_info');
+    delete_transient(WPIKO_CHATBOT_PRO_BASENAME . '_just_updated');
+    update_option('wpiko_chatbot_pro_update_source', 'wpiko');
 }
 
 /**
@@ -232,8 +218,8 @@ function wpiko_chatbot_pro_init_updater()
 function wpiko_chatbot_pro_load_admin_essentials()
 {
     if (is_admin()) {
-        // Load GitHub status widget and AJAX handlers
-        require_once WPIKO_CHATBOT_PRO_PATH . 'admin/templates/github-status-widget.php';
+        // Load the update status card and its AJAX handler
+        require_once WPIKO_CHATBOT_PRO_PATH . 'admin/templates/update-status-widget.php';
 
         // Add admin menu for update management if base plugin is not active
         add_action('admin_menu', 'wpiko_chatbot_pro_fallback_admin_menu');
@@ -282,8 +268,7 @@ function wpiko_chatbot_pro_fallback_admin_page()
             <p>You can still manage plugin updates when the base plugin is unavailable or needs to be updated:</p>
 
             <?php
-            // Display GitHub status widget
-            wpiko_chatbot_pro_render_github_status_widget();
+            wpiko_chatbot_pro_update_status_widget();
             ?>
         </div>
     </div>
@@ -295,8 +280,10 @@ function wpiko_chatbot_pro_fallback_admin_page()
  */
 function wpiko_chatbot_pro_init()
 {
-    // Always initialize the updater
-    wpiko_chatbot_pro_init_updater();
+    // The updater registers itself in includes/updater.php (also for background updates).
+    if (is_admin()) {
+        wpiko_chatbot_pro_cleanup_github_updater();
+    }
 
     // Always load admin essentials
     wpiko_chatbot_pro_load_admin_essentials();

@@ -1,10 +1,18 @@
-# WPiko AI Chatbot Pro - GitHub Updates Repository
+# WPiko AI Chatbot Pro
 
 ![WordPress](https://img.shields.io/badge/WordPress-5.0%2B-blue.svg)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-blue.svg)
 ![License](https://img.shields.io/badge/License-GPL--2.0%2B-green.svg)
 
-This repository hosts the **WPiko AI Chatbot Pro** plugin and provides automatic updates through GitHub Releases. This is the premium add-on for the WPiko AI Chatbot WordPress plugin, offering advanced AI-powered features for enhanced website interactions.
+Source of the **WPiko AI Chatbot Pro** plugin. Customer sites get updates from wpiko.com (WPiko Keymaster), not from this repository. This is the premium add-on for the WPiko AI Chatbot WordPress plugin, offering advanced AI-powered features for enhanced website interactions.
+
+## 2.1.4 Updates from wpiko.com
+
+Updates now come from wpiko.com instead of GitHub. A site asks the WPiko license server
+about new versions; only a site whose license is valid and activated on it can download
+them, and every update must carry the WPiko release signature before WordPress installs
+it. Sites without a valid license (for example after a free trial) still see that a new
+version exists, with a link to activate a license or buy one.
 
 ## 2.1.3 Conversation memory
 
@@ -58,19 +66,14 @@ WPiko AI Chatbot Pro is a premium WordPress plugin that seamlessly integrates Op
 
 ### Automatic Updates
 
-The plugin automatically checks for updates from this GitHub repository every 12 hours. Updates are delivered through WordPress's native update system.
+The plugin checks wpiko.com for updates every 12 hours (also during WordPress's background
+updates). Updates are delivered through WordPress's native update system, for sites with a
+valid license activated on them.
 
 #### For Administrators:
-1. Navigate to your WordPress admin dashboard
-2. Go to **WPiko AI Chatbot > License Activation**
-3. View the GitHub Update Status widget
-4. Click "Force Update Check" for immediate update verification
-
-#### Manual Update Check:
-```bash
-# From your WordPress admin, you can force an update check
-# This clears the update cache and checks for new releases
-```
+1. Go to **WPiko AI Chatbot > License**
+2. The **Plugin updates** card shows the installed and latest version
+3. Click **Check for updates** to check right away
 
 ## 📋 System Requirements
 
@@ -85,18 +88,13 @@ The plugin automatically checks for updates from this GitHub repository every 12
 
 ## ⚙️ Configuration
 
-### GitHub Update Configuration
+### Updates
 
-The plugin uses a configuration file to manage GitHub updates:
-
-```php
-// includes/github-config.php
-return array(
-    'github_user' => 'username',
-    'github_repo' => 'repo',
-    'check_frequency' => 12 // Hours between update checks
-);
-```
+`includes/updater.php` talks to `wpiko-keymaster/v1/update-check` and `/download` on the
+license server. Before installing, the ZIP must match the server's SHA-256 and an Ed25519
+signature made with a key listed in `WPiko_Chatbot_Pro_Updater::RELEASE_KEYS`. The release
+workflow signs every ZIP with the `WPIKO_RELEASE_SIGNING_KEY` secret and refuses to publish
+without it (or with a key that is not in `RELEASE_KEYS`).
 
 ### License Activation
 
@@ -109,28 +107,15 @@ return array(
 
 ### Release Process
 
-This repository uses an automated release system:
-
-1. **Version Management** - Semantic versioning (X.Y.Z format)
-2. **Automated Tagging** - Git tags trigger new releases
-3. **WordPress Integration** - Updates appear in WordPress admin
-4. **Release Notes** - Detailed changelogs for each version
-
-### Creating a New Release
-
-For maintainers, use the included release script:
-
-```bash
-# Run the release script
-./release.sh
-
-# Follow the prompts to:
-# 1. Set new version number
-# 2. Update plugin files
-# 3. Create Git tag
-# 4. Push to repository
-# 5. Create GitHub release
-```
+1. Bump the version in the plugin header and `WPIKO_CHATBOT_PRO_VERSION`, add a
+   `## X.Y.Z` entry to `CHANGELOG.md`, push to `main`.
+2. Run **Actions → Publish Pro Release** on `main` (tick "Test only" first if you like).
+   It checks the package, signs the ZIP, attaches `wpiko-chatbot-pro-X.Y.Z.zip` and
+   `.zip.sig` to a GitHub release and publishes it.
+3. WPiko Keymaster on wpiko.com fetches the release (hourly, or right away when the
+   `KEYMASTER_PING_URL` / `KEYMASTER_PING_SECRET` secrets are set), checks it again and
+   waits for **Publish** in Keymaster → Releases. Then licensed sites, new buyers and trial
+   users get it.
 
 ### Version History
 
@@ -176,8 +161,8 @@ All releases are tracked through GitHub Releases with detailed changelogs:
 - **User Privacy** - GDPR-compliant data handling
 
 ### Update Security
-- **Verified Downloads** - GitHub-hosted release verification
-- **Secure Updates** - Authenticated download process
+- **License-checked downloads** - Only sites with a valid, activated license get a download link (valid 24 hours)
+- **Signed updates** - Every update must carry the WPiko Ed25519 release signature and match its checksum
 - **Backup Recommendations** - Pre-update safety measures
 
 ## 📞 Support & Documentation
@@ -186,7 +171,7 @@ All releases are tracked through GitHub Releases with detailed changelogs:
 - **Documentation:** [wpiko.com/docs/chatbot](https://wpiko.com/docs/chatbot/)
 - **Support Portal:** Available to licensed users
 - **Community:** WordPress.org forums
-- **Updates:** This GitHub repository
+- **Updates:** wpiko.com (WordPress → Plugins)
 
 ### Troubleshooting
 
@@ -217,7 +202,7 @@ This is a commercial plugin repository. For feature requests or bug reports:
 
 ### Third-Party Services
 - **OpenAI API:** Subject to OpenAI terms of service
-- **GitHub:** Used for update delivery
+- **wpiko.com:** License checks and update delivery
 - **WordPress.org:** Base platform requirements
 
 ---

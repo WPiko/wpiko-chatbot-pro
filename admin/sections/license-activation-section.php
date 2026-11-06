@@ -4,8 +4,8 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
-// Include GitHub status widget
-require_once WPIKO_CHATBOT_PRO_PATH . 'admin/templates/github-status-widget.php';
+// Update status card
+require_once WPIKO_CHATBOT_PRO_PATH . 'admin/templates/update-status-widget.php';
 
 function wpiko_chatbot_license_activation_page() {
     $message = '';
@@ -239,7 +239,7 @@ function wpiko_chatbot_license_activation_page() {
                     <div id="wpiko-connection-output"></div>
                 </div>
             </section>
-            <?php wpiko_chatbot_pro_github_status_widget(); ?>
+            <?php wpiko_chatbot_pro_update_status_widget(); ?>
         </div>
     </div>
     <?php

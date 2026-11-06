@@ -65,8 +65,8 @@ def verify(ref="HEAD"):
         }:
             raise ValueError("Development or private file in package: " + name)
 
-    required = {SLUG + ".php", "index.php", "includes/github-config.php",
-                "includes/github-updater.php", "includes/github-helpers.php",
+    required = {SLUG + ".php", "index.php", "includes/updater.php",
+                "admin/templates/update-status-widget.php",
                 "admin/admin-integration.php", "css/wpiko-chatbot-pro.css",
                 "js/contact-form.js", "pwa/index.html", "pwa/manifest.json",
                 "pwa/service-worker.js", "pwa/icons/icon-192.png", "pwa/icons/icon-512.png"}
